@@ -46,7 +46,8 @@ export interface CollectionData {
   wards: WardItem[]
   sets: Record<number, string>
   champions: { id: string; key: number; name: string; owned: boolean; free: boolean }[]
-  source: 'client' | 'demo'
+  source: 'client' | 'snapshot' | 'demo'
+  savedAt?: number
 }
 
 interface CdSkin {
@@ -106,6 +107,8 @@ interface CatalogItem {
   releaseDate?: string | number
 }
 
+const SNAP = 'riftpulse.collection'
+
 async function fromClient(rp: Rp) {
   const me = await rp.lcu.get<{ summonerId: number }>('/lol-summoner/v1/current-summoner')
   const [champs, skinInv, wardInv, skinCat] = await Promise.all([
@@ -130,7 +133,34 @@ export async function loadCollection(useClient: boolean): Promise<CollectionData
   const [cat, list] = await Promise.all([catalogue(), championList()])
   const byKey = Object.fromEntries(list.map((c) => [c.key, c]))
   let client: Awaited<ReturnType<typeof fromClient>> | null = null
+  let source: CollectionData['source'] = 'demo'
+  let savedAt: number | undefined
   if (useClient && window.rp) client = await fromClient(window.rp).catch(() => null)
+  if (client) {
+    source = 'client'
+    // Riot API has no inventory endpoint, so keep the last client snapshot for use without League running
+    try {
+      localStorage.setItem(
+        SNAP,
+        JSON.stringify({
+          at: Date.now(),
+          champs: client.champs.map((c) => ({ id: c.id, alias: c.alias, name: c.name, freeToPlay: c.freeToPlay, ownership: { owned: Boolean(c.ownership?.owned) } })),
+          skinInv: client.skinInv.map((i) => ({ itemId: i.itemId, purchaseDate: i.purchaseDate })),
+          wardInv: client.wardInv.map((i) => ({ itemId: i.itemId, purchaseDate: i.purchaseDate })),
+          skinCat: client.skinCat.map((c) => ({ itemId: c.itemId, prices: c.prices?.filter((p) => p.currency === 'RP'), releaseDate: c.releaseDate })),
+        }),
+      )
+    } catch {}
+  } else if (window.rp) {
+    try {
+      const snap = JSON.parse(localStorage.getItem(SNAP) ?? 'null')
+      if (snap && Array.isArray(snap.skinInv)) {
+        client = snap
+        source = 'snapshot'
+        savedAt = snap.at
+      }
+    } catch {}
+  }
 
   const inv = new Map((client?.skinInv ?? []).map((i) => [i.itemId, i]))
   const prices = new Map((client?.skinCat ?? []).map((c) => [c.itemId, c]))
@@ -191,5 +221,5 @@ export async function loadCollection(useClient: boolean): Promise<CollectionData
     ? client.champs.map((c) => ({ id: c.alias, key: c.id, name: byKey[c.id]?.name ?? c.name, owned: ownedChamps.has(c.id), free: c.freeToPlay }))
     : list.map((c, i) => ({ id: c.id, key: c.key, name: c.name, owned: (c.key * 7 + i) % 5 !== 0, free: i % 17 === 0 }))
 
-  return { skins, wards, sets: cat.sets, champions, source: client ? 'client' : 'demo' }
+  return { skins, wards, sets: cat.sets, champions, source, savedAt }
 }

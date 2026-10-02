@@ -1,7 +1,32 @@
 import type { MatchSummary, PlayerData, RankEntry } from '../types'
-import { lcuGameToRaw, normalizeMatch, type LcuGame, type RawMatch } from './normalize'
+import { lcuGameToRaw, normalizeMatch, type LcuGame } from './normalize'
 import { championMap } from '../lib/ddragon'
-import { mapLimit, readCache, regionalOf, riot, writeCache } from './riot'
+import { mapLimit, proxyConfig, readCache, regionalOf, riot, writeCache } from './riot'
+import type { RawMatch } from './normalize'
+
+// region names the client reports → Riot API platform ids
+const REGION_PLATFORM: Record<string, string> = {
+  RU: 'ru', EUW: 'euw1', EUW1: 'euw1', EUNE: 'eun1', EUN1: 'eun1', TR: 'tr1', TR1: 'tr1', ME: 'me1', ME1: 'me1',
+  NA: 'na1', NA1: 'na1', BR: 'br1', BR1: 'br1', LAN: 'la1', LA1: 'la1', LAS: 'la2', LA2: 'la2', KR: 'kr',
+  JP: 'jp1', JP1: 'jp1', OCE: 'oc1', OC1: 'oc1', SG: 'sg2', SG2: 'sg2', TW: 'tw2', TW2: 'tw2', VN: 'vn2', VN2: 'vn2',
+  TH: 'th2', TH2: 'th2', PH: 'ph2', PH2: 'ph2',
+}
+
+/** Which server the signed-in account is on; tries several client endpoints because some are missing on some builds. */
+async function detectPlatform(get: <T>(path: string) => Promise<T>): Promise<string> {
+  const probes: (() => Promise<unknown>)[] = [
+    () => get<string>('/lol-platform-config/v1/namespaces/LoginDataPacket/platformId'),
+    () => get<{ platformId?: string }>('/lol-chat/v1/me').then((r) => r?.platformId),
+    () => get<{ region?: string }>('/riotclient/region-locale').then((r) => r?.region),
+    () => get<{ region?: string }>('/riotclient/get_region_locale').then((r) => r?.region),
+  ]
+  for (const probe of probes) {
+    const v = await probe().catch(() => null)
+    const p = typeof v === 'string' ? REGION_PLATFORM[v.trim().toUpperCase()] : undefined
+    if (p) return p
+  }
+  return 'euw1'
+}
 
 /** Loads the signed-in account straight from the running League client — no API key needed. */
 export async function loadFromClient(count: number, onProgress?: (done: number, total: number) => void): Promise<PlayerData> {
@@ -29,52 +54,18 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       '/lol-ranked/v1/current-ranked-stats',
     ).catch(() => ({ queues: [] })),
     loadHistory(),
-    get<string>('/lol-platform-config/v1/namespaces/LoginDataPacket/platformId').catch(() => 'EUW1'),
+    detectPlatform(get),
     get<{ championId: number; championLevel: number; championPoints: number }[]>(
       '/lol-champion-mastery/v1/local-player/champion-mastery',
     ).catch(() => []),
     championMap(),
   ])
 
-  const cache = readCache()
-  const platformId = String(platform).toLowerCase()
-  const [stored, hasKey] = await Promise.all([
-    rp.history.get(me.puuid).catch(() => [] as MatchSummary[]),
-    rp.settings.get().then((st) => Boolean(st.riotApiKey)).catch(() => false),
-  ])
-  const known = new Map<string, MatchSummary>()
-  for (const m of stored) if (m?.players) known.set(m.id, m)
-
-  // The client keeps only the last 20 games. With a Riot API key the rest of the
-  // history comes from match-v5; without one, games saved on earlier launches fill it up.
-  let apiIds: string[] = []
-  let apiPuuid = ''
-  if (hasKey && me.gameName && me.tagLine) {
-    try {
-      const regional = regionalOf(platformId)
-      const account = await riot<{ puuid: string }>(
-        regional === 'sea' ? 'asia' : regional,
-        `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(me.gameName)}/${encodeURIComponent(me.tagLine)}`,
-      )
-      apiPuuid = account.puuid
-      for (let start = 0; start < count; start += 100) {
-        const n = Math.min(100, count - start)
-        const page = await riot<string[]>(regional, `/lol/match/v5/matches/by-puuid/${apiPuuid}/ids?start=${start}&count=${n}`)
-        apiIds.push(...page)
-        if (page.length < n) break
-      }
-    } catch {
-      apiIds = [] // expired or missing key: fall back to the client and the saved history
-    }
-  }
-  const lcuIds = new Set(games.map((g) => `${g.platformId ?? 'LCU'}_${g.gameId}`))
-  const missing = apiIds.filter((id) => !known.has(id) && !lcuIds.has(id))
-
+  const cache = await readCache()
   let done = 0
-  const total = games.length + missing.length
-  onProgress?.(0, total)
+  onProgress?.(0, games.length)
   // The history list only carries our own participant; fetch each full game for all ten players.
-  const fromClient = await mapLimit(games, 4, async (g) => {
+  const matches = await mapLimit(games, 4, async (g) => {
     const key = `${me.puuid}:${g.platformId ?? 'LCU'}_${g.gameId}`
     let m: MatchSummary | null | undefined = cache[key]
     if (!m || !m.players) {
@@ -82,20 +73,60 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       m = normalizeMatch(lcuGameToRaw(full, champs), me.puuid)
       if (m) cache[key] = m
     }
-    onProgress?.(++done, total)
+    onProgress?.(++done, games.length)
     return m
   })
-  writeCache(cache)
-  const fromApi = await mapLimit(missing, 4, async (id) => {
-    const raw = await riot<RawMatch>(regionalOf(platformId), `/lol/match/v5/matches/${id}`).catch(() => null)
-    onProgress?.(++done, total)
-    return raw ? normalizeMatch(raw, apiPuuid) : null
-  })
 
-  const fresh = [...fromClient, ...fromApi].filter((m): m is MatchSummary => Boolean(m?.players))
-  for (const m of fresh) known.set(m.id, m)
-  if (fresh.length) rp.history.put(me.puuid, fresh).catch(() => {})
-  const matches = [...known.values()].sort((a, b) => b.endedAt - a.endedAt).slice(0, count)
+  // The client only keeps the latest ~20 games. Games seen on earlier launches stay in the
+  // disk cache, so the history keeps growing even without a key.
+  const all = matches.filter((m): m is MatchSummary => Boolean(m))
+  const have = new Set(all.map((m) => m.id.split('_').pop()))
+  for (const [key, m] of Object.entries(cache)) {
+    const gameId = m.id.split('_').pop()
+    if (key.startsWith(`${me.puuid}:`) && m.players && !have.has(gameId)) {
+      have.add(gameId)
+      all.push(m)
+    }
+  }
+  // Older games come from match-v5 when a key is set.
+  if (all.length < count && (await proxyConfig().catch(() => null))?.serverKey) {
+    const regional = regionalOf(String(platform).toLowerCase())
+    const ids: string[] = []
+    // match-v5 wants the puuid issued for this API key, which may differ from the client's
+    let apiPuuid = me.puuid
+    try {
+      if (me.gameName && me.tagLine) {
+        const account = await riot<{ puuid: string }>(
+          regional === 'sea' ? 'asia' : regional,
+          `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(me.gameName)}/${encodeURIComponent(me.tagLine)}`,
+        )
+        apiPuuid = account.puuid
+      }
+      for (let start = 0; start < count; start += 100) {
+        const n = Math.min(100, count - start)
+        const page = await riot<string[]>(regional, `/lol/match/v5/matches/by-puuid/${apiPuuid}/ids?start=${start}&count=${n}`)
+        ids.push(...page)
+        if (page.length < n) break
+      }
+    } catch {}
+    const missing = ids.filter((id) => !have.has(id.split('_').pop())).slice(0, count - all.length)
+    let extraDone = 0
+    onProgress?.(games.length, games.length + missing.length)
+    const extra = await mapLimit(missing, 4, async (id) => {
+      const key = `${me.puuid}:${id}`
+      let m: MatchSummary | null | undefined = cache[key]
+      if (!m || !m.players) {
+        m = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`)
+          .then((raw) => normalizeMatch(raw, apiPuuid))
+          .catch(() => null)
+        if (m) cache[key] = m
+      }
+      onProgress?.(games.length + ++extraDone, games.length + missing.length)
+      return m
+    })
+    for (const m of extra) if (m) all.push(m)
+  }
+  writeCache(cache)
 
   const ranks: RankEntry[] = ranked.queues
     .filter((q) => q.tier && q.tier !== 'NONE' && q.tier !== '')
@@ -105,13 +136,13 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
     profile: {
       gameName: me.gameName,
       tagLine: me.tagLine,
-      platform: platformId,
+      platform: String(platform).toLowerCase(),
       level: me.summonerLevel,
       iconId: me.profileIconId,
       puuid: me.puuid,
     },
     ranks,
-    matches,
+    matches: all.sort((a, b) => b.endedAt - a.endedAt).slice(0, count),
     source: 'client',
     fetchedAt: Date.now(),
     mastery: mastery

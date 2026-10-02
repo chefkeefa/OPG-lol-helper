@@ -1,4 +1,4 @@
-import type { LiveData, MatchSummary } from './types'
+import type { LiveData } from './types'
 import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks } from './lib/statsTypes'
 
 interface RiotResult {
@@ -9,6 +9,7 @@ interface RiotResult {
 
 export interface DesktopSettings {
   riotApiKey: string
+  myRiotId: string
   platform: string
   overlayEnabled: boolean
   overlayCorner: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
@@ -36,7 +37,8 @@ export interface ClientStatus {
 }
 
 type Off = () => void
-export type UpdateState = { state: 'idle' | 'checking' | 'downloading' | 'ready'; version: string }
+export type SkinLog = { games: { champ?: string; key?: number; num: number; at: number }[] }
+export type UpdateState = { state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; version: string; error?: string }
 type Result = { ok: boolean; error?: string }
 
 declare global {
@@ -46,11 +48,9 @@ declare global {
       window: { minimize(): void; maximize(): void; close(): void; onState(cb: (s: { maximized: boolean }) => void): Off }
       version(): Promise<string>
       settings: { get(): Promise<DesktopSettings>; set<K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]): Promise<boolean> }
-      history: {
-        get(puuid: string): Promise<MatchSummary[]>
-        put(puuid: string, matches: MatchSummary[]): Promise<number>
-      }
       riot(host: string, path: string): Promise<RiotResult>
+      skins: { get(): Promise<SkinLog>; onUpdate(cb: (s: SkinLog) => void): Off }
+      cache: { read(): Promise<Record<string, MatchSummary>>; write(d: Record<string, MatchSummary>): Promise<boolean>; clear(): Promise<boolean> }
       lcu: {
         status(): Promise<ClientStatus>
         get<T = unknown>(path: string): Promise<T>
@@ -73,6 +73,7 @@ declare global {
       update: {
         state(): Promise<UpdateState>
         install(): Promise<void>
+        check(): Promise<void>
         onState(cb: (s: UpdateState) => void): Off
       }
       rec: {

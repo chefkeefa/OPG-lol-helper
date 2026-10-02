@@ -31,7 +31,10 @@ class RiotClient {
     if (!this.getKey()) return Promise.resolve({ status: 401, body: { status: { message: 'No Riot API key' } } })
     return new Promise((resolve) => {
       const job = { host, path, priority, resolve }
-      if (priority === 'high') this.queue.unshift(job)
+      if (priority === 'high') {
+        this.lastHigh = Date.now()
+        this.queue.unshift(job)
+      }
       else this.queue.push(job)
       this.pump()
     })
@@ -47,6 +50,8 @@ class RiotClient {
     if (now < this.blockedUntil) return this.blockedUntil - now
     const lastSecond = this.stamps.filter((t) => now - t < 1000)
     if (lastSecond.length >= this.limits.perSecond) return 1000 - (now - lastSecond[0]) + 5
+    // the collector stands aside entirely while the interface is loading something
+    if (priority === 'low' && now - (this.lastHigh || 0) < 20_000) return 1000
     // the collector keeps 15% of the 2-minute budget free for the interface
     const cap = priority === 'low' ? Math.floor(this.limits.perTwoMinutes * 0.85) : this.limits.perTwoMinutes
     if (this.stamps.length >= cap) return 120_000 - (now - this.stamps[this.stamps.length - cap]) + 5

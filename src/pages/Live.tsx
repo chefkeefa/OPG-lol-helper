@@ -3,6 +3,7 @@ import type { LiveData } from '../types'
 import { champSplash } from '../lib/ddragon'
 import { clock, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Icon, Item, Ring, Splash, ease, stagger } from '../components/ui'
+import { liveChamp, liveSplash } from '../lib/skins'
 import { ObjectiveGlyph } from './Dashboard'
 
 export function Live({ live, preview, onPreview }: { live: LiveData | null; preview: boolean; onPreview: () => void }) {
@@ -74,9 +75,9 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + i * 0.05, duration: 0.45, ease }}
               >
-                <Splash src={champSplash(p.championName)} className="lp-bg" position="center 22%" />
+                <Splash src={liveSplash(p)} fallback={champSplash(liveChamp(p))} className="lp-bg" position="center 22%" />
                 <div className="lp-champ">
-                  <Champ name={p.championName} size={44} radius={10} />
+                  <Champ name={liveChamp(p)} size={44} radius={10} />
                   <span className="champ-lvl">{p.level}</span>
                 </div>
                 <div className="lp-name">

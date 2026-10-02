@@ -129,7 +129,7 @@ export function TitleBar({
 
       <div className="title-right no-drag">
         {client && (
-          <div className={`client-pill ${client.connected ? 'on' : ''}`} title={client.connected ? 'Данные берутся из запущенного клиента' : 'Запустите клиент League of Legends'}>
+          <div className={`client-pill ${client.connected ? 'on' : ''}`} title={client.connected ? 'Данные берутся из запущенного клиента' : 'Без клиента: профиль и игры идут через Riot API'}>
             <span className="pulse" />
             {client.connected ? PHASE[client.phase] ?? client.phase : 'Клиент не найден'}
           </div>

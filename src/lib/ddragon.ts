@@ -22,7 +22,7 @@ export function useDDragon() {
 }
 
 export const champIcon = (name: string, v = version) => `${CDN}/cdn/${v}/img/champion/${name}.png`
-export const champSplash = (name: string) => `${CDN}/cdn/img/champion/splash/${name}_0.jpg`
+export const champSplash = (name: string, skin = 0) => `${CDN}/cdn/img/champion/splash/${name}_${skin}.jpg`
 export const champTile = (name: string) => `${CDN}/cdn/img/champion/tiles/${name}_0.jpg`
 export const itemIcon = (id: number, v = version) => `${CDN}/cdn/${v}/img/item/${id}.png`
 export const profileIcon = (id: number, v = version) => `${CDN}/cdn/${v}/img/profileicon/${id}.png`

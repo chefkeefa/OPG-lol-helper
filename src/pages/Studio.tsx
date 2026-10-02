@@ -37,7 +37,7 @@ const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const GROUPS: { id: string; label: string; key: (m: MatchSummary) => string; order?: (a: string, b: string) => number }[] = [
   { id: 'champ', label: 'Чемпион', key: (m) => m.champion },
   { id: 'role', label: 'Роль', key: (m) => m.role || '—' },
-  { id: 'queue', label: 'Очередь', key: (m) => queueLabel(m.queueId) },
+  { id: 'queue', label: 'Очередь', key: (m) => queueLabel(m.queueId, m.mode) },
   { id: 'day', label: 'День недели', key: (m) => String(new Date(m.endedAt).getDay()), order: (a, b) => ((+a + 6) % 7) - ((+b + 6) % 7) },
   { id: 'hour', label: 'Время суток', key: (m) => String(Math.floor(new Date(m.endedAt).getHours() / 3) * 3), order: (a, b) => +a - +b },
   { id: 'length', label: 'Длина игры', key: (m) => String(Math.min(40, Math.floor(m.durationSec / 300) * 5)), order: (a, b) => +a - +b },

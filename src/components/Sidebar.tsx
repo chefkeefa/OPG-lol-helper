@@ -62,7 +62,22 @@ export function Sidebar({
         </motion.div>
         <div>
           <div className="brand-name">Rift Pulse</div>
-          <div className="brand-sub">APP V.{version}</div>
+          <button
+            className="brand-sub brand-check"
+            title={update?.state === 'error' ? `Ошибка обновления: ${update.error}` : 'Проверить обновления'}
+            onClick={() => window.rp?.update?.check()}
+          >
+            APP V.{version}
+            <span className={`upd-note ${update?.state ?? ''}`}>
+              {update?.state === 'checking'
+                ? ' · проверяю…'
+                : update?.state === 'latest'
+                  ? ' · последняя'
+                  : update?.state === 'error'
+                    ? ' · ошибка'
+                    : ''}
+            </span>
+          </button>
         </div>
       </div>
       <AnimatePresence>

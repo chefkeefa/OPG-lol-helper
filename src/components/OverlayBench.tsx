@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import type { LiveData } from '../types'
 import type { Bench, Benchmarks } from '../lib/statsTypes'
+import { liveChamp } from '../lib/skins'
 
 /** "You vs your average" panel of the in-game overlay. */
 export function OverlayBench({ live, bench }: { live: LiveData | null; bench: Benchmarks }) {
@@ -9,7 +10,8 @@ export function OverlayBench({ live, bench }: { live: LiveData | null; bench: Be
   const names = [me?.riotIdGameName, me?.riotId, me?.summonerName].filter(Boolean)
   const p = live.allPlayers.find((x) => names.includes(x.riotIdGameName) || names.includes(x.riotId) || names.includes(x.summonerName))
   if (!p) return null
-  const b: Bench | undefined = (bench[p.championName]?.games ?? 0) >= 3 ? bench[p.championName] : bench['*']
+  const id = liveChamp(p)
+  const b: Bench | undefined = (bench[id]?.games ?? 0) >= 3 ? bench[id] : bench['*']
   if (!b) return null
   const min = Math.max(1, live.gameData.gameTime / 60)
   const teamKills = live.allPlayers.filter((x) => x.team === p.team).reduce((s, x) => s + x.scores.kills, 0)
@@ -24,7 +26,7 @@ export function OverlayBench({ live, bench }: { live: LiveData | null; bench: Be
     <div className="ov ov-bench">
       <div className="ov-bench-head">
         Вы и ваше среднее
-        <em>{bench[p.championName]?.games >= 3 ? p.championName : 'все чемпионы'}</em>
+        <em>{bench[id]?.games >= 3 ? p.championName : 'все чемпионы'}</em>
       </div>
       {rows.map((r) => {
         const ratio = r.avg ? r.now / r.avg : 1

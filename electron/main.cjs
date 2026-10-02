@@ -17,6 +17,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'rpmedia', privileges: { standar
 const settingsFile = path.join(app.getPath('userData'), 'settings.json')
 const DEFAULTS = {
   riotApiKey: '',
+  myRiotId: '',
   platform: 'euw1',
   overlayEnabled: true,
   overlayCorner: 'top-right',
@@ -164,6 +165,7 @@ async function pollChampSelect() {
       send('champselect', { championId, position })
     }
     const locked = (session.actions || []).flat().some((a) => a.actorCellId === session.localPlayerCellId && a.type === 'pick' && a.completed)
+    if (locked && me?.championId && me.selectedSkinId) noteSkin({ key: me.championId, num: me.selectedSkinId % 1000 })
     if (locked && me?.championId && key !== lastImport) {
       lastImport = key
       autoImport(me.championId, POSITION[position] || '')
@@ -196,6 +198,32 @@ async function autoImport(championKey, role) {
   send('import:done', { champion, ok: !errors.length, done, error: errors.join('; ') })
 }
 
+// ---- which skin you played: Riot's match data has no skin, so it is noted in champ select and in game
+const skinsFile = path.join(app.getPath('userData'), 'skins.json')
+let skins = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(skinsFile, 'utf8'))
+  } catch {
+    return { games: [] }
+  }
+})()
+function noteSkin(rec) {
+  if (!rec || !(rec.num >= 0) || (!rec.champ && !rec.key)) return
+  const last = skins.games[skins.games.length - 1]
+  // the same game reports every second: refresh the entry instead of adding one
+  if (last && Date.now() - last.at < 3 * 3600_000 && (last.champ === rec.champ || last.key === rec.key) && last.num === rec.num) {
+    Object.assign(last, rec, { at: last.at })
+    if (rec.champ && !last.champ) last.champ = rec.champ
+  } else skins.games.push({ ...rec, at: Date.now() })
+  skins.games = skins.games.slice(-1000)
+  try {
+    fs.writeFileSync(skinsFile, JSON.stringify(skins))
+  } catch {}
+  send('skins:update', skins)
+}
+ipcMain.handle('skins:get', () => skins)
+let skinNotedFor = ''
+
 let endTimer = null
 async function pollLive() {
   const data = await liveGameData()
@@ -213,7 +241,16 @@ async function pollLive() {
       recorder.start({ champion: mine?.championName, gameMode: data.gameData.gameMode, gameTime: data.gameData.gameTime }).catch(() => {})
     }
     recorder.onLive(data)
+    const me = data.activePlayer
+    const mine = data.allPlayers?.find((p) => [p.riotIdGameName, p.riotId, p.summonerName].filter(Boolean).includes(me?.riotIdGameName || me?.riotId || me?.summonerName))
+    const champ = String(mine?.rawChampionName || '').replace('game_character_displayname_', '')
+    const tag = `${champ}:${mine?.skinID}`
+    if (mine && champ && tag !== skinNotedFor) {
+      skinNotedFor = tag
+      noteSkin({ champ, num: Number(mine.skinID) || 0 })
+    }
   } else if (was) {
+    skinNotedFor = ''
     send('live:data', null)
     hideOverlay()
     // the game window closed: stop recording a moment later
@@ -228,6 +265,30 @@ ipcMain.on('win:maximize', () => (win?.isMaximized() ? win.unmaximize() : win?.m
 ipcMain.on('win:close', () => win?.close())
 ipcMain.handle('app:version', () => app.getVersion())
 
+// finished matches never change: keep them on disk so the next start only fetches new games
+const matchCacheFile = path.join(app.getPath('userData'), 'matches.json')
+ipcMain.handle('cache:read', () => {
+  try {
+    return JSON.parse(fs.readFileSync(matchCacheFile, 'utf8'))
+  } catch {
+    return {}
+  }
+})
+ipcMain.handle('cache:write', (_e, data) => {
+  if (!data || typeof data !== 'object') return false
+  const entries = Object.entries(data)
+    .sort((a, b) => (b[1]?.endedAt ?? 0) - (a[1]?.endedAt ?? 0))
+    .slice(0, 5000)
+  const tmp = matchCacheFile + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(entries)))
+  fs.renameSync(tmp, matchCacheFile)
+  return true
+})
+ipcMain.handle('cache:clear', () => {
+  fs.rmSync(matchCacheFile, { force: true })
+  return true
+})
+
 ipcMain.handle('settings:get', () => ({ ...settings, riotApiKey: settings.riotApiKey ? '•'.repeat(8) + settings.riotApiKey.slice(-4) : '' }))
 ipcMain.handle('settings:set', (_e, key, value) => {
   if (!(key in DEFAULTS)) return false
@@ -240,29 +301,6 @@ ipcMain.handle('settings:set', (_e, key, value) => {
 })
 
 ipcMain.handle('riot:fetch', (_e, host, pathname) => riot.request(host, pathname, 'high'))
-
-// own match history: the League client only returns the last 20 games, so every game
-// we ever see is kept on disk and the history grows from launch to launch
-const historyDir = path.join(app.getPath('userData'), 'history')
-const historyFile = (puuid) => path.join(historyDir, String(puuid).replace(/[^\w-]/g, '') + '.json')
-const readHistory = (puuid) => {
-  try {
-    return JSON.parse(fs.readFileSync(historyFile(puuid), 'utf8'))
-  } catch {
-    return {}
-  }
-}
-ipcMain.handle('history:get', (_e, puuid) => Object.values(readHistory(puuid)))
-ipcMain.handle('history:put', (_e, puuid, matches) => {
-  const all = readHistory(puuid)
-  for (const m of matches || []) if (m && m.id) all[m.id] = m
-  const kept = Object.values(all).sort((a, b) => b.endedAt - a.endedAt).slice(0, 2000)
-  try {
-    fs.mkdirSync(historyDir, { recursive: true })
-    fs.writeFileSync(historyFile(puuid), JSON.stringify(Object.fromEntries(kept.map((m) => [m.id, m]))))
-  } catch {}
-  return kept.length
-})
 
 // statistics
 ipcMain.handle('stats:status', () => collector.status())
@@ -318,7 +356,8 @@ ipcMain.on('overlay:benchmarks', (_e, b) => {
 
 ipcMain.handle('lcu:status', () => lastStatus)
 ipcMain.handle('lcu:get', async (_e, pathname) => {
-  if (typeof pathname !== 'string' || !pathname.startsWith('/lol-')) throw new Error('bad path')
+  const ok = typeof pathname === 'string' && (pathname.startsWith('/lol-') || pathname === '/riotclient/region-locale' || pathname === '/riotclient/get_region_locale')
+  if (!ok) throw new Error('bad path')
   return lcu.get(pathname)
 })
 ipcMain.handle('live:get', () => liveGameData())
@@ -347,7 +386,7 @@ function mediaProtocol() {
 }
 
 // ---------- automatic updates (installed builds only; releases come from GitHub) ----------
-let updateState = { state: 'idle', version: '' }
+let updateState = { state: 'idle', version: '', error: '' }
 function setupUpdates() {
   if (!app.isPackaged) return
   let autoUpdater
@@ -358,19 +397,23 @@ function setupUpdates() {
   }
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
-  const push = (state, version = '') => {
-    updateState = { state, version }
+  const push = (state, version = '', error = '') => {
+    updateState = { state, version, error }
     send('update:state', updateState)
   }
   autoUpdater.on('checking-for-update', () => push('checking'))
   autoUpdater.on('update-available', (i) => push('downloading', i.version))
-  autoUpdater.on('update-not-available', () => push('idle'))
+  autoUpdater.on('update-not-available', () => push('latest'))
   autoUpdater.on('update-downloaded', (i) => push('ready', i.version))
-  autoUpdater.on('error', () => push('idle'))
-  const check = () => autoUpdater.checkForUpdates().catch(() => {})
+  autoUpdater.on('error', (e) => push('error', '', String(e?.message || e).split('\n')[0].slice(0, 160)))
+  const check = () => {
+    if (updateState.state === 'downloading' || updateState.state === 'ready') return
+    autoUpdater.checkForUpdates().catch(() => {})
+  }
   check()
   setInterval(check, 30 * 60_000)
   ipcMain.handle('update:install', () => autoUpdater.quitAndInstall(true, true))
+  ipcMain.handle('update:check', () => check())
 }
 ipcMain.handle('update:state', () => updateState)
 

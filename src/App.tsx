@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData, Page, PlayerData, QueueFilter } from './types'
 import type { ClientStatus, DesktopSettings, UpdateState } from './env'
-import { RiotError, getStoredKey, loadPlayer, proxyConfig } from './api/riot'
+import { RiotError, clearCache, getStoredKey, loadPlayer, proxyConfig } from './api/riot'
 import { loadFromClient } from './api/client'
 import { mockPlayer } from './data/mock'
 import { benchmarks, filterMatches } from './lib/stats'
@@ -30,6 +30,15 @@ import { statsStatus } from './lib/statsApi'
 import type { StatsStatus } from './lib/statsTypes'
 
 const LAST = 'riftpulse.last'
+// the signed-in account, remembered so it can be loaded via Riot API while League is closed
+const ME = 'riftpulse.me'
+const readMe = (): { riotId: string; platform: string } | null => {
+  try {
+    return JSON.parse(localStorage.getItem(ME) ?? 'null')
+  } catch {
+    return null
+  }
+}
 const readLast = (): { riotId: string; platform: string } | null => {
   try {
     return JSON.parse(localStorage.getItem(LAST) ?? 'null')
@@ -52,6 +61,7 @@ function errorText(e: unknown) {
 
 const WEB_SETTINGS: DesktopSettings = {
   riotApiKey: '',
+  myRiotId: '',
   platform: 'euw1',
   overlayEnabled: false,
   overlayCorner: 'top-right',
@@ -109,7 +119,7 @@ export default function App() {
   const [recording, setRecording] = useState(false)
   const [hist, setHist] = useState<{ stack: Page[]; i: number }>({ stack: ['dashboard'], i: 0 })
   const page = hist.stack[hist.i]
-  const viewing = useRef<{ kind: 'client' } | { kind: 'riot'; riotId: string; platform: string } | null>(null)
+  const viewing = useRef<{ kind: 'client' } | { kind: 'riot'; riotId: string; platform: string; self?: boolean } | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const hinted = useRef(false)
 
@@ -125,10 +135,16 @@ export default function App() {
     setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 6000)
   }
 
-  const run = useCallback(async (job: (p: (d: number, t: number) => void) => Promise<PlayerData>) => {
+  const runSeq = useRef(0)
+  const run = useCallback(async (job: (p: (d: number, t: number) => void, partial: (d: PlayerData) => void) => Promise<PlayerData>) => {
+    const seq = ++runSeq.current
     setProgress(0.05)
     try {
-      const d = await job((done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85))
+      const d = await job(
+        (done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85),
+        // late updates (streamed games, timelines) only apply while this load is still the latest
+        (part) => seq === runSeq.current && setData(part),
+      )
       setData(d)
       setOpenId(undefined)
       return true
@@ -144,17 +160,41 @@ export default function App() {
     viewing.current = { kind: 'client' }
     return run(async (p) => {
       const d = await loadFromClient(count, p)
-      if (d.matches.length < count && !hinted.current) {
-        hinted.current = true
-        const st = await window.rp?.settings.get().catch(() => null)
-        if (!st?.riotApiKey)
+      try {
+        localStorage.setItem(ME, JSON.stringify({ riotId: `${d.profile.gameName}#${d.profile.tagLine}`, platform: d.profile.platform }))
+      } catch {}
+      // follow the account's server everywhere else (search, collector, spectate)
+      window.rp?.settings.get().then((st) => {
+        if (st.platform !== d.profile.platform) {
+          window.rp?.settings.set('platform', d.profile.platform).then(() => window.rp?.settings.get().then(setSettings))
+        }
+        if (!st.riotApiKey && d.matches.length < count && !hinted.current) {
+          hinted.current = true
           showToast(
             `Загружено ${d.matches.length} игр: клиент LoL хранит только последние 20. Добавьте ключ Riot API в настройках, чтобы подтянуть всю историю. Без ключа игры будут копиться с каждой новой партией.`,
             'info',
           )
-      }
+        }
+      })
       return d
     })
+  }, [run, count])
+
+  // League is closed: show the remembered own account through the Riot API
+  const settingsRef = useRef<DesktopSettings | null>(null)
+  settingsRef.current = settings
+  // own account: the Riot ID from Settings, else the one remembered from the client
+  const myAccount = useCallback((st = settingsRef.current) => {
+    const id = st?.myRiotId?.trim()
+    if (id && id.includes('#')) return { riotId: id, platform: st?.platform || 'euw1' }
+    return readMe()
+  }, [])
+
+  const loadSelfOffline = useCallback(() => {
+    const me = myAccount()
+    if (!me) return Promise.resolve(false)
+    viewing.current = { kind: 'riot', ...me, self: true }
+    return run((p, part) => loadPlayer(me.riotId, me.platform, count, p, part))
   }, [run, count])
 
   const search = useCallback(
@@ -174,20 +214,23 @@ export default function App() {
   const refresh = useCallback(() => {
     const v = viewing.current
     if (v?.kind === 'client') return loadSelf()
-    if (v?.kind === 'riot') return run((p) => loadPlayer(v.riotId, v.platform, count, p))
+    if (v?.kind === 'riot') return run((p, part) => loadPlayer(v.riotId, v.platform, count, p, part))
     if (client?.connected) return loadSelf()
+    if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
     showToast('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.', 'info')
-  }, [loadSelf, run, count, client])
+  }, [loadSelf, loadSelfOffline, myAccount, run, count, client, settings])
 
   // first load
   useEffect(() => {
     const rp = window.rp
     if (rp) {
       rp.version().then(setVersion)
-      rp.settings.get().then(setSettings)
-      rp.lcu.status().then((s) => {
+      Promise.all([rp.settings.get(), rp.lcu.status()]).then(([st, s]) => {
+        setSettings(st)
         setClient(s)
-        if (s.connected) loadSelf()
+        // with a key the own account comes straight from the Riot API, without waiting for League
+        if (st.riotApiKey && myAccount(st)) loadSelfOffline()
+        else if (s.connected) loadSelf()
       })
       rp.live.get().then((d) => d && setLive(d))
       const offLive = rp.live.on(setLive)
@@ -207,11 +250,18 @@ export default function App() {
     if (!rp) return
     return rp.lcu.onStatus((s) => {
       setClient((old) => {
-        if (s.connected && !old?.connected && viewing.current?.kind !== 'riot') loadSelf()
+        if (s.connected && !old?.connected) {
+          const v = viewing.current
+          const viaApi = Boolean(settingsRef.current?.riotApiKey && myAccount())
+          if (!viaApi && (v?.kind !== 'riot' || v.self)) loadSelf()
+          if (viaApi && !v) loadSelfOffline()
+        }
         return s
       })
-      if (prevPhase.current === 'InProgress' && s.phase !== 'InProgress' && viewing.current?.kind === 'client') {
-        setTimeout(loadSelf, 15000) // give the client time to publish the finished game
+      if (prevPhase.current === 'InProgress' && s.phase !== 'InProgress') {
+        const v = viewing.current
+        if (v?.kind === 'client') setTimeout(loadSelf, 15000) // give the client time to publish the finished game
+        else if (v?.kind === 'riot' && v.self) setTimeout(loadSelfOffline, 90000) // match-v5 publishes a bit later
       }
       prevPhase.current = s.phase
     })
@@ -238,7 +288,13 @@ export default function App() {
     setSettings((s) => (s ? { ...s, [k]: v } : s))
     if (window.rp)
       window.rp.settings.set(k, v).then(() => {
-        if (k === 'riotApiKey') window.rp?.settings.get().then(setSettings)
+        if (k === 'riotApiKey' || k === 'myRiotId' || k === 'platform')
+          window.rp?.settings.get().then((st) => {
+            setSettings(st)
+            settingsRef.current = st
+            const v = viewing.current
+            if (k !== 'platform' && st.riotApiKey && myAccount(st) && (!v || v.kind === 'client' || v.self)) loadSelfOffline()
+          })
       })
     else if (k === 'platform') {
       try {
@@ -428,9 +484,7 @@ export default function App() {
                   update={updateSetting}
                   stats={stats}
                   onClearCache={() => {
-                    try {
-                      localStorage.removeItem('riftpulse.matches.v1')
-                    } catch {}
+                    clearCache()
                     showToast('Кэш очищен', 'info')
                   }}
                 />

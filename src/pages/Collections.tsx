@@ -161,6 +161,9 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
         </h1>
         <span className="coll-sub muted small">Все ваши образы, тотемы и чемпионы в одном месте</span>
         {col?.source === 'demo' && <span className="collector-pill demo">Пример: запустите клиент LoL</span>}
+        {col?.source === 'snapshot' && (
+          <span className="collector-pill">Без клиента · данные на {col.savedAt ? new Date(col.savedAt).toLocaleDateString('ru-RU') : 'последний запуск'}</span>
+        )}
         <div className="coll-tabs">
           <Segmented
             id="coll-tab"

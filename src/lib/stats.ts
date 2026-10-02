@@ -6,12 +6,21 @@ export const QUEUE_LABEL: Record<number, string> = {
   450: 'ARAM',
   400: 'Normal Draft',
   430: 'Normal Blind',
+  480: 'Swiftplay',
   490: 'Quickplay',
+  700: 'Clash',
+  720: 'ARAM Clash',
+  2400: 'ARAM: Хаос',
   1700: 'Arena',
+  1710: 'Arena',
+  1300: 'Nexus Blitz',
   1900: 'URF',
   900: 'ARURF',
+  0: 'Своя игра',
 }
-export const queueLabel = (id: number) => QUEUE_LABEL[id] ?? 'Другой режим'
+const MODE_LABEL: Record<string, string> = { ARAM: 'ARAM', CHERRY: 'Arena', URF: 'URF', ARURF: 'ARURF', CLASSIC: 'Обычная', NEXUSBLITZ: 'Nexus Blitz', ONEFORALL: 'Один за всех', ULTBOOK: 'Ultimate Spellbook' }
+export const queueLabel = (id: number, mode?: string) => QUEUE_LABEL[id] ?? (mode && MODE_LABEL[mode]) ?? 'Другой режим'
+const isAram = (m: MatchSummary) => [450, 720, 2400].includes(m.queueId) || m.mode === 'ARAM'
 
 export const QUEUE_FILTERS: { id: QueueFilter; label: string }[] = [
   { id: 'all', label: 'Все' },
@@ -22,13 +31,13 @@ export const QUEUE_FILTERS: { id: QueueFilter; label: string }[] = [
 ]
 
 export function filterMatches(ms: MatchSummary[], f: QueueFilter) {
-  const ok = (q: number) =>
+  const ok = (m: MatchSummary) =>
     f === 'all' ||
-    (f === 'solo' && q === 420) ||
-    (f === 'flex' && q === 440) ||
-    (f === 'aram' && q === 450) ||
-    (f === 'normal' && [400, 430, 490].includes(q))
-  return ms.filter((m) => !m.remake && ok(m.queueId))
+    (f === 'solo' && m.queueId === 420) ||
+    (f === 'flex' && m.queueId === 440) ||
+    (f === 'aram' && isAram(m)) ||
+    (f === 'normal' && [400, 430, 480, 490].includes(m.queueId))
+  return ms.filter((m) => !m.remake && ok(m))
 }
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0)
@@ -48,7 +57,11 @@ export interface StatCard {
 
 const num = (d: number) => (v: number) => v.toFixed(d)
 const pct = (v: number) => `${Math.round(v * 100)}%`
-const signed = (f: (v: number) => string) => (v: number) => (v >= 0 ? '+' : '') + f(v)
+const signed = (f: (v: number) => string) => (v: number) => {
+  const t = f(v)
+  if (/^-0(\.0+)?%?$/.test(t)) return t.slice(1)
+  return t.startsWith('-') ? t : '+' + t
+}
 
 /** Stat cards: value = average over all games, delta = last 5 games vs that average. */
 export function statCards(ms: MatchSummary[]): StatCard[] {
@@ -63,12 +76,21 @@ export function statCards(ms: MatchSummary[]): StatCard[] {
     ['gold', 'Золото/мин', (m) => m.goldPerMin, num(0), num(0)],
     ['vision', 'Обзор/мин', (m) => m.visionPerMin, num(2), num(2)],
   ]
-  return defs.map(([key, label, get, fmt, fd]) => {
-    const series = chrono.map(get)
+  const card = (key: string, label: string, list: MatchSummary[], get: (m: MatchSummary) => number, fmt: (v: number) => string, fd: (v: number) => string): StatCard => {
+    const series = list.map(get)
     const value = avg(series)
     const recent = avg(series.slice(-5))
-    return { key, label, value, delta: series.length ? recent - value : 0, series, fmt, fmtDelta: signed(fd), dates: chrono.map((m) => m.endedAt), champs: chrono.map((m) => m.champion) }
-  })
+    return { key, label, value, delta: series.length ? recent - value : 0, series, fmt, fmtDelta: signed(fd), dates: list.map((m) => m.endedAt), champs: list.map((m) => m.champion) }
+  }
+  const out = defs.map(([key, label, get, fmt, fd]) => card(key, label, chrono, get, fmt, fd))
+  // lane diffs at 15 minutes replace gold/min and vision once enough timelines are loaded
+  const withTl = chrono.filter((m) => m.d15)
+  if (withTl.length >= 3) {
+    const sg = (d: number) => (v: number) => (v >= 0 ? '+' : '') + v.toFixed(d)
+    out[6] = card('gd15', 'Золото @15', withTl, (m) => m.d15!.gold, sg(0), num(0))
+    out[7] = card('ka15', 'У+П @15', withTl, (m) => m.d15!.ka, sg(1), num(1))
+  }
+  return out
 }
 
 export interface ChampAgg {

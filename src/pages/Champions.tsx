@@ -3,11 +3,13 @@ import { motion } from 'motion/react'
 import type { MatchSummary, PlayerData } from '../types'
 import { championAggs } from '../lib/stats'
 import { champSplash } from '../lib/ddragon'
+import { champSkinSplash, useSkins } from '../lib/skins'
 import { Champ, Counter, Icon, Splash, ease, fadeUp, stagger } from '../components/ui'
 
 type SortKey = 'games' | 'wr' | 'kda' | 'score' | 'cs' | 'dmg'
 
 export function Champions({ data, matches }: { data: PlayerData; matches: MatchSummary[] }) {
+  useSkins()
   const [sort, setSort] = useState<SortKey>('games')
   const rows = useMemo(() => {
     const aggs = championAggs(matches).map((a) => {
@@ -46,7 +48,7 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
         <div className="champs-main">
           {top && (
             <motion.section variants={fadeUp} className="card champ-hero">
-              <Splash src={champSplash(top.champion)} position="center 20%" />
+              <Splash src={champSkinSplash(top.champion)} fallback={champSplash(top.champion)} position="center 20%" />
               <div className="champ-hero-shade" />
               <div className="champ-hero-body">
                 <span className="chip">Лучший по «{cols.find((c) => c[0] === sort)?.[1]}»</span>

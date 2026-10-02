@@ -18,11 +18,13 @@ contextBridge.exposeInMainWorld('rp', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   },
-  history: {
-    get: (puuid) => ipcRenderer.invoke('history:get', puuid),
-    put: (puuid, matches) => ipcRenderer.invoke('history:put', puuid, matches),
-  },
   riot: (host, path) => ipcRenderer.invoke('riot:fetch', host, path),
+  skins: { get: () => ipcRenderer.invoke('skins:get'), onUpdate: on('skins:update') },
+  cache: {
+    read: () => ipcRenderer.invoke('cache:read'),
+    write: (data) => ipcRenderer.invoke('cache:write', data),
+    clear: () => ipcRenderer.invoke('cache:clear'),
+  },
   lcu: {
     status: () => ipcRenderer.invoke('lcu:status'),
     get: (path) => ipcRenderer.invoke('lcu:get', path),
@@ -52,6 +54,7 @@ contextBridge.exposeInMainWorld('rp', {
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     install: () => ipcRenderer.invoke('update:install'),
+    check: () => ipcRenderer.invoke('update:check'),
     onState: on('update:state'),
   },
   rec: {
