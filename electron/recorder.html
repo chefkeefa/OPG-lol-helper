@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'" />
+    <title>Rift Pulse recorder</title>
+  </head>
+  <body>
+    <script>
+      let recorder = null
+      let stream = null
+      const TYPES = ['video/webm;codecs=h264,opus', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+
+      window.rec.onStart(async ({ fps, bitrate, width, height, audio }) => {
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: fps, width: { ideal: width }, height: { ideal: height } },
+            audio,
+          })
+          const mimeType = TYPES.find((t) => MediaRecorder.isTypeSupported(t))
+          recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitrate, audioBitsPerSecond: 160000 })
+          // chunks are forwarded strictly in order
+          let chain = Promise.resolve()
+          recorder.ondataavailable = (e) => {
+            if (!e.data.size) return
+            chain = chain.then(async () => window.rec.chunk(await e.data.arrayBuffer()))
+          }
+          recorder.onstop = () => {
+            stream.getTracks().forEach((t) => t.stop())
+            chain.then(() => setTimeout(() => window.rec.stopped(), 200))
+          }
+          recorder.start(1000)
+          window.rec.started()
+        } catch (e) {
+          window.rec.error(String(e))
+        }
+      })
+
+      window.rec.onStop(() => {
+        if (recorder && recorder.state !== 'inactive') recorder.stop()
+        else window.rec.stopped()
+      })
+    </script>
+  </body>
+</html>
