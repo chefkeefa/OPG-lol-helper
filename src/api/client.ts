@@ -4,6 +4,30 @@ import { championMap } from '../lib/ddragon'
 import { mapLimit, proxyConfig, readCache, regionalOf, riot, writeCache } from './riot'
 import type { RawMatch } from './normalize'
 
+// region names the client reports → Riot API platform ids
+const REGION_PLATFORM: Record<string, string> = {
+  RU: 'ru', EUW: 'euw1', EUW1: 'euw1', EUNE: 'eun1', EUN1: 'eun1', TR: 'tr1', TR1: 'tr1', ME: 'me1', ME1: 'me1',
+  NA: 'na1', NA1: 'na1', BR: 'br1', BR1: 'br1', LAN: 'la1', LA1: 'la1', LAS: 'la2', LA2: 'la2', KR: 'kr',
+  JP: 'jp1', JP1: 'jp1', OCE: 'oc1', OC1: 'oc1', SG: 'sg2', SG2: 'sg2', TW: 'tw2', TW2: 'tw2', VN: 'vn2', VN2: 'vn2',
+  TH: 'th2', TH2: 'th2', PH: 'ph2', PH2: 'ph2',
+}
+
+/** Which server the signed-in account is on; tries several client endpoints because some are missing on some builds. */
+async function detectPlatform(get: <T>(path: string) => Promise<T>): Promise<string> {
+  const probes: (() => Promise<unknown>)[] = [
+    () => get<string>('/lol-platform-config/v1/namespaces/LoginDataPacket/platformId'),
+    () => get<{ platformId?: string }>('/lol-chat/v1/me').then((r) => r?.platformId),
+    () => get<{ region?: string }>('/riotclient/region-locale').then((r) => r?.region),
+    () => get<{ region?: string }>('/riotclient/get_region_locale').then((r) => r?.region),
+  ]
+  for (const probe of probes) {
+    const v = await probe().catch(() => null)
+    const p = typeof v === 'string' ? REGION_PLATFORM[v.trim().toUpperCase()] : undefined
+    if (p) return p
+  }
+  return 'euw1'
+}
+
 /** Loads the signed-in account straight from the running League client — no API key needed. */
 export async function loadFromClient(count: number, onProgress?: (done: number, total: number) => void): Promise<PlayerData> {
   const rp = window.rp
@@ -30,7 +54,7 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       '/lol-ranked/v1/current-ranked-stats',
     ).catch(() => ({ queues: [] })),
     loadHistory(),
-    get<string>('/lol-platform-config/v1/namespaces/LoginDataPacket/platformId').catch(() => 'EUW1'),
+    detectPlatform(get),
     get<{ championId: number; championLevel: number; championPoints: number }[]>(
       '/lol-champion-mastery/v1/local-player/champion-mastery',
     ).catch(() => []),

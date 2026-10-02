@@ -155,6 +155,12 @@ export default function App() {
       try {
         localStorage.setItem(ME, JSON.stringify({ riotId: `${d.profile.gameName}#${d.profile.tagLine}`, platform: d.profile.platform }))
       } catch {}
+      // follow the account's server everywhere else (search, collector, spectate)
+      window.rp?.settings.get().then((st) => {
+        if (st.platform !== d.profile.platform) {
+          window.rp?.settings.set('platform', d.profile.platform).then(() => window.rp?.settings.get().then(setSettings))
+        }
+      })
       return d
     })
   }, [run, count])
