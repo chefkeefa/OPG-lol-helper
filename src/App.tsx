@@ -30,6 +30,15 @@ import { statsStatus } from './lib/statsApi'
 import type { StatsStatus } from './lib/statsTypes'
 
 const LAST = 'riftpulse.last'
+// the signed-in account, remembered so it can be loaded via Riot API while League is closed
+const ME = 'riftpulse.me'
+const readMe = (): { riotId: string; platform: string } | null => {
+  try {
+    return JSON.parse(localStorage.getItem(ME) ?? 'null')
+  } catch {
+    return null
+  }
+}
 const readLast = (): { riotId: string; platform: string } | null => {
   try {
     return JSON.parse(localStorage.getItem(LAST) ?? 'null')
@@ -109,7 +118,7 @@ export default function App() {
   const [recording, setRecording] = useState(false)
   const [hist, setHist] = useState<{ stack: Page[]; i: number }>({ stack: ['dashboard'], i: 0 })
   const page = hist.stack[hist.i]
-  const viewing = useRef<{ kind: 'client' } | { kind: 'riot'; riotId: string; platform: string } | null>(null)
+  const viewing = useRef<{ kind: 'client' } | { kind: 'riot'; riotId: string; platform: string; self?: boolean } | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
 
   const navigate = useCallback((p: Page) => {
@@ -141,7 +150,21 @@ export default function App() {
 
   const loadSelf = useCallback(() => {
     viewing.current = { kind: 'client' }
-    return run((p) => loadFromClient(count, p))
+    return run(async (p) => {
+      const d = await loadFromClient(count, p)
+      try {
+        localStorage.setItem(ME, JSON.stringify({ riotId: `${d.profile.gameName}#${d.profile.tagLine}`, platform: d.profile.platform }))
+      } catch {}
+      return d
+    })
+  }, [run, count])
+
+  // League is closed: show the remembered own account through the Riot API
+  const loadSelfOffline = useCallback(() => {
+    const me = readMe()
+    if (!me) return Promise.resolve(false)
+    viewing.current = { kind: 'riot', ...me, self: true }
+    return run((p) => loadPlayer(me.riotId, me.platform, count, p))
   }, [run, count])
 
   const search = useCallback(
@@ -163,18 +186,20 @@ export default function App() {
     if (v?.kind === 'client') return loadSelf()
     if (v?.kind === 'riot') return run((p) => loadPlayer(v.riotId, v.platform, count, p))
     if (client?.connected) return loadSelf()
+    if (settings?.riotApiKey && readMe()) return loadSelfOffline()
     showToast('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.', 'info')
-  }, [loadSelf, run, count, client])
+  }, [loadSelf, loadSelfOffline, run, count, client, settings])
 
   // first load
   useEffect(() => {
     const rp = window.rp
     if (rp) {
       rp.version().then(setVersion)
-      rp.settings.get().then(setSettings)
-      rp.lcu.status().then((s) => {
+      Promise.all([rp.settings.get(), rp.lcu.status()]).then(([st, s]) => {
+        setSettings(st)
         setClient(s)
         if (s.connected) loadSelf()
+        else if (st.riotApiKey) loadSelfOffline()
       })
       rp.live.get().then((d) => d && setLive(d))
       const offLive = rp.live.on(setLive)
@@ -194,7 +219,7 @@ export default function App() {
     if (!rp) return
     return rp.lcu.onStatus((s) => {
       setClient((old) => {
-        if (s.connected && !old?.connected && viewing.current?.kind !== 'riot') loadSelf()
+        if (s.connected && !old?.connected && (viewing.current?.kind !== 'riot' || viewing.current.self)) loadSelf()
         return s
       })
       if (prevPhase.current === 'InProgress' && s.phase !== 'InProgress' && viewing.current?.kind === 'client') {
