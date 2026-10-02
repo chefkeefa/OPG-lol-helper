@@ -36,7 +36,7 @@ export interface ClientStatus {
 }
 
 type Off = () => void
-export type UpdateState = { state: 'idle' | 'checking' | 'downloading' | 'ready'; version: string }
+export type UpdateState = { state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; version: string; error?: string }
 type Result = { ok: boolean; error?: string }
 
 declare global {
@@ -69,6 +69,7 @@ declare global {
       update: {
         state(): Promise<UpdateState>
         install(): Promise<void>
+        check(): Promise<void>
         onState(cb: (s: UpdateState) => void): Off
       }
       rec: {

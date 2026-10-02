@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('rp', {
   update: {
     state: () => ipcRenderer.invoke('update:state'),
     install: () => ipcRenderer.invoke('update:install'),
+    check: () => ipcRenderer.invoke('update:check'),
     onState: on('update:state'),
   },
   rec: {

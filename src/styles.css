@@ -4565,3 +4565,7 @@ button.mu-trow:hover,
 }
 .update-pill.ready:hover { filter: brightness(1.15); }
 .update-pill b { color: #fff; }
+.brand-check { display: block; padding: 0; text-align: left; cursor: pointer; }
+.brand-check:hover { color: var(--text, #fff); }
+.upd-note.latest { color: #48d6a0; }
+.upd-note.error { color: #ff5c6c; }

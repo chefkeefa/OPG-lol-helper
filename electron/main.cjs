@@ -325,7 +325,7 @@ function mediaProtocol() {
 }
 
 // ---------- automatic updates (installed builds only; releases come from GitHub) ----------
-let updateState = { state: 'idle', version: '' }
+let updateState = { state: 'idle', version: '', error: '' }
 function setupUpdates() {
   if (!app.isPackaged) return
   let autoUpdater
@@ -336,19 +336,23 @@ function setupUpdates() {
   }
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
-  const push = (state, version = '') => {
-    updateState = { state, version }
+  const push = (state, version = '', error = '') => {
+    updateState = { state, version, error }
     send('update:state', updateState)
   }
   autoUpdater.on('checking-for-update', () => push('checking'))
   autoUpdater.on('update-available', (i) => push('downloading', i.version))
-  autoUpdater.on('update-not-available', () => push('idle'))
+  autoUpdater.on('update-not-available', () => push('latest'))
   autoUpdater.on('update-downloaded', (i) => push('ready', i.version))
-  autoUpdater.on('error', () => push('idle'))
-  const check = () => autoUpdater.checkForUpdates().catch(() => {})
+  autoUpdater.on('error', (e) => push('error', '', String(e?.message || e).split('\n')[0].slice(0, 160)))
+  const check = () => {
+    if (updateState.state === 'downloading' || updateState.state === 'ready') return
+    autoUpdater.checkForUpdates().catch(() => {})
+  }
   check()
   setInterval(check, 30 * 60_000)
   ipcMain.handle('update:install', () => autoUpdater.quitAndInstall(true, true))
+  ipcMain.handle('update:check', () => check())
 }
 ipcMain.handle('update:state', () => updateState)
 
