@@ -17,6 +17,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'rpmedia', privileges: { standar
 const settingsFile = path.join(app.getPath('userData'), 'settings.json')
 const DEFAULTS = {
   riotApiKey: '',
+  myRiotId: '',
   platform: 'euw1',
   overlayEnabled: true,
   overlayCorner: 'top-right',

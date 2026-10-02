@@ -19,6 +19,14 @@ export function Settings({
   const desktop = Boolean(window.rp)
   const [key, setKey] = useState(desktop ? '' : getStoredKey())
   const [saved, setSaved] = useState(false)
+  const [myId, setMyId] = useState<string | null>(null)
+  const saveMyId = () => {
+    if (myId === null) return
+    const v = myId.trim()
+    if (v && !v.includes('#')) return
+    if (v !== (settings?.myRiotId ?? '')) update('myRiotId', v)
+    setMyId(null)
+  }
   const s = settings
 
   const saveKey = () => {
@@ -57,6 +65,32 @@ export function Settings({
               {saved ? 'Сохранено' : 'Сохранить'}
             </motion.button>
           </div>
+          {desktop && (
+            <>
+              <h3 className="card-title" style={{ marginTop: 18 }}>
+                Мой аккаунт
+              </h3>
+              <p className="muted small">
+                С ключом ваш профиль грузится сразу через Riot API, клиент LoL не нужен. Если поле пустое, берётся аккаунт, который программа видела в клиенте.
+              </p>
+              <div className="key-row">
+                <input
+                  value={myId ?? s?.myRiotId ?? ''}
+                  onChange={(e) => setMyId(e.target.value)}
+                  onBlur={saveMyId}
+                  onKeyDown={(e) => e.key === 'Enter' && saveMyId()}
+                  placeholder="Имя#ТЕГ"
+                />
+                <select value={s?.platform ?? 'euw1'} onChange={(e) => update('platform', e.target.value)}>
+                  {regions.map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </Card>
 
         <Card hover={false}>

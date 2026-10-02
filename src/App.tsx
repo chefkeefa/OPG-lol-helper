@@ -61,6 +61,7 @@ function errorText(e: unknown) {
 
 const WEB_SETTINGS: DesktopSettings = {
   riotApiKey: '',
+  myRiotId: '',
   platform: 'euw1',
   overlayEnabled: false,
   overlayCorner: 'top-right',
@@ -166,8 +167,17 @@ export default function App() {
   }, [run, count])
 
   // League is closed: show the remembered own account through the Riot API
+  const settingsRef = useRef<DesktopSettings | null>(null)
+  settingsRef.current = settings
+  // own account: the Riot ID from Settings, else the one remembered from the client
+  const myAccount = useCallback((st = settingsRef.current) => {
+    const id = st?.myRiotId?.trim()
+    if (id && id.includes('#')) return { riotId: id, platform: st?.platform || 'euw1' }
+    return readMe()
+  }, [])
+
   const loadSelfOffline = useCallback(() => {
-    const me = readMe()
+    const me = myAccount()
     if (!me) return Promise.resolve(false)
     viewing.current = { kind: 'riot', ...me, self: true }
     return run((p) => loadPlayer(me.riotId, me.platform, count, p))
@@ -192,9 +202,9 @@ export default function App() {
     if (v?.kind === 'client') return loadSelf()
     if (v?.kind === 'riot') return run((p) => loadPlayer(v.riotId, v.platform, count, p))
     if (client?.connected) return loadSelf()
-    if (settings?.riotApiKey && readMe()) return loadSelfOffline()
+    if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
     showToast('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.', 'info')
-  }, [loadSelf, loadSelfOffline, run, count, client, settings])
+  }, [loadSelf, loadSelfOffline, myAccount, run, count, client, settings])
 
   // first load
   useEffect(() => {
@@ -204,8 +214,9 @@ export default function App() {
       Promise.all([rp.settings.get(), rp.lcu.status()]).then(([st, s]) => {
         setSettings(st)
         setClient(s)
-        if (s.connected) loadSelf()
-        else if (st.riotApiKey) loadSelfOffline()
+        // with a key the own account comes straight from the Riot API, without waiting for League
+        if (st.riotApiKey && myAccount(st)) loadSelfOffline()
+        else if (s.connected) loadSelf()
       })
       rp.live.get().then((d) => d && setLive(d))
       const offLive = rp.live.on(setLive)
@@ -225,11 +236,18 @@ export default function App() {
     if (!rp) return
     return rp.lcu.onStatus((s) => {
       setClient((old) => {
-        if (s.connected && !old?.connected && (viewing.current?.kind !== 'riot' || viewing.current.self)) loadSelf()
+        if (s.connected && !old?.connected) {
+          const v = viewing.current
+          const viaApi = Boolean(settingsRef.current?.riotApiKey && myAccount())
+          if (!viaApi && (v?.kind !== 'riot' || v.self)) loadSelf()
+          if (viaApi && !v) loadSelfOffline()
+        }
         return s
       })
-      if (prevPhase.current === 'InProgress' && s.phase !== 'InProgress' && viewing.current?.kind === 'client') {
-        setTimeout(loadSelf, 15000) // give the client time to publish the finished game
+      if (prevPhase.current === 'InProgress' && s.phase !== 'InProgress') {
+        const v = viewing.current
+        if (v?.kind === 'client') setTimeout(loadSelf, 15000) // give the client time to publish the finished game
+        else if (v?.kind === 'riot' && v.self) setTimeout(loadSelfOffline, 90000) // match-v5 publishes a bit later
       }
       prevPhase.current = s.phase
     })
@@ -256,7 +274,13 @@ export default function App() {
     setSettings((s) => (s ? { ...s, [k]: v } : s))
     if (window.rp)
       window.rp.settings.set(k, v).then(() => {
-        if (k === 'riotApiKey') window.rp?.settings.get().then(setSettings)
+        if (k === 'riotApiKey' || k === 'myRiotId' || k === 'platform')
+          window.rp?.settings.get().then((st) => {
+            setSettings(st)
+            settingsRef.current = st
+            const v = viewing.current
+            if (k !== 'platform' && st.riotApiKey && myAccount(st) && (!v || v.kind === 'client' || v.self)) loadSelfOffline()
+          })
       })
     else if (k === 'platform') {
       try {
