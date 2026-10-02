@@ -25,7 +25,13 @@ jobs:
       - name: Bump version from run number
         shell: bash
         run: npm version "0.4.${{ github.run_number }}" --no-git-tag-version --allow-same-version
-      - name: Build and publish installer
-        run: npm run release
+      - name: Build installer
+        run: npm run build && npx electron-builder --win nsis --publish never
+      - name: Publish release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V=$(node -p "require('./package.json').version")
+          gh release create "v$V" release/*.exe release/*.blockmap release/latest.yml \
+            --target "$GITHUB_SHA" --title "Rift Pulse $V" --notes "Автоматическая сборка из ${GITHUB_SHA::7}"
