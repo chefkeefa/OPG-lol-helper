@@ -4,11 +4,12 @@ import type { DesktopSettings } from '../env'
 import { demoLive } from '../lib/objectives'
 import { Card, Icon, Segmented, ease, stagger } from '../components/ui'
 import { OverlayTimers } from '../components/OverlayTimers'
+import { t } from '../lib/i18n'
 
 export function Overlays({ settings, update }: { settings: DesktopSettings | null; update: <K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]) => void }) {
-  const [t, setT] = useState(1170)
+  const [tick, setTick] = useState(1170)
   useEffect(() => {
-    const id = setInterval(() => setT((v) => (v >= 1300 ? 1170 : v + 1)), 1000)
+    const id = setInterval(() => setTick((v) => (v >= 1300 ? 1170 : v + 1)), 1000)
     return () => clearInterval(id)
   }, [])
   const desktop = Boolean(window.rp)
@@ -17,26 +18,26 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="layers" size={30} /> Оверлеи
+          <Icon name="layers" size={30} /> {t('Оверлеи')}
         </h1>
-        <p className="page-sub">Прозрачное окно поверх игры с таймерами дракона, личинок, герольда и барона. Работает в режиме «Без рамки».</p>
+        <p className="page-sub">{t('Прозрачное окно поверх игры с таймерами дракона, личинок, герольда и барона. Работает в режиме «Без рамки».')}</p>
       </motion.div>
       <motion.div className="overlay-layout" variants={stagger} initial="hidden" animate="show">
         <Card className="overlay-preview" hover={false}>
           <div className="fake-game">
             <div className={`fake-pos ${settings?.overlayCorner ?? 'top-right'}`}>
-              <OverlayTimers live={demoLive(t)} />
+              <OverlayTimers live={demoLive(tick)} />
             </div>
-            <span className="fake-label">предпросмотр</span>
+            <span className="fake-label">{t('предпросмотр')}</span>
           </div>
         </Card>
         <Card className="overlay-settings" hover={false}>
-          <h3 className="card-title">Таймеры объектов</h3>
-          {!desktop && <p className="muted small">Настройки оверлея доступны в десктоп-версии (npm run app).</p>}
+          <h3 className="card-title">{t('Таймеры объектов')}</h3>
+          {!desktop && <p className="muted small">{t('Настройки оверлея доступны в десктоп-версии (npm run app).')}</p>}
           <label className="switch-row">
             <span>
-              <b>Показывать в игре автоматически</b>
-              <span className="muted small">Окно появляется при старте матча и скрывается после</span>
+              <b>{t('Показывать в игре автоматически')}</b>
+              <span className="muted small">{t('Окно появляется при старте матча и скрывается после')}</span>
             </span>
             <button
               className={`switch ${settings?.overlayEnabled ? 'on' : ''}`}
@@ -48,7 +49,7 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
             </button>
           </label>
           <div className="field">
-            <span className="muted small">Угол экрана</span>
+            <span className="muted small">{t('Угол экрана')}</span>
             <Segmented
               id="corner"
               value={settings?.overlayCorner ?? 'top-right'}
@@ -62,13 +63,13 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
             />
           </div>
           <div className="field">
-            <span className="muted small">Горячая клавиша</span>
+            <span className="muted small">{t('Горячая клавиша')}</span>
             <div>
-              <kbd className="kbd">Ctrl</kbd> + <kbd className="kbd">Shift</kbd> + <kbd className="kbd">O</kbd> показать или скрыть
+              <kbd className="kbd">Ctrl</kbd> + <kbd className="kbd">Shift</kbd> + <kbd className="kbd">O</kbd> {t('показать или скрыть')}
             </div>
           </div>
           <button className="btn" disabled={!desktop} onClick={() => window.rp?.overlay.toggle()}>
-            Показать/скрыть сейчас
+            {t('Показать/скрыть сейчас')}
           </button>
         </Card>
       </motion.div>

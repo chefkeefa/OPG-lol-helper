@@ -5,6 +5,7 @@ import { ROLE_LABEL, pct, statsDetail } from '../lib/statsApi'
 import { champName, champTile } from '../lib/ddragon'
 import { Champ, Icon, Ring, Skeleton, Splash, ease } from '../components/ui'
 import { ChampPicker, CollectorPill, PatchSelect, RoleTabs, StatsGate, hasData, patchList } from '../components/StatsBits'
+import { locale, t } from '../lib/i18n'
 
 type Sort = 'wr' | 'g' | 'delta'
 
@@ -81,7 +82,7 @@ export function Matchups({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="swords" size={28} /> Матчапы
+          <Icon name="swords" size={28} /> {t('Матчапы')}
         </h1>
         <CollectorPill status={status} demo={demo} />
       </motion.div>
@@ -95,8 +96,8 @@ export function Matchups({
                 <Splash src={champTile(champ)} position="center 20%" />
                 <div className="vs-shade" />
                 <div className="vs-content">
-                  <ChampPicker value={champ} onPick={setChamp} placeholder="Ваш чемпион" />
-                  {d?.role && <span className="muted small">{ROLE_LABEL[d.role]} · {a?.g.toLocaleString('ru')} игр</span>}
+                  <ChampPicker value={champ} onPick={setChamp} placeholder={t('Ваш чемпион')} />
+                  {d?.role && <span className="muted small">{ROLE_LABEL[d.role]} · {t('{n} игр', { n: a?.g.toLocaleString(locale) ?? '' })}</span>}
                 </div>
               </div>
               <div className="vs-mid">
@@ -106,12 +107,12 @@ export function Matchups({
                       <Ring value={h2h.wr * 100} size={110} stroke={7} color={h2h.wr >= 0.5 ? 'var(--win)' : 'var(--loss)'}>
                         <b className="vs-wr">{pct(h2h.wr)}</b>
                       </Ring>
-                      <span className="muted small">{h2h.g.toLocaleString('ru')} игр на линии</span>
+                      <span className="muted small">{t('{n} игр на линии', { n: h2h.g.toLocaleString(locale) })}</span>
                     </motion.div>
                   ) : (
                     <motion.div key="vs" className="vs-letters" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       VS
-                      <span className="muted small">{enemy ? 'Мало игр в этом матчапе' : 'Выберите противника'}</span>
+                      <span className="muted small">{enemy ? t('Мало игр в этом матчапе') : t('Выберите противника')}</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -120,7 +121,7 @@ export function Matchups({
                 {enemy && <Splash src={champTile(enemy)} position="center 20%" />}
                 <div className="vs-shade" />
                 <div className="vs-content">
-                  <ChampPicker value={enemy} onPick={setEnemy} placeholder="Противник" />
+                  <ChampPicker value={enemy} onPick={setEnemy} placeholder={t('Противник')} />
                 </div>
               </div>
             </div>
@@ -131,17 +132,17 @@ export function Matchups({
             <div className="tier-tools">
               {!demo && <PatchSelect status={status} value={patch} onChange={setPatch} />}
               <button className="btn" onClick={() => onOpenChampion(champ, d?.role ?? role)}>
-                Билд {champName(champ)} <Icon name="right" size={14} />
+                {t('Билд {champ}', { champ: champName(champ) })} <Icon name="right" size={14} />
               </button>
             </div>
           </div>
 
           <div className="card mu-table">
             <div className="mu-trow mu-thead">
-              <span className="th">Противник</span>
-              {head('wr', `Винрейт ${champName(champ)}`)}
-              {head('delta', 'Разница со средним')}
-              {head('g', 'Игры')}
+              <span className="th">{t('Противник')}</span>
+              {head('wr', t('Винрейт {champ}', { champ: champName(champ) }))}
+              {head('delta', t('Разница со средним'))}
+              {head('g', t('Игры'))}
             </div>
             {!d ? (
               <Skeleton h={300} />
@@ -171,7 +172,7 @@ export function Matchups({
                   </span>
                   <span className="mu-games">
                     <i style={{ width: `${(r.g / maxG) * 100}%` }} />
-                    <em>{r.g.toLocaleString('ru')}</em>
+                    <em>{r.g.toLocaleString(locale)}</em>
                   </span>
                 </motion.button>
               ))

@@ -6,6 +6,7 @@ import { RiotError, clearCache, getStoredKey, loadPlayer, proxyConfig } from './
 import { loadFromClient } from './api/client'
 import { mockPlayer } from './data/mock'
 import { benchmarks, filterMatches } from './lib/stats'
+import { t } from './lib/i18n'
 import { useDDragon } from './lib/ddragon'
 import { demoLive } from './lib/objectives'
 import { Sidebar } from './components/Sidebar'
@@ -49,19 +50,20 @@ const readLast = (): { riotId: string; platform: string } | null => {
 
 function errorText(e: unknown) {
   if (e instanceof RiotError) {
-    if (e.status === 401) return 'Нет ключа Riot API. Добавьте его в настройках, чтобы искать других игроков.'
-    if (e.status === 403) return 'Ключ Riot API недействителен или истёк (dev-ключ живёт 24 часа).'
-    if (e.status === 404) return 'Игрок не найден. Проверьте Riot ID и регион.'
-    if (e.status === 429) return 'Превышен лимит запросов Riot API, подождите пару минут.'
-    return `Ошибка Riot API (${e.status}): ${e.message}`
+    if (e.status === 401) return t('Нет ключа Riot API. Добавьте его в настройках, чтобы искать других игроков.')
+    if (e.status === 403) return t('Ключ Riot API недействителен или истёк (dev-ключ живёт 24 часа).')
+    if (e.status === 404) return t('Игрок не найден. Проверьте Riot ID и регион.')
+    if (e.status === 429) return t('Превышен лимит запросов Riot API, подождите пару минут.')
+    return t('Ошибка Riot API ({status}): {message}', { status: e.status, message: e.message })
   }
-  if (window.rp) return 'Не удалось получить данные из клиента League of Legends. Убедитесь, что он запущен и вы вошли в аккаунт.'
-  return 'Не удалось связаться с локальным прокси. Запустите приложение через npm run dev или npm run app.'
+  if (window.rp) return t('Не удалось получить данные из клиента League of Legends. Убедитесь, что он запущен и вы вошли в аккаунт.')
+  return t('Не удалось связаться с локальным прокси. Запустите приложение через npm run dev или npm run app.')
 }
 
 const WEB_SETTINGS: DesktopSettings = {
   riotApiKey: '',
   myRiotId: '',
+  lang: 'ru',
   platform: 'euw1',
   overlayEnabled: false,
   overlayCorner: 'top-right',
@@ -209,7 +211,7 @@ export default function App() {
     if (v?.kind === 'riot') return run((p, part) => loadPlayer(v.riotId, v.platform, count, p, part))
     if (client?.connected) return loadSelf()
     if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
-    showToast('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.', 'info')
+    showToast(t('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.'), 'info')
   }, [loadSelf, loadSelfOffline, myAccount, run, count, client, settings])
 
   // first load
@@ -311,7 +313,7 @@ export default function App() {
       navigate('champion')
     })
     const off2 = rp.build.onAutoImport((r) =>
-      showToast(r.ok ? `${r.champion}: в клиент импортированы ${r.done?.join(', ')}` : `${r.champion}: ${r.error}`, r.ok ? 'info' : 'err'),
+      showToast(r.ok ? t('{champion}: в клиент импортированы {items}', { champion: r.champion, items: r.done?.join(', ') ?? '' }) : `${r.champion}: ${r.error}`, r.ok ? 'info' : 'err'),
     )
     const off3 = rp.rec.onState((st) => setRecording(st === 'recording'))
     return () => {
@@ -394,8 +396,8 @@ export default function App() {
           {data.source === 'demo' && progress === null && (
             <motion.div className="banner" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
               {window.rp
-                ? 'Демо-данные. Запустите клиент League of Legends, и приложение само подтянет ваш аккаунт.'
-                : 'Демо-данные. Это веб-версия: для вашего аккаунта запустите десктоп-версию (npm run app) или найдите игрока через поиск сверху.'}
+                ? t('Демо-данные. Запустите клиент League of Legends, и приложение само подтянет ваш аккаунт.')
+                : t('Демо-данные. Это веб-версия: для вашего аккаунта запустите десктоп-версию (npm run app) или найдите игрока через поиск сверху.')}
             </motion.div>
           )}
           <AnimatePresence mode="wait">
@@ -477,7 +479,7 @@ export default function App() {
                   stats={stats}
                   onClearCache={() => {
                     clearCache()
-                    showToast('Кэш очищен', 'info')
+                    showToast(t('Кэш очищен'), 'info')
                   }}
                 />
               )}

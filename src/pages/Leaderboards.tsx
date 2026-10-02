@@ -5,6 +5,7 @@ import { cachedName, loadLadder, resolveName, type ApexTier, type LadderEntry } 
 import { rankEmblem } from '../lib/ddragon'
 import { Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
 import type { Page } from '../types'
+import { fmtNum, t } from '../lib/i18n'
 
 const TIERS: { id: ApexTier; label: string }[] = [
   { id: 'challenger', label: 'Challenger' },
@@ -41,8 +42,8 @@ export function Leaderboards({
         const status = e instanceof RiotError ? e.status : 0
         setError(
           status === 401 || status === 403
-            ? { text: 'Для таблицы лидеров нужен действующий ключ Riot API.', key: true }
-            : { text: e instanceof RiotError ? `Ошибка Riot API (${e.status}): ${e.message}` : 'Не удалось загрузить таблицу.', key: false },
+            ? { text: t('Для таблицы лидеров нужен действующий ключ Riot API.'), key: true }
+            : { text: e instanceof RiotError ? t('Ошибка Riot API ({status}): {message}', { status: e.status, message: e.message }) : t('Не удалось загрузить таблицу.'), key: false },
         )
       })
   }, [platform, tier])
@@ -83,12 +84,12 @@ export function Leaderboards({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="trophy" size={30} /> Лидеры
+          <Icon name="trophy" size={30} /> {t('Лидеры')}
         </h1>
-        <p className="page-sub">Лучшие игроки ранговой очереди Solo/Duo по региону. Нажмите на игрока, чтобы открыть его профиль.</p>
+        <p className="page-sub">{t('Лучшие игроки ранговой очереди Solo/Duo по региону. Нажмите на игрока, чтобы открыть его профиль.')}</p>
         <div className="push" />
         <Segmented id="ladder-tier" options={TIERS} value={tier} onChange={setTier} />
-        <select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label="Регион">
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label={t('Регион')}>
           {Object.entries(PLATFORMS).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
@@ -102,7 +103,7 @@ export function Leaderboards({
           <p>{error.text}</p>
           {error.key && (
             <button className="btn primary" onClick={() => navigate('settings')}>
-              Добавить ключ в настройках
+              {t('Добавить ключ в настройках')}
             </button>
           )}
         </motion.div>
@@ -110,10 +111,10 @@ export function Leaderboards({
         <motion.section className="card ladder" key={`${platform}-${tier}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease }}>
           <div className="ladder-row head">
             <span>#</span>
-            <span>Игрок</span>
+            <span>{t('Игрок')}</span>
             <span>LP</span>
-            <span>Победы / поражения</span>
-            <span>Винрейт</span>
+            <span>{t('Победы / поражения')}</span>
+            <span>{t('Винрейт')}</span>
           </div>
           {!rows &&
             Array.from({ length: 10 }, (_, i) => (
@@ -147,12 +148,12 @@ export function Leaderboards({
                       <Skeleton h={13} w={140} />
                     )}
                     {r.hotStreak && (
-                      <span className="hot" title="Серия побед">
+                      <span className="hot" title={t('Серия побед')}>
                         <Icon name="bolt" size={13} />
                       </span>
                     )}
                   </span>
-                  <span className="ladder-lp">{r.leaguePoints.toLocaleString('ru-RU')} LP</span>
+                  <span className="ladder-lp">{fmtNum(r.leaguePoints)} LP</span>
                   <span>
                     <span className="win-text">{r.wins}W</span> <span className="loss-text">{r.losses}L</span>
                   </span>
@@ -168,10 +169,10 @@ export function Leaderboards({
           </AnimatePresence>
           {rows && limit < rows.length && (
             <button className="more wide" onClick={() => setLimit((l) => l + 50)}>
-              Показать ещё 50 <Icon name="chevron" size={16} />
+              {t('Показать ещё 50')} <Icon name="chevron" size={16} />
             </button>
           )}
-          {rows && !rows.length && <div className="muted pad">В этой лиге пока никого нет.</div>}
+          {rows && !rows.length && <div className="muted pad">{t('В этой лиге пока никого нет.')}</div>}
         </motion.section>
       )}
     </div>

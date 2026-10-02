@@ -1,6 +1,7 @@
 // Turns aggregated collector data into one recommended build, and writes builds into the
 // League client: a rune page, an item set and summoner spells.
 
+const { t } = require('./i18n.cjs')
 const top = (map, min = 1) =>
   Object.entries(map || {})
     .filter(([, [g]]) => g >= min)
@@ -39,7 +40,7 @@ function recommend(agg) {
 const PREFIX = 'Rift Pulse'
 
 async function importRunes(lcu, { champion, role, runes }) {
-  if (!runes) throw new Error('Нет рун для импорта')
+  if (!runes) throw new Error(t('Нет рун для импорта'))
   const pages = await lcu.get('/lol-perks/v1/pages')
   for (const p of pages) if (p.isDeletable && p.name?.startsWith(PREFIX)) await lcu.send('DELETE', `/lol-perks/v1/pages/${p.id}`).catch(() => {})
   const body = {
@@ -54,7 +55,7 @@ async function importRunes(lcu, { champion, role, runes }) {
   } catch (e) {
     // all page slots are taken: replace the page that is currently selected, if it is editable
     const cur = await lcu.get('/lol-perks/v1/currentpage').catch(() => null)
-    if (!cur?.isDeletable) throw new Error('Нет свободного слота для страницы рун. Удалите одну страницу в клиенте.')
+    if (!cur?.isDeletable) throw new Error(t('Нет свободного слота для страницы рун. Удалите одну страницу в клиенте.'))
     await lcu.send('DELETE', `/lol-perks/v1/pages/${cur.id}`)
     await lcu.post('/lol-perks/v1/pages', body)
   }
@@ -73,11 +74,11 @@ async function importItems(lcu, { champion, championKey, role, start = [], core 
     associatedChampions: [championKey],
     associatedMaps: [11],
     blocks: [
-      block('Стартовые предметы', [...new Set([...start, 3340])]),
-      block('Ботинки', [boots]),
-      block('Основная сборка', core),
-      block('Поздняя игра', late),
-      block('Расходники', [2003, 2055, 2138, 2139, 2140]),
+      block(t('Стартовые предметы'), [...new Set([...start, 3340])]),
+      block(t('Ботинки'), [boots]),
+      block(t('Основная сборка'), core),
+      block(t('Поздняя игра'), late),
+      block(t('Расходники'), [2003, 2055, 2138, 2139, 2140]),
     ].filter((b) => b.items.length),
     map: 'SR',
     mode: 'CLASSIC',
@@ -94,7 +95,7 @@ async function importItems(lcu, { champion, championKey, role, start = [], core 
 
 const FLASH = 4
 async function importSpells(lcu, spells) {
-  if (spells.length !== 2) throw new Error('Нет заклинаний для импорта')
+  if (spells.length !== 2) throw new Error(t('Нет заклинаний для импорта'))
   const session = await lcu.get('/lol-champ-select/v1/session')
   const me = session.myTeam?.find((c) => c.cellId === session.localPlayerCellId)
   let [a, b] = spells

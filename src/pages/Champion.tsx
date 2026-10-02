@@ -6,6 +6,7 @@ import { champName, champSplash, championList } from '../lib/ddragon'
 import { SHARDS, SPELL_FALLBACK, runeIcon, shardIcon, spellIcon, useGameData, type GameData } from '../lib/gameData'
 import { Card, Champ, Icon, Img, Item, Skeleton, Splash, ease, spring, stagger } from '../components/ui'
 import { ChampPicker, CollectorPill, PatchSelect, RoleTabs, StatsGate, TierBadge, hasData, patchList } from '../components/StatsBits'
+import { locale, t } from '../lib/i18n'
 
 const top = (m: PairMap | undefined, n = 99, min = 1) =>
   Object.entries(m ?? {})
@@ -48,7 +49,7 @@ function WrLine({ g, w, total, small }: { g: number; w: number; total: number; s
     <span className={`wr-line ${small ? 'small' : ''}`}>
       <b className={wr >= 0.52 ? 'good' : wr < 0.48 ? 'bad' : ''}>{pct(wr)}</b>
       <em>
-        {pct(total ? g / total : 0)} · {g.toLocaleString('ru')}
+        {pct(total ? g / total : 0)} · {g.toLocaleString(locale)}
       </em>
     </span>
   )
@@ -135,15 +136,15 @@ export function Champion({
   })
 
   const doImport = async (what: ('runes' | 'items' | 'spells')[]) => {
-    if (!window.rp?.build) return toast('Импорт в клиент работает в десктоп-версии программы.', 'info')
-    const label = { runes: 'Руны', items: 'Предметы', spells: 'Заклинания' }
+    if (!window.rp?.build) return toast(t('Импорт в клиент работает в десктоп-версии программы.'), 'info')
+    const label = { runes: t('Руны'), items: t('Предметы'), spells: t('Заклинания') }
     const ok: string[] = []
     for (const w of what) {
       const r = await window.rp.build.import(w, payload())
       if (!r.ok) return toast(`${label[w]}: ${r.error}`)
       ok.push(label[w].toLowerCase())
     }
-    toast(`Импортировано в клиент: ${ok.join(', ')}`, 'info')
+    toast(t('Импортировано в клиент: {list}', { list: ok.join(', ') }), 'info')
   }
 
   return (
@@ -160,7 +161,7 @@ export function Champion({
                 {tier && <TierBadge tier={tier.tier} size={34} />}
               </div>
               <div className="ch-sub">
-                {shownRole ? `${ROLE_LABEL[shownRole]} · ` : ''}Master+ {fromChampSelect && <span className="cs-tag">из выбора чемпионов</span>}
+                {shownRole ? `${ROLE_LABEL[shownRole]} · ` : ''}Master+ {fromChampSelect && <span className="cs-tag">{t('из выбора чемпионов')}</span>}
               </div>
             </div>
           </div>
@@ -175,24 +176,24 @@ export function Champion({
             <RoleTabs id="champ" value={shownRole ?? ''} onChange={setRole} counts={d.roleGames} all={false} />
             {a && (
               <div className="ch-stats">
-                <Stat label="Винрейт" value={pct(a.w / a.g, 2)} tone={a.w / a.g >= 0.52 ? 'good' : a.w / a.g < 0.48 ? 'bad' : ''} />
-                <Stat label="Пикрейт" value={pct(a.g / d.matches)} />
-                <Stat label="Банрейт" value={pct(d.bans / d.matches)} />
-                <Stat label="Игр" value={a.g.toLocaleString('ru')} sub={tier ? `#${tier.rank} в роли` : undefined} />
+                <Stat label={t('Винрейт')} value={pct(a.w / a.g, 2)} tone={a.w / a.g >= 0.52 ? 'good' : a.w / a.g < 0.48 ? 'bad' : ''} />
+                <Stat label={t('Пикрейт')} value={pct(a.g / d.matches)} />
+                <Stat label={t('Банрейт')} value={pct(d.bans / d.matches)} />
+                <Stat label={t('Игр')} value={a.g.toLocaleString(locale)} sub={tier ? t('#{rank} в роли', { rank: tier.rank }) : undefined} />
               </div>
             )}
             <div className="ch-import">
               <motion.button className="btn primary" whileTap={{ scale: 0.96 }} onClick={() => doImport(['runes', 'items', 'spells'])} disabled={!a}>
-                <Icon name="download" size={16} /> Всё в клиент
+                <Icon name="download" size={16} /> {t('Всё в клиент')}
               </motion.button>
               <button className="btn" onClick={() => doImport(['runes'])} disabled={!a}>
-                Руны
+                {t('Руны')}
               </button>
               <button className="btn" onClick={() => doImport(['items'])} disabled={!a}>
-                Предметы
+                {t('Предметы')}
               </button>
               <button className="btn" onClick={() => doImport(['spells'])} disabled={!a}>
-                Заклинания
+                {t('Заклинания')}
               </button>
             </div>
           </motion.div>
@@ -208,14 +209,14 @@ export function Champion({
         </div>
       ) : !a ? (
         <div className="card gate">
-          <h2>Пока мало игр на {name}</h2>
-          <p className="muted">Сборщик ещё не встретил этого чемпиона в выбранных патчах. Загляните позже или выберите «Все патчи».</p>
+          <h2>{t('Пока мало игр на {name}', { name })}</h2>
+          <p className="muted">{t('Сборщик ещё не встретил этого чемпиона в выбранных патчах. Загляните позже или выберите «Все патчи».')}</p>
         </div>
       ) : (
         <motion.div className="ch-grid" variants={stagger} initial="hidden" animate="show" key={champ + shownRole + patch}>
           <div className="ch-col">
             <Card hover={false} className="runes-card">
-              <CardHead title="Руны" right={pick.runes && <WrLine g={a.runes[pick.runes][0]} w={a.runes[pick.runes][1]} total={a.g} />} />
+              <CardHead title={t('Руны')} right={pick.runes && <WrLine g={a.runes[pick.runes][0]} w={a.runes[pick.runes][1]} total={a.g} />} />
               {pick.runes && gd ? <RuneTree page={parsePage(pick.runes)} gd={gd} /> : <Skeleton h={300} />}
               <div className="alt-list">
                 {top(a.runes, 4).map(([k, [g, w]]) => {
@@ -233,7 +234,7 @@ export function Champion({
             </Card>
 
             <Card hover={false}>
-              <CardHead title="Порядок навыков" />
+              <CardHead title={t('Порядок навыков')} />
               <SkillOrder a={a} />
             </Card>
           </div>
@@ -241,7 +242,7 @@ export function Champion({
           <div className="ch-col">
             <div className="ch-pair">
               <Card hover={false}>
-                <CardHead title="Заклинания" />
+                <CardHead title={t('Заклинания')} />
                 <div className="opt-list">
                   {top(a.spells, 3).map(([k, [g, w]]) => (
                     <Opt key={k} on={k === pick.spells} onClick={() => setSel((s) => ({ ...s, spells: k }))} right={<WrLine g={g} w={w} total={a.g} small />}>
@@ -253,7 +254,7 @@ export function Champion({
                 </div>
               </Card>
               <Card hover={false}>
-                <CardHead title="Стартовые предметы" />
+                <CardHead title={t('Стартовые предметы')} />
                 <div className="opt-list">
                   {top(a.start, 3).map(([k, [g, w]]) => (
                     <Opt key={k} on={k === pick.start} onClick={() => setSel((s) => ({ ...s, start: k }))} right={<WrLine g={g} w={w} total={a.g} small />}>
@@ -267,7 +268,7 @@ export function Champion({
             </div>
 
             <Card hover={false}>
-              <CardHead title="Основная сборка" right={<span className="muted small">первые три легендарных предмета</span>} />
+              <CardHead title={t('Основная сборка')} right={<span className="muted small">{t('первые три легендарных предмета')}</span>} />
               <div className="opt-list">
                 {top(a.core, 5).map(([k, [g, w]]) => (
                   <Opt key={k} on={k === pick.core} onClick={() => setSel((s) => ({ ...s, core: k }))} right={<WrLine g={g} w={w} total={a.g} small />}>
@@ -284,7 +285,7 @@ export function Champion({
 
             <div className="ch-pair">
               <Card hover={false}>
-                <CardHead title="Ботинки" />
+                <CardHead title={t('Ботинки')} />
                 <div className="opt-list">
                   {top(a.boots, 3).map(([k, [g, w]]) => (
                     <Opt key={k} on={k === pick.boots} onClick={() => setSel((s) => ({ ...s, boots: k }))} right={<WrLine g={g} w={w} total={a.g} small />}>
@@ -295,13 +296,13 @@ export function Champion({
                 </div>
               </Card>
               <Card hover={false}>
-                <CardHead title="Поздняя игра" right={<span className="muted small">4–6 предмет</span>} />
+                <CardHead title={t('Поздняя игра')} right={<span className="muted small">{t('4–6 предмет')}</span>} />
                 <div className="late-grid">
                   {late.map(([id, [g, w]]) => (
                     <div key={id} className="late-item">
                       <ItemTip id={id} gd={gd} size={40} />
                       <b className={wrOf([g, w]) >= 0.52 ? 'good' : wrOf([g, w]) < 0.48 ? 'bad' : ''}>{pct(wrOf([g, w]))}</b>
-                      <em>{g.toLocaleString('ru')}</em>
+                      <em>{g.toLocaleString(locale)}</em>
                     </div>
                   ))}
                 </div>
@@ -310,10 +311,10 @@ export function Champion({
 
             <Card hover={false}>
               <CardHead
-                title="Матчапы"
+                title={t('Матчапы')}
                 right={
                   <button className="link-btn" onClick={() => onMatchups(champ, shownRole ?? '')}>
-                    Все матчапы <Icon name="right" size={14} />
+                    {t('Все матчапы')} <Icon name="right" size={14} />
                   </button>
                 }
               />
@@ -348,7 +349,7 @@ function Opt({ on, onClick, children, right }: { on: boolean; onClick: () => voi
 export function ItemTip({ id, gd, size = 32 }: { id: number; gd: GameData | null; size?: number }) {
   const it = gd?.items[id]
   return (
-    <span className="tip-wrap" data-tip={it ? `${it.name} · ${it.gold} з.` : String(id)}>
+    <span className="tip-wrap" data-tip={it ? `${it.name} · ${t('{n} з.', { n: it.gold })}` : String(id)}>
       <Item id={id} size={size} />
     </span>
   )
@@ -373,7 +374,7 @@ function RuneTree({ page, gd }: { page: RunePage; gd: GameData }) {
   const primary = gd.trees.find((t) => t.id === page.primaryStyleId)
   const secondary = gd.trees.find((t) => t.id === page.subStyleId)
   const chosen = new Set(page.perks.slice(0, 6))
-  if (!primary || !secondary) return <p className="muted">Руны загружаются…</p>
+  if (!primary || !secondary) return <p className="muted">{t('Руны загружаются…')}</p>
   return (
     <div className="rune-tree">
       <div className="rune-col">
@@ -421,7 +422,7 @@ function SkillOrder({ a }: { a: Agg }) {
   const seqs = top(a.skills, 3)
   const [i, setI] = useState(0)
   const cur = seqs[i] ?? seqs[0]
-  if (!cur) return <p className="muted">Нет данных о прокачке.</p>
+  if (!cur) return <p className="muted">{t('Нет данных о прокачке.')}</p>
   const seq = cur[0]
   return (
     <div className="skills">
@@ -476,13 +477,13 @@ export function MatchupColumns({ a, onPick }: { a: Agg; onPick?: (c: string) => 
           <em>{r.g}</em>
         </motion.button>
       ))}
-      {!rows.length && <p className="muted small">Мало игр</p>}
+      {!rows.length && <p className="muted small">{t('Мало игр')}</p>}
     </div>
   )
   return (
     <div className="mu-cols">
-      {col('Сложные', hard, 'bad')}
-      {col('Лёгкие', easy, 'good')}
+      {col(t('Сложные'), hard, 'bad')}
+      {col(t('Лёгкие'), easy, 'good')}
     </div>
   )
 }

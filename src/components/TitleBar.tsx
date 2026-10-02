@@ -3,17 +3,18 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { ClientStatus } from '../env'
 import { PLATFORMS } from '../api/riot'
 import { Icon, ease } from './ui'
+import { lang, setLang, t } from '../lib/i18n'
 
 const PHASE: Record<string, string> = {
-  None: 'Клиент LoL подключён',
-  Lobby: 'В лобби',
-  Matchmaking: 'Поиск игры',
-  ReadyCheck: 'Игра найдена',
-  ChampSelect: 'Выбор чемпионов',
-  InProgress: 'В игре',
-  WaitingForStats: 'Ожидание статистики',
-  EndOfGame: 'Игра окончена',
-  Reconnect: 'Переподключение',
+  None: t('Клиент LoL подключён'),
+  Lobby: t('В лобби'),
+  Matchmaking: t('Поиск игры'),
+  ReadyCheck: t('Игра найдена'),
+  ChampSelect: t('Выбор чемпионов'),
+  InProgress: t('В игре'),
+  WaitingForStats: t('Ожидание статистики'),
+  EndOfGame: t('Игра окончена'),
+  Reconnect: t('Переподключение'),
 }
 
 export function TitleBar({
@@ -67,13 +68,13 @@ export function TitleBar({
   return (
     <header className="titlebar drag">
       <div className="nav-buttons no-drag">
-        <button disabled={!canBack} onClick={onBack} title="Назад">
+        <button disabled={!canBack} onClick={onBack} title={t('Назад')}>
           <Icon name="left" />
         </button>
-        <button disabled={!canForward} onClick={onForward} title="Вперёд">
+        <button disabled={!canForward} onClick={onForward} title={t('Вперёд')}>
           <Icon name="right" />
         </button>
-        <button onClick={onRefresh} title="Обновить">
+        <button onClick={onRefresh} title={t('Обновить')}>
           <motion.span animate={{ rotate: refreshing ? 360 : 0 }} transition={refreshing ? { repeat: Infinity, duration: 0.9, ease: 'linear' } : { duration: 0 }} style={{ display: 'grid' }}>
             <Icon name="refresh" />
           </motion.span>
@@ -99,7 +100,7 @@ export function TitleBar({
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          placeholder="Поиск игрока: Имя#ТЕГ"
+          placeholder={t('Поиск игрока: Имя#ТЕГ')}
         />
         <AnimatePresence initial={false}>
           {focus || q ? (
@@ -111,7 +112,7 @@ export function TitleBar({
               value={plat}
               onChange={(e) => setPlat(e.target.value)}
               onMouseDown={(e) => e.stopPropagation()}
-              aria-label="Регион"
+              aria-label={t('Регион')}
             >
               {Object.entries(PLATFORMS).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -129,23 +130,26 @@ export function TitleBar({
 
       <div className="title-right no-drag">
         {client && (
-          <div className={`client-pill ${client.connected ? 'on' : ''}`} title={client.connected ? 'Данные берутся из запущенного клиента' : 'Без клиента: профиль и игры идут через Riot API'}>
+          <div className={`client-pill ${client.connected ? 'on' : ''}`} title={client.connected ? t('Данные берутся из запущенного клиента') : t('Без клиента: профиль и игры идут через Riot API')}>
             <span className="pulse" />
-            {client.connected ? PHASE[client.phase] ?? client.phase : 'Клиент не найден'}
+            {client.connected ? PHASE[client.phase] ?? client.phase : t('Клиент не найден')}
           </div>
         )}
-        <button className="tb-icon" onClick={onSettings} title="Настройки">
+        <button className="tb-icon lang-btn" onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')} title={t('Сменить язык')}>
+          {lang === 'ru' ? 'RU' : 'EN'}
+        </button>
+        <button className="tb-icon" onClick={onSettings} title={t('Настройки')}>
           <Icon name="gear" />
         </button>
         {window.rp && (
           <div className="win-controls">
-            <button onClick={() => window.rp?.window.minimize()} title="Свернуть">
+            <button onClick={() => window.rp?.window.minimize()} title={t('Свернуть')}>
               <Icon name="min" size={16} />
             </button>
-            <button onClick={() => window.rp?.window.maximize()} title={maximized ? 'Восстановить' : 'Развернуть'}>
+            <button onClick={() => window.rp?.window.maximize()} title={maximized ? t('Восстановить') : t('Развернуть')}>
               <Icon name={maximized ? 'restore' : 'max'} size={14} />
             </button>
-            <button className="close" onClick={() => window.rp?.window.close()} title="Закрыть">
+            <button className="close" onClick={() => window.rp?.window.close()} title={t('Закрыть')}>
               <Icon name="close" size={16} />
             </button>
           </div>

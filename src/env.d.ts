@@ -10,6 +10,7 @@ interface RiotResult {
 export interface DesktopSettings {
   riotApiKey: string
   myRiotId: string
+  lang: 'ru' | 'en'
   platform: string
   overlayEnabled: boolean
   overlayCorner: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'

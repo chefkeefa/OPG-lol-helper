@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ddLocale, locale } from './i18n'
 
 const CDN = 'https://ddragon.leagueoflegends.com'
 let version = '15.24.1'
@@ -36,12 +37,12 @@ let champList: Promise<ChampionInfo[]> | null = null
 /** All champions from Data Dragon, sorted by (English) name. */
 export function championList() {
   champList ??= loadVersion()
-    .then((v) => fetch(`${CDN}/cdn/${v}/data/ru_RU/champion.json`))
+    .then((v) => fetch(`${CDN}/cdn/${v}/data/${ddLocale}/champion.json`))
     .then((r) => r.json())
     .then((j: { data: Record<string, { id: string; key: string; name: string }> }) =>
       Object.values(j.data)
         .map((c) => ({ id: c.id, key: Number(c.key), name: c.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+        .sort((a, b) => a.name.localeCompare(b.name, locale)),
     )
     .catch(() => [])
   return champList

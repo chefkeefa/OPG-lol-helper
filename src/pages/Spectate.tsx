@@ -4,6 +4,7 @@ import { PLATFORMS, RiotError, regionalOf, riot } from '../api/riot'
 import { cachedName, loadLadder } from '../api/leaderboard'
 import { championMap, champName } from '../lib/ddragon'
 import { queueLabel } from '../lib/stats'
+import { t } from '../lib/i18n'
 import { Champ, Icon, Skeleton, ease, fadeUp, stagger } from '../components/ui'
 
 interface SpecPlayer {
@@ -62,10 +63,10 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
       .catch((e) => {
         if (!desktop) {
           setFeatured(DEMO)
-          setErr('Пример. Для настоящих игр нужна десктоп-версия или ключ Riot API.')
+          setErr(t('Пример. Для настоящих игр нужна десктоп-версия или ключ Riot API.'))
         } else {
           setFeatured([])
-          setErr(e instanceof RiotError && (e.status === 401 || e.status === 403) ? 'Нужен действующий ключ Riot API (Настройки).' : 'Не удалось загрузить игры.')
+          setErr(e instanceof RiotError && (e.status === 401 || e.status === 403) ? t('Нужен действующий ключ Riot API (Настройки).') : t('Не удалось загрузить игры.'))
         }
       })
   }, [platform, desktop])
@@ -85,7 +86,7 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
         setScan(++done / ladder.length)
       }
     } catch (e) {
-      toast(e instanceof RiotError ? `Riot API ${e.status}` : 'Не удалось получить таблицу лидеров')
+      toast(e instanceof RiotError ? `Riot API ${e.status}` : t('Не удалось получить таблицу лидеров'))
     } finally {
       setScan(null)
     }
@@ -93,7 +94,7 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
 
   const lookup = async () => {
     const [name, tag] = q.split('#').map((s) => s.trim())
-    if (!name || !tag) return toast('Введите Riot ID в формате Имя#Тег', 'info')
+    if (!name || !tag) return toast(t('Введите Riot ID в формате Имя#Тег'), 'info')
     setFound(null)
     try {
       const acc = await riot<{ puuid: string }>(regionalOf(platform), `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`)
@@ -101,15 +102,15 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
       setFound({ ...g, owner: `${name}#${tag}` })
     } catch (e) {
       if (e instanceof RiotError && e.status === 404) setFound('none')
-      else toast(e instanceof RiotError ? `Riot API ${e.status}: ${e.message}` : 'Ошибка')
+      else toast(e instanceof RiotError ? `Riot API ${e.status}: ${e.message}` : t('Ошибка'))
     }
   }
 
   const watch = async (g: SpecGame) => {
-    if (!window.rp) return toast('Наблюдение запускается через клиент LoL в десктоп-версии.', 'info')
+    if (!window.rp) return toast(t('Наблюдение запускается через клиент LoL в десктоп-версии.'), 'info')
     const p = g.participants.find((x) => x.puuid) ?? g.participants[0]
     const r = await window.rp.spectate(p.puuid, p.riotId?.split('#')[0] ?? '')
-    toast(r.ok ? 'Запускаю наблюдение в клиенте…' : `Не удалось: ${r.error}`, r.ok ? 'info' : 'err')
+    toast(r.ok ? t('Запускаю наблюдение в клиенте…') : t('Не удалось: {error}', { error: r.error ?? '' }), r.ok ? 'info' : 'err')
   }
 
   const card = (g: SpecGame) => <GameCard key={g.gameId} g={g} champs={champs} onWatch={() => watch(g)} />
@@ -118,7 +119,7 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="tv" size={28} /> Наблюдение
+          <Icon name="tv" size={28} /> {t('Наблюдение')}
         </h1>
         <select className="plain-select" value={platform} onChange={(e) => setPlatform(e.target.value)}>
           {Object.entries(PLATFORMS).map(([k, v]) => (
@@ -131,15 +132,15 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
 
       <div className="spec-search card">
         <Icon name="search" size={18} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && lookup()} placeholder="Найти игру игрока: Имя#Тег" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && lookup()} placeholder={t('Найти игру игрока: Имя#Тег')} />
         <button className="btn primary" onClick={lookup}>
-          Найти
+          {t('Найти')}
         </button>
       </div>
       <AnimatePresence mode="wait">
         {found === 'none' && (
           <motion.p key="none" className="muted pad" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            Игрок сейчас не в игре.
+            {t('Игрок сейчас не в игре.')}
           </motion.p>
         )}
         {found && found !== 'none' && (
@@ -150,20 +151,20 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
       </AnimatePresence>
 
       <div className="section-head">
-        <h2>Топ Challenger в игре</h2>
+        <h2>{t('Топ Challenger в игре')}</h2>
         <button className="btn" onClick={scanTop} disabled={scan !== null}>
-          {scan !== null ? `Проверяю… ${Math.round(scan * 100)}%` : 'Проверить топ-30'}
+          {scan !== null ? t('Проверяю… {pct}%', { pct: Math.round(scan * 100) }) : t('Проверить топ-30')}
         </button>
       </div>
       {top && (
         <motion.div className="spec-grid" variants={stagger} initial="hidden" animate="show">
           {top.map(card)}
-          {!top.length && scan === null && <p className="muted">Никто из топ-30 сейчас не играет.</p>}
+          {!top.length && scan === null && <p className="muted">{t('Никто из топ-30 сейчас не играет.')}</p>}
         </motion.div>
       )}
 
       <div className="section-head">
-        <h2>Избранные игры</h2>
+        <h2>{t('Избранные игры')}</h2>
       </div>
       {err && <p className="muted">{err}</p>}
       {!featured ? (
@@ -213,7 +214,7 @@ function GameCard({ g, champs, onWatch }: { g: SpecGame; champs: Record<number, 
         ))}
       </div>
       <motion.button className="btn primary spec-watch" whileTap={{ scale: 0.96 }} onClick={onWatch}>
-        <Icon name="eye" size={16} /> Смотреть
+        <Icon name="eye" size={16} /> {t('Смотреть')}
       </motion.button>
     </motion.div>
   )

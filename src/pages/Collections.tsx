@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { PlayerData } from '../types'
 import { TIERS, loadCollection, type CollectionData, type SkinItem, type Tier, type WardItem } from '../api/collection'
 import { Counter, Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
+import { locale, t } from '../lib/i18n'
 
 type Tab = 'skins' | 'wards' | 'champs'
 type Own = 'all' | 'owned' | 'missing'
@@ -13,7 +14,7 @@ type Size = 'auto' | 's' | 'm' | 'l'
 const DD = 'https://ddragon.leagueoflegends.com/cdn/img/champion'
 const tierOf = (t: Tier) => TIERS.find((x) => x.id === t) ?? TIERS[0]
 const tierRank = (t: Tier) => TIERS.findIndex((x) => x.id === t)
-const rp = (n: number) => n.toLocaleString('ru')
+const rp = (n: number) => n.toLocaleString(locale)
 
 function Gem({ tier, size = 14 }: { tier: Tier; size?: number }) {
   const c = tierOf(tier).color
@@ -109,22 +110,22 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
     const list = base.filter((k) => (own === 'all' || (own === 'owned' ? k.owned : !k.owned)) && (!tiers.length || tiers.includes(k.tier)))
     const dir = desc ? -1 : 1
     const by: Record<Sort, (a: SkinItem, b: SkinItem) => number> = {
-      acquired: (a, b) => (a.acquired - b.acquired) * dir || a.name.localeCompare(b.name, 'ru'),
-      name: (a, b) => a.name.localeCompare(b.name, 'ru') * -dir,
+      acquired: (a, b) => (a.acquired - b.acquired) * dir || a.name.localeCompare(b.name, locale),
+      name: (a, b) => a.name.localeCompare(b.name, locale) * -dir,
       price: (a, b) => (a.price - b.price) * dir,
-      tier: (a, b) => (tierRank(a.tier) - tierRank(b.tier)) * dir || a.name.localeCompare(b.name, 'ru'),
+      tier: (a, b) => (tierRank(a.tier) - tierRank(b.tier)) * dir || a.name.localeCompare(b.name, locale),
     }
     return list.sort(by[sort])
   }, [base, own, tiers, sort, desc])
 
   const groups = useMemo(() => {
-    if (group === 'none') return [{ key: 'all', title: 'Все образы', items: shown, total: shown.length }]
+    if (group === 'none') return [{ key: 'all', title: t('Все образы'), items: shown, total: shown.length }]
     const key = (k: SkinItem): [string, string] => {
-      if (group === 'year') return k.owned && k.acquired ? [String(new Date(k.acquired).getFullYear()), `Получены в ${new Date(k.acquired).getFullYear()}`] : k.owned ? ['0', 'Дата неизвестна'] : ['-', 'Нет в коллекции']
+      if (group === 'year') return k.owned && k.acquired ? [String(new Date(k.acquired).getFullYear()), t('Получены в {year}', { year: new Date(k.acquired).getFullYear() })] : k.owned ? ['0', t('Дата неизвестна')] : ['-', t('Нет в коллекции')]
       if (group === 'champ') return [k.champName, k.champName]
       if (group === 'tier') return [String(9 - tierRank(k.tier)), tierOf(k.tier).label]
       const sid = k.sets[0]
-      return [col?.sets[sid] ?? 'Без сета', col?.sets[sid] ?? 'Без сета']
+      return [col?.sets[sid] ?? 'Без сета', col?.sets[sid] ?? t('Без сета')]
     }
     const map = new Map<string, { key: string; title: string; items: SkinItem[] }>()
     for (const k of shown) {
@@ -133,13 +134,13 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
       map.get(id)!.items.push(k)
     }
     const all = [...map.values()]
-    all.sort((a, b) => (group === 'year' || group === 'tier' ? b.key.localeCompare(a.key) : a.title.localeCompare(b.title, 'ru')))
+    all.sort((a, b) => (group === 'year' || group === 'tier' ? b.key.localeCompare(a.key) : a.title.localeCompare(b.title, locale)))
     return all.map((g) => ({ ...g, total: g.items.length }))
   }, [shown, group, col])
 
   const owned = skins.filter((k) => k.owned)
   const spent = owned.reduce((n, k) => n + k.price, 0)
-  const champOptions = useMemo(() => [...new Map(skins.map((k) => [k.champ, k.champName])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'ru')), [skins])
+  const champOptions = useMemo(() => [...new Map(skins.map((k) => [k.champ, k.champName])).entries()].sort((a, b) => a[1].localeCompare(b[1], locale)), [skins])
   const setOptions = useMemo(() => {
     const count: Record<number, [number, number]> = {}
     for (const k of skins)
@@ -150,19 +151,19 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
       }
     return Object.entries(count)
       .map(([id, c]) => ({ id: Number(id), name: col?.sets[Number(id)] ?? `#${id}`, c }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+      .sort((a, b) => a.name.localeCompare(b.name, locale))
   }, [skins, col])
 
   return (
     <div className="page coll-page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="box" size={28} /> Коллекция
+          <Icon name="box" size={28} /> {t('Коллекция')}
         </h1>
-        <span className="coll-sub muted small">Все ваши образы, тотемы и чемпионы в одном месте</span>
-        {col?.source === 'demo' && <span className="collector-pill demo">Пример: запустите клиент LoL</span>}
+        <span className="coll-sub muted small">{t('Все ваши образы, тотемы и чемпионы в одном месте')}</span>
+        {col?.source === 'demo' && <span className="collector-pill demo">{t('Пример: запустите клиент LoL')}</span>}
         {col?.source === 'snapshot' && (
-          <span className="collector-pill">Без клиента · данные на {col.savedAt ? new Date(col.savedAt).toLocaleDateString('ru-RU') : 'последний запуск'}</span>
+          <span className="collector-pill">{t('Без клиента · данные на {date}', { date: col.savedAt ? new Date(col.savedAt).toLocaleDateString(locale) : t('последний запуск') })}</span>
         )}
         <div className="coll-tabs">
           <Segmented
@@ -170,9 +171,9 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
             value={tab}
             onChange={setTab}
             options={[
-              { id: 'skins', label: 'Образы' },
-              { id: 'wards', label: 'Тотемы' },
-              { id: 'champs', label: 'Чемпионы' },
+              { id: 'skins', label: t('Образы') },
+              { id: 'wards', label: t('Тотемы') },
+              { id: 'champs', label: t('Чемпионы') },
             ]}
           />
         </div>
@@ -192,22 +193,22 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
           <motion.aside className="filters" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45, ease }}>
             <div className="filters-head">
               <b>
-                <Icon name="list" size={16} /> Фильтры {filters > 0 && <em>{filters}</em>}
+                <Icon name="list" size={16} /> {t('Фильтры')} {filters > 0 && <em>{filters}</em>}
               </b>
               <button className="link-btn" onClick={reset}>
-                Сбросить
+                {t('Сбросить')}
               </button>
             </div>
             <div className="search-mini wide">
               <Icon name="search" size={15} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти образ" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Найти образ')} />
             </div>
             <div className="own-pick">
               {(
                 [
-                  ['all', 'Все'],
-                  ['owned', 'Есть'],
-                  ['missing', 'Нет'],
+                  ['all', t('Все')],
+                  ['owned', t('Есть')],
+                  ['missing', t('Нет')],
                 ] as const
               ).map(([id, l]) => (
                 <button key={id} className={own === id ? 'on' : ''} onClick={() => setOwn(id)}>
@@ -216,39 +217,39 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
                 </button>
               ))}
             </div>
-            <div className="f-title">Чемпион</div>
+            <div className="f-title">{t('Чемпион')}</div>
             <select value={champ} onChange={(e) => setChamp(e.target.value)}>
-              <option value="">Все чемпионы</option>
+              <option value="">{t('Все чемпионы')}</option>
               {champOptions.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
                 </option>
               ))}
             </select>
-            <div className="f-title">Сет</div>
+            <div className="f-title">{t('Сет')}</div>
             <select value={set} onChange={(e) => setSet(Number(e.target.value))}>
-              <option value={0}>Все сеты</option>
+              <option value={0}>{t('Все сеты')}</option>
               {setOptions.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} · {s.c[0]}/{s.c[1]}
                 </option>
               ))}
             </select>
-            <div className="f-title">Тир</div>
-            {TIERS.map((t) => {
-              const all = base.filter((k) => k.tier === t.id)
+            <div className="f-title">{t('Тир')}</div>
+            {TIERS.map((ti) => {
+              const all = base.filter((k) => k.tier === ti.id)
               if (!all.length) return null
               return (
-                <Check key={t.id} on={tiers.includes(t.id)} onChange={() => toggle(tiers, t.id, setTiers)} count={`${all.filter((k) => k.owned).length}/${all.length}`}>
-                  <Gem tier={t.id} /> {t.label}
+                <Check key={ti.id} on={tiers.includes(ti.id)} onChange={() => toggle(tiers, ti.id, setTiers)} count={`${all.filter((k) => k.owned).length}/${all.length}`}>
+                  <Gem tier={ti.id} /> {ti.label}
                 </Check>
               )
             })}
-            <div className="f-title">Доступность</div>
+            <div className="f-title">{t('Доступность')}</div>
             {(
               [
-                ['available', 'В продаже', false],
-                ['legacy', 'Легаси', true],
+                ['available', t('В продаже'), false],
+                ['legacy', t('Легаси'), true],
               ] as const
             ).map(([id, label, legacy]) => {
               const all = skins.filter((k) => k.legacy === legacy)
@@ -264,14 +265,14 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
             <motion.div className="card coll-summary" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
               <div className="coll-summary-left">
                 <b className="coll-big">
-                  <Counter value={owned.length} format={(v) => Math.round(v).toLocaleString('ru')} />
-                  <em> / {skins.length.toLocaleString('ru')}</em>
+                  <Counter value={owned.length} format={(v) => Math.round(v).toLocaleString(locale)} />
+                  <em> / {skins.length.toLocaleString(locale)}</em>
                 </b>
                 <i className="coll-bar">
                   <motion.i initial={{ width: 0 }} animate={{ width: `${skins.length ? (owned.length / skins.length) * 100 : 0}%` }} transition={{ duration: 1.1, ease, delay: 0.2 }} />
                 </i>
                 <span className="muted small">
-                  Образов в коллекции · собрано {skins.length ? Math.round((owned.length / skins.length) * 100) : 0}%
+                  {t('Образов в коллекции · собрано {pct}%', { pct: skins.length ? Math.round((owned.length / skins.length) * 100) : 0 })}
                 </span>
               </div>
               <div className="coll-summary-right">
@@ -279,42 +280,42 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
                   <Counter value={spent} format={(v) => rp(Math.round(v))} />
                   <em> RP</em>
                 </b>
-                <span className="muted small">стоят ваши образы</span>
+                <span className="muted small">{t('стоят ваши образы')}</span>
               </div>
             </motion.div>
 
             <div className="coll-toolbar">
-              <span className="muted">{shown.length.toLocaleString('ru')} образов</span>
+              <span className="muted">{t('{n} образов', { n: shown.length.toLocaleString(locale) })}</span>
               <span className="grow" />
               <label className="select-pill">
-                <span>Группа</span>
+                <span>{t('Группа')}</span>
                 <select value={group} onChange={(e) => setGroup(e.target.value as Group)}>
-                  <option value="year">Год получения</option>
-                  <option value="champ">Чемпион</option>
-                  <option value="tier">Тир</option>
-                  <option value="set">Сет</option>
-                  <option value="none">Без групп</option>
+                  <option value="year">{t('Год получения')}</option>
+                  <option value="champ">{t('Чемпион')}</option>
+                  <option value="tier">{t('Тир')}</option>
+                  <option value="set">{t('Сет')}</option>
+                  <option value="none">{t('Без групп')}</option>
                 </select>
               </label>
               <label className="select-pill">
-                <span>Сортировка</span>
+                <span>{t('Сортировка')}</span>
                 <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-                  <option value="acquired">Дата получения</option>
-                  <option value="name">Название</option>
-                  <option value="price">Цена</option>
-                  <option value="tier">Тир</option>
+                  <option value="acquired">{t('Дата получения')}</option>
+                  <option value="name">{t('Название')}</option>
+                  <option value="price">{t('Цена')}</option>
+                  <option value="tier">{t('Тир')}</option>
                 </select>
               </label>
               <label className="select-pill">
-                <span>Размер</span>
+                <span>{t('Размер')}</span>
                 <select value={size} onChange={(e) => setSize(e.target.value as Size)}>
-                  <option value="auto">Авто</option>
-                  <option value="s">Маленький</option>
-                  <option value="m">Средний</option>
-                  <option value="l">Большой</option>
+                  <option value="auto">{t('Авто')}</option>
+                  <option value="s">{t('Маленький')}</option>
+                  <option value="m">{t('Средний')}</option>
+                  <option value="l">{t('Большой')}</option>
                 </select>
               </label>
-              <button className={`icon-btn bordered ${desc ? '' : 'flip'}`} title={desc ? 'По убыванию' : 'По возрастанию'} onClick={() => setDesc((d) => !d)}>
+              <button className={`icon-btn bordered ${desc ? '' : 'flip'}`} title={desc ? t('По убыванию') : t('По возрастанию')} onClick={() => setDesc((d) => !d)}>
                 <Icon name="chevron" size={16} />
               </button>
             </div>
@@ -340,14 +341,14 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
                       </span>
                       <span className="skin-info">
                         <b>{k.name}</b>
-                        <em>{k.price ? `${rp(k.price)} RP` : k.owned ? 'Получен' : k.legacy ? 'Легаси' : 'Особый'}</em>
+                        <em>{k.price ? `${rp(k.price)} RP` : k.owned ? t('Получен') : k.legacy ? t('Легаси') : t('Особый')}</em>
                       </span>
                     </motion.div>
                   ))}
                 </div>
               </section>
             ))}
-            {!shown.length && <p className="muted pad">Ничего не найдено. Попробуйте сбросить фильтры.</p>}
+            {!shown.length && <p className="muted pad">{t('Ничего не найдено. Попробуйте сбросить фильтры.')}</p>}
           </div>
         </div>
       ) : tab === 'wards' ? (
@@ -365,27 +366,27 @@ function Wards({ wards }: { wards: WardItem[] }) {
   const s = q.trim().toLowerCase()
   const list = wards
     .filter((w) => (!s || w.name.toLowerCase().includes(s)) && (own === 'all' || (own === 'owned' ? w.owned : !w.owned)))
-    .sort((a, b) => b.acquired - a.acquired || a.name.localeCompare(b.name, 'ru'))
+    .sort((a, b) => b.acquired - a.acquired || a.name.localeCompare(b.name, locale))
   const owned = wards.filter((w) => w.owned).length
   return (
     <>
       <div className="coll-toolbar">
         <span className="muted">
-          {owned} из {wards.length} тотемов
+          {t('{owned} из {total} тотемов', { owned, total: wards.length })}
         </span>
         <span className="grow" />
         <div className="search-mini">
           <Icon name="search" size={15} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти тотем" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Найти тотем')} />
         </div>
         <Segmented
           id="ward-own"
           value={own}
           onChange={setOwn}
           options={[
-            { id: 'all', label: 'Все' },
-            { id: 'owned', label: 'Есть' },
-            { id: 'missing', label: 'Нет' },
+            { id: 'all', label: t('Все') },
+            { id: 'owned', label: t('Есть') },
+            { id: 'missing', label: t('Нет') },
           ]}
         />
       </div>
@@ -394,10 +395,10 @@ function Wards({ wards }: { wards: WardItem[] }) {
           <motion.div key={w.id} className={`ward-card ${w.owned ? '' : 'missing'}`} initial={i < 40 ? { opacity: 0, scale: 0.94 } : false} animate={{ opacity: 1, scale: 1 }} transition={{ delay: Math.min(i, 40) * 0.012 }}>
             <Img src={w.image} alt={w.name} size={96} radius={12} />
             <span>{w.name}</span>
-            {w.legacy && <em>Легаси</em>}
+            {w.legacy && <em>{t('Легаси')}</em>}
           </motion.div>
         ))}
-        {!list.length && <p className="muted">Тотемы не найдены.</p>}
+        {!list.length && <p className="muted">{t('Тотемы не найдены.')}</p>}
       </div>
     </>
   )
@@ -408,19 +409,19 @@ function Champions({ col, data }: { col: CollectionData; data: PlayerData }) {
   const [open, setOpen] = useState<string | null>(null)
   const mastery = Object.fromEntries((data.mastery ?? []).map((m) => [m.champion, m]))
   const s = q.trim().toLowerCase()
-  const list = col.champions.filter((c) => !s || c.name.toLowerCase().includes(s)).sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  const list = col.champions.filter((c) => !s || c.name.toLowerCase().includes(s)).sort((a, b) => a.name.localeCompare(b.name, locale))
   const skinsOf = (id: string) => col.skins.filter((k) => k.champ === id)
   const openChamp = col.champions.find((c) => c.id === open)
   return (
     <>
       <div className="coll-toolbar">
         <span className="muted">
-          {col.champions.filter((c) => c.owned).length} из {col.champions.length} чемпионов
+          {t('{owned} из {total} чемпионов', { owned: col.champions.filter((c) => c.owned).length, total: col.champions.length })}
         </span>
         <span className="grow" />
         <div className="search-mini">
           <Icon name="search" size={15} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти чемпиона" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Найти чемпиона')} />
         </div>
       </div>
       <div className="coll-grid">
@@ -438,8 +439,8 @@ function Champions({ col, data }: { col: CollectionData; data: PlayerData }) {
             >
               <Img src={`${DD}/tiles/${c.id}_0.jpg`} alt={c.name} size={120} radius={10} className="coll-tile" />
               <span className="coll-name">{c.name}</span>
-              {mastery[c.id] && <span className="coll-mastery">М{mastery[c.id].level}</span>}
-              {c.free && <span className="coll-free">Бесплатно</span>}
+              {mastery[c.id] && <span className="coll-mastery">{t('М{level}', { level: mastery[c.id].level })}</span>}
+              {c.free && <span className="coll-free">{t('Бесплатно')}</span>}
               <span className="coll-skins">
                 {sk.filter((k) => k.owned).length}/{sk.length}
               </span>
@@ -466,7 +467,7 @@ function Champions({ col, data }: { col: CollectionData; data: PlayerData }) {
                     </span>
                     <span className="skin-info">
                       <b>{k.name}</b>
-                      <em>{k.owned ? 'Есть' : k.price ? `${rp(k.price)} RP` : ''}</em>
+                      <em>{k.owned ? t('Есть') : k.price ? `${rp(k.price)} RP` : ''}</em>
                     </span>
                   </div>
                 ))}

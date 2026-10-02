@@ -3,37 +3,38 @@ import type { Page, PlayerData } from '../types'
 import type { UpdateState } from '../env'
 import { profileIcon } from '../lib/ddragon'
 import { Icon, Img, spring, type IconName } from './ui'
+import { t } from '../lib/i18n'
 
 const GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
   {
-    title: 'Основное',
+    title: t('Основное'),
     items: [
-      { page: 'dashboard', icon: 'home', label: 'Дашборд' },
-      { page: 'matches', icon: 'film', label: 'История матчей' },
-      { page: 'champions', icon: 'chart', label: 'Мои чемпионы' },
+      { page: 'dashboard', icon: 'home', label: t('Дашборд') },
+      { page: 'matches', icon: 'film', label: t('История матчей') },
+      { page: 'champions', icon: 'chart', label: t('Мои чемпионы') },
       { page: 'studio', icon: 'pie', label: 'Data Studio' },
     ],
   },
   {
-    title: 'Статистика',
+    title: t('Статистика'),
     items: [
-      { page: 'tierlist', icon: 'list', label: 'Тир-лист' },
-      { page: 'champion', icon: 'shield', label: 'Билды и руны' },
-      { page: 'matchups', icon: 'swords', label: 'Матчапы' },
-      { page: 'leaderboards', icon: 'trophy', label: 'Лидеры' },
+      { page: 'tierlist', icon: 'list', label: t('Тир-лист') },
+      { page: 'champion', icon: 'shield', label: t('Билды и руны') },
+      { page: 'matchups', icon: 'swords', label: t('Матчапы') },
+      { page: 'leaderboards', icon: 'trophy', label: t('Лидеры') },
     ],
   },
   {
-    title: 'Приложение',
+    title: t('Приложение'),
     items: [
-      { page: 'live', icon: 'eye', label: 'Текущая игра' },
-      { page: 'recordings', icon: 'video', label: 'Записи' },
-      { page: 'spectate', icon: 'tv', label: 'Наблюдение' },
-      { page: 'collections', icon: 'box', label: 'Коллекция' },
-      { page: 'overlays', icon: 'layers', label: 'Оверлеи' },
+      { page: 'live', icon: 'eye', label: t('Текущая игра') },
+      { page: 'recordings', icon: 'video', label: t('Записи') },
+      { page: 'spectate', icon: 'tv', label: t('Наблюдение') },
+      { page: 'collections', icon: 'box', label: t('Коллекция') },
+      { page: 'overlays', icon: 'layers', label: t('Оверлеи') },
     ],
   },
-  { title: 'Система', items: [{ page: 'settings', icon: 'gear', label: 'Настройки' }] },
+  { title: t('Система'), items: [{ page: 'settings', icon: 'gear', label: t('Настройки') }] },
 ]
 
 export function Sidebar({
@@ -64,17 +65,17 @@ export function Sidebar({
           <div className="brand-name">Rift Pulse</div>
           <button
             className="brand-sub brand-check"
-            title={update?.state === 'error' ? `Ошибка обновления: ${update.error}` : 'Проверить обновления'}
+            title={update?.state === 'error' ? t('Ошибка обновления: {error}', { error: update.error ?? '' }) : t('Проверить обновления')}
             onClick={() => window.rp?.update?.check()}
           >
             APP V.{version}
             <span className={`upd-note ${update?.state ?? ''}`}>
               {update?.state === 'checking'
-                ? ' · проверяю…'
+                ? ` · ${t('проверяю…')}`
                 : update?.state === 'latest'
-                  ? ' · последняя'
+                  ? ` · ${t('последняя')}`
                   : update?.state === 'error'
-                    ? ' · ошибка'
+                    ? ` · ${t('ошибка')}`
                     : ''}
             </span>
           </button>
@@ -93,9 +94,9 @@ export function Sidebar({
             onClick={() => window.rp?.update.install()}
           >
             {update.state === 'ready' ? (
-              <>Обновление v{update.version} готово · <b>Перезапустить</b></>
+              <>{t('Обновление v{version} готово', { version: update.version ?? '' })} · <b>{t('Перезапустить')}</b></>
             ) : (
-              <>Скачиваю обновление v{update.version}…</>
+              <>{t('Скачиваю обновление v{version}…', { version: update.version ?? '' })}</>
             )}
           </motion.button>
         )}
@@ -112,8 +113,8 @@ export function Sidebar({
                     {active && <motion.span layoutId="nav-active" className="nav-active" transition={spring} />}
                     <Icon name={it.icon} />
                     <span>{it.label}</span>
-                    {it.page === 'live' && inGame && <span className="live-dot" title="Идёт игра" />}
-                    {it.page === 'recordings' && recording && <span className="live-dot rec" title="Идёт запись" />}
+                    {it.page === 'live' && inGame && <span className="live-dot" title={t('Идёт игра')} />}
+                    {it.page === 'recordings' && recording && <span className="live-dot rec" title={t('Идёт запись')} />}
                   </button>
                   {it.page === 'dashboard' && (
                     <button className={`nav-sub ${active ? 'on' : ''}`} onClick={() => onNavigate('dashboard')}>

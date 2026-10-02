@@ -1,6 +1,7 @@
 import type { MatchSummary, PlayerData, RankEntry } from '../types'
 import { normalizeMatch, type RawMatch } from './normalize'
 import { championMap } from '../lib/ddragon'
+import { t } from '../lib/i18n'
 
 export const PLATFORMS: Record<string, string> = {
   euw1: 'EUW',
@@ -228,7 +229,7 @@ export async function loadPlayer(
   onPartial?: (d: PlayerData) => void,
 ): Promise<PlayerData> {
   const [gameName, tagLine] = riotId.split('#').map((s) => s.trim())
-  if (!gameName || !tagLine) throw new RiotError(400, 'Введите Riot ID в формате Имя#ТЕГ')
+  if (!gameName || !tagLine) throw new RiotError(400, t('Введите Riot ID в формате Имя#ТЕГ'))
   const regional = regionalOf(platform)
   const accountHost = regional === 'sea' ? 'asia' : regional
 

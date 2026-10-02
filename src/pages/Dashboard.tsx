@@ -10,6 +10,7 @@ import { clock, demoLive, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger } from '../components/ui'
 import { champSkinSplash, liveChamp, liveSplash, matchSplash, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
+import { fmtNum, locale, t } from '../lib/i18n'
 
 type RoleFilter = 'ALL' | Exclude<Role, ''>
 
@@ -46,24 +47,24 @@ export function Dashboard({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="home" size={32} /> Дашборд
+          <Icon name="home" size={32} /> {t('Дашборд')}
         </h1>
-        <p className="page-sub">Личный хаб Rift Pulse: ваши последние игры, форма и статистика по чемпионам в одном месте.</p>
+        <p className="page-sub">{t('Личный хаб Rift Pulse: ваши последние игры, форма и статистика по чемпионам в одном месте.')}</p>
         <div className="push" />
         {data.source !== 'demo' && (
           <motion.button className="update" onClick={onRefresh} disabled={refreshing} whileTap={{ scale: 0.96 }}>
-            <span className={`dot ${refreshing ? 'spin' : ''}`} /> {refreshing ? 'Обновляю…' : 'Обновить'}
+            <span className={`dot ${refreshing ? 'spin' : ''}`} /> {refreshing ? t('Обновляю…') : t('Обновить')}
           </motion.button>
         )}
         <Segmented id="queue" options={QUEUE_FILTERS} value={filter} onChange={setFilter} />
-        <select className="ghost-select" value={count} onChange={(e) => setCount(Number(e.target.value))} title="Сколько игр загружать">
+        <select className="ghost-select" value={count} onChange={(e) => setCount(Number(e.target.value))} title={t('Сколько игр загружать')}>
           {[20, 50, 100, 200].map((n) => (
             <option key={n} value={n}>
-              Последние {n} игр
+              {t('Последние {n} игр', { n })}
             </option>
           ))}
         </select>
-        <span className="season">Сезон {new Date().getFullYear()}</span>
+        <span className="season">{t('Сезон {year}', { year: new Date().getFullYear() })}</span>
       </motion.div>
 
       <motion.div className="grid" variants={stagger} initial="hidden" animate="show">
@@ -116,9 +117,9 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
             className="icons"
             value={role}
             onChange={setRole}
-            options={[{ id: 'ALL' as RoleFilter, label: <RoleIcon role="ALL" size={16} />, title: 'Все роли' }, ...ROLES.map((r) => ({ id: r.id as RoleFilter, label: <RoleIcon role={r.id} size={16} />, title: r.label }))]}
+            options={[{ id: 'ALL' as RoleFilter, label: <RoleIcon role="ALL" size={16} />, title: t('Все роли') }, ...ROLES.map((r) => ({ id: r.id as RoleFilter, label: <RoleIcon role={r.id} size={16} />, title: r.label }))]}
           />
-          <span className="hero-note">последние 5 игр против вашего среднего</span>
+          <span className="hero-note">{t('последние 5 игр против вашего среднего')}</span>
         </div>
       </div>
       <motion.div className="stat-grid" variants={stagger} initial="hidden" animate="show" key={`${role}-${matches.length}`}>
@@ -242,7 +243,7 @@ function Showcase({
           <span className="vs-text">VS</span>
         </div>
         <motion.button className="watch" onClick={onLive} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-          <Icon name="eye" size={15} /> Открыть игру
+          <Icon name="eye" size={15} /> {t('Открыть игру')}
         </motion.button>
       </Card>
     )
@@ -272,7 +273,7 @@ function Showcase({
           <span className="rec-dot" /> <b>{clock(secs)}</b> <span className="chip">{(PLATFORMS[platform] ?? platform).toUpperCase()}</span>
           <div className="push" />
           <button className="chip ghost" onClick={() => setTab('best')}>
-            Лучшие игры <Icon name="right" size={11} />
+            {t('Лучшие игры')} <Icon name="right" size={11} />
           </button>
         </div>
         <div className="feat-row">
@@ -288,7 +289,7 @@ function Showcase({
           <div className="feat-mid">
             <span className="vs-text">VS</span>
             <motion.button className="watch" onClick={onSpectate} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Icon name="eye" size={15} /> Смотреть
+              <Icon name="eye" size={15} /> {t('Смотреть')}
             </motion.button>
           </div>
           <div className="feat-side right">
@@ -326,7 +327,7 @@ function Showcase({
                   {m.kills}/{m.deaths}/{m.assists}
                 </b>
                 <span>
-                  {m.champion} · {m.win ? 'Победа' : 'Поражение'}
+                  {m.champion} · {m.win ? t('Победа') : t('Поражение')}
                 </span>
               </div>
               <span className={`show-score ${badge(m).tone}`}>{m.score}</span>
@@ -335,22 +336,22 @@ function Showcase({
         </motion.div>
       </AnimatePresence>
       <div className="show-top">
-        <Icon name="star" size={15} /> <b>Лучшие игры</b> <span className="chip">по оценке</span>
+        <Icon name="star" size={15} /> <b>{t('Лучшие игры')}</b> <span className="chip">{t('по оценке')}</span>
         {featured && (
           <>
             <div className="push" />
             <button className="chip ghost" onClick={() => setTab('live')}>
-              <span className="rec-dot" /> В эфире
+              <span className="rec-dot" /> {t('В эфире')}
             </button>
           </>
         )}
       </div>
       {pages.length > 1 && (
         <>
-          <motion.button className="show-arrow left" onClick={() => go(-1)} whileHover={{ x: -3 }} aria-label="Назад">
+          <motion.button className="show-arrow left" onClick={() => go(-1)} whileHover={{ x: -3 }} aria-label={t('Назад')}>
             <Icon name="left" size={22} />
           </motion.button>
-          <motion.button className="show-arrow right" onClick={() => go(1)} whileHover={{ x: 3 }} aria-label="Вперёд">
+          <motion.button className="show-arrow right" onClick={() => go(1)} whileHover={{ x: 3 }} aria-label={t('Вперёд')}>
             <Icon name="right" size={22} />
           </motion.button>
         </>
@@ -362,21 +363,21 @@ function Showcase({
 // ---------------------------------------------------------------- last game + recent list
 function LastGame({ matches, onOpen, onAll }: { matches: MatchSummary[]; onOpen: (id: string) => void; onAll: () => void }) {
   const m = matches[0]
-  if (!m) return <Card className="last empty">Нет игр в этом режиме</Card>
+  if (!m) return <Card className="last empty">{t('Нет игр в этом режиме')}</Card>
   return (
     <Card className="last">
       <button className="last-main" onClick={() => onOpen(m.id)}>
         <Splash src={matchSplash(m)} fallback={champSplash(m.champion)} position="center 15%" />
         <div className="last-shade" />
         <div className="last-top">
-          <span className={`result ${m.win ? 'win' : 'loss'}`}>{m.win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</span>
+          <span className={`result ${m.win ? 'win' : 'loss'}`}>{m.win ? t('ПОБЕДА') : t('ПОРАЖЕНИЕ')}</span>
           <span className="chip">{duration(m.durationSec)}</span>
         </div>
         <div className="last-bottom">
           <div className="last-who">
             <Champ name={m.champion} size={38} radius={19} />
             <div>
-              <b>Полная игра</b>
+              <b>{t('Полная игра')}</b>
               <div className="muted small">
                 {queueLabel(m.queueId, m.mode)} · {ago(m.endedAt)}
               </div>
@@ -409,7 +410,7 @@ function LastGame({ matches, onOpen, onAll }: { matches: MatchSummary[]; onOpen:
           </motion.button>
         ))}
         <button className="see-all" onClick={onAll}>
-          Все игры <Icon name="right" size={14} />
+          {t('Все игры')} <Icon name="right" size={14} />
         </button>
       </div>
     </Card>
@@ -418,13 +419,13 @@ function LastGame({ matches, onOpen, onAll }: { matches: MatchSummary[]; onOpen:
 
 // ---------------------------------------------------------------- bottom row
 function OverlayPromo({ live, onOpen }: { live: LiveData | null; onOpen: () => void }) {
-  const [t, setT] = useState(1185)
+  const [tick, setT] = useState(1185)
   useEffect(() => {
     if (live) return
     const id = setInterval(() => setT((v) => (v >= 1260 ? 1185 : v + 1)), 1000)
     return () => clearInterval(id)
   }, [live])
-  const timers = objectiveTimers(live ?? demoLive(t)).slice(0, 3)
+  const timers = objectiveTimers(live ?? demoLive(tick)).slice(0, 3)
   return (
     <Card className="promo" onClick={onOpen}>
       <div className="promo-timers">
@@ -455,7 +456,7 @@ function OverlayPromo({ live, onOpen }: { live: LiveData | null; onOpen: () => v
         ))}
       </div>
       <div className="promo-foot">
-        Оверлеи <Icon name="arrow" size={14} />
+        {t('Оверлеи')} <Icon name="arrow" size={14} />
       </div>
     </Card>
   )
@@ -501,10 +502,10 @@ function CollectionTile({ data, onOpen, onMastery }: { data: PlayerData; onOpen:
       <div className="mastery-shade" />
       <div className="mastery-body">
         <div className="mastery-title">
-          <Icon name="sparkle" size={14} /> Коллекция <Icon name="arrow" size={13} />
+          <Icon name="sparkle" size={14} /> {t('Коллекция')} <Icon name="arrow" size={13} />
         </div>
         <div className="mastery-row">
-          <span className="muted">Скины</span>
+          <span className="muted">{t('Скины')}</span>
           <b>
             <Counter value={col.owned} /> <span className="muted">/ {col.total}</span>
           </b>
@@ -527,16 +528,16 @@ function MasteryCard({ data, onOpen }: { data: PlayerData; onOpen: () => void })
       <div className="mastery-shade" />
       <div className="mastery-body">
         <div className="mastery-title">
-          <Icon name="sparkle" size={14} /> Мастерство <Icon name="arrow" size={13} />
+          <Icon name="sparkle" size={14} /> {t('Мастерство')} <Icon name="arrow" size={13} />
         </div>
         {top ? (
           <>
             <div className="mastery-row">
               <span className="muted">
-                {top.champion}, уровень {top.level}
+                {t('{champ}, уровень {level}', { champ: top.champion, level: top.level })}
               </span>
               <b>
-                <Counter value={top.points} format={(v) => Math.round(v).toLocaleString('ru-RU')} />
+                <Counter value={top.points} format={(v) => fmtNum(Math.round(v))} />
                 <span className="muted"> / {Math.round(total / 1000)}k</span>
               </b>
             </div>
@@ -545,7 +546,7 @@ function MasteryCard({ data, onOpen }: { data: PlayerData; onOpen: () => void })
             </div>
           </>
         ) : (
-          <div className="muted small">Данные о мастерстве появятся после загрузки профиля</div>
+          <div className="muted small">{t('Данные о мастерстве появятся после загрузки профиля')}</div>
         )}
       </div>
     </Card>
@@ -565,13 +566,13 @@ function Lens({ matches }: { matches: MatchSummary[] }) {
     <Card className="lens">
       <div className="card-head">
         <h3 className="card-title">
-          <Icon name="eye" size={16} /> Линза
+          <Icon name="eye" size={16} /> {t('Линза')}
         </h3>
         <div className="lens-nav">
-          <button onClick={() => setI((v) => (v - 1 + cards.length) % cards.length)} aria-label="Предыдущая метрика">
+          <button onClick={() => setI((v) => (v - 1 + cards.length) % cards.length)} aria-label={t('Предыдущая метрика')}>
             <Icon name="left" size={14} />
           </button>
-          <button onClick={() => setI((v) => (v + 1) % cards.length)} aria-label="Следующая метрика">
+          <button onClick={() => setI((v) => (v + 1) % cards.length)} aria-label={t('Следующая метрика')}>
             <Icon name="right" size={14} />
           </button>
         </div>
@@ -580,7 +581,7 @@ function Lens({ matches }: { matches: MatchSummary[] }) {
         <motion.div key={c.key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35, ease }} className="lens-body">
           <Sparkline data={c.series} labels={pointLabels(c)} format={c.fmt} width={260} height={90} color="var(--gold)" stretch />
           <div className="muted small">{c.label}</div>
-          <div className="lens-title">Среднее за {matches.length} игр</div>
+          <div className="lens-title">{t('Среднее за {n} игр', { n: matches.length })}</div>
           <div className="lens-value">
             {matches.length ? <Counter value={c.value} format={c.fmt} /> : '–'}
             {pct !== null && <span>/100</span>}
@@ -602,7 +603,7 @@ function RankCard({ data }: { data: PlayerData }) {
       <AnimatePresence mode="wait">
         <motion.div key={q} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.3, ease }} className="rank-inner">
           <div>
-            <button className="rank-queue" onClick={() => setQ(q === 'RANKED_SOLO_5x5' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')} title="Переключить очередь">
+            <button className="rank-queue" onClick={() => setQ(q === 'RANKED_SOLO_5x5' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')} title={t('Переключить очередь')}>
               {q === 'RANKED_SOLO_5x5' ? 'Solo/Duo' : 'Flex'} <Icon name="chevron" size={12} />
             </button>
             {e ? (
@@ -618,7 +619,7 @@ function RankCard({ data }: { data: PlayerData }) {
                 </div>
               </>
             ) : (
-              <div className="rank-tier muted">Без ранга</div>
+              <div className="rank-tier muted">{t('Без ранга')}</div>
             )}
           </div>
           {e && (
@@ -639,7 +640,7 @@ function ringColor(m: MatchSummary) {
 
 function MatchList({ matches, onOpen }: { matches: MatchSummary[]; onOpen: (id: string) => void }) {
   const [limit, setLimit] = useState(6)
-  if (!matches.length) return <Card className="empty">Нет игр в этом режиме</Card>
+  if (!matches.length) return <Card className="empty">{t('Нет игр в этом режиме')}</Card>
   return (
     <motion.section className="match-list" variants={fadeUp}>
       <AnimatePresence initial={false} mode="popLayout">
@@ -685,7 +686,7 @@ function MatchList({ matches, onOpen }: { matches: MatchSummary[]; onOpen: (id: 
         })}
       </AnimatePresence>
       {limit < matches.length && (
-        <motion.button className="more" onClick={() => setLimit((l) => l + 6)} aria-label="Показать ещё" animate={{ y: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+        <motion.button className="more" onClick={() => setLimit((l) => l + 6)} aria-label={t('Показать ещё')} animate={{ y: [0, 3, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
           <Icon name="chevron" />
           <Icon name="chevron" />
         </motion.button>
@@ -702,7 +703,7 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
   return (
     <Card className="champ-perf">
       <h3 className="card-title center">
-        <Icon name="swords" size={16} /> Чемпионы
+        <Icon name="swords" size={16} /> {t('Чемпионы')}
       </h3>
       <div className="podium">
         {podium.map((c, i) => (
@@ -731,7 +732,7 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
           </motion.span>
         ))}
         <button className="pill" onClick={onAll}>
-          ВСЕ
+          {t('ВСЕ')}
         </button>
       </div>
       <div className="roles">
@@ -739,7 +740,7 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
           <div key={r.id} className={`role ${r.games ? '' : 'dim'}`} title={r.label}>
             <RoleIcon role={r.id} size={24} />
             <b>{r.games ? `${Math.round((r.wins / r.games) * 100)}%` : '–'}</b>
-            <span className="muted tiny">{r.games} игр</span>
+            <span className="muted tiny">{t('{n} игр', { n: r.games })}</span>
           </div>
         ))}
       </div>
@@ -749,5 +750,5 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
 
 /** "16 авг · Ahri" for every point of a stat card's series */
 function pointLabels(c: { dates: number[]; champs: string[] }) {
-  return c.dates.map((d, i) => `${new Date(d).toLocaleDateString('ru', { day: 'numeric', month: 'short' })} · ${champName(c.champs[i])}`)
+  return c.dates.map((d, i) => `${new Date(d).toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · ${champName(c.champs[i])}`)
 }

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { StatsStatus, StatsSummary } from '../lib/statsTypes'
 import { ROLE_LABEL, pct, statsSummary, tierRows, type TierRow } from '../lib/statsApi'
 import { championList } from '../lib/ddragon'
+import { locale, t } from '../lib/i18n'
 import { Champ, Icon, Skeleton, ease } from '../components/ui'
 import { RoleIcon } from '../components/RoleIcon'
 import { CollectorPill, PatchSelect, RoleTabs, StatsGate, TierBadge, hasData, patchList } from '../components/StatsBits'
@@ -60,7 +61,7 @@ export function TierList({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="list" size={28} /> Тир-лист
+          <Icon name="list" size={28} /> {t('Тир-лист')}
         </h1>
         <CollectorPill status={status} demo={demo} />
       </motion.div>
@@ -74,12 +75,12 @@ export function TierList({
             <div className="tier-tools">
               <div className="search-mini">
                 <Icon name="search" size={15} />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Чемпион" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Чемпион')} />
               </div>
               {!demo && <PatchSelect status={status} value={patch} onChange={setPatch} />}
               {demo && (
                 <button className="btn" onClick={() => setDemo(false)}>
-                  Выйти из примера
+                  {t('Выйти из примера')}
                 </button>
               )}
             </div>
@@ -88,13 +89,13 @@ export function TierList({
           <div className="card tier-table">
             <div className="tier-row tier-head">
               <span>#</span>
-              {head('tier', 'Тир')}
-              <span>Чемпион</span>
-              <span>Роль</span>
-              {head('wr', 'Винрейт')}
-              {head('pr', 'Пикрейт')}
-              {head('br', 'Банрейт')}
-              {head('g', 'Игры')}
+              {head('tier', t('Тир'))}
+              <span>{t('Чемпион')}</span>
+              <span>{t('Роль')}</span>
+              {head('wr', t('Винрейт'))}
+              {head('pr', t('Пикрейт'))}
+              {head('br', t('Банрейт'))}
+              {head('g', t('Игры'))}
             </div>
             {!data ? (
               Array.from({ length: 10 }, (_, i) => (
@@ -131,16 +132,15 @@ export function TierList({
                     </span>
                     <span>{pct(r.pr)}</span>
                     <span>{pct(r.br)}</span>
-                    <span className="muted">{r.g.toLocaleString('ru')}</span>
+                    <span className="muted">{r.g.toLocaleString(locale)}</span>
                   </motion.button>
                 ))}
               </AnimatePresence>
             )}
-            {data && !rows.length && <p className="muted pad">Ничего не найдено.</p>}
+            {data && !rows.length && <p className="muted pad">{t('Ничего не найдено.')}</p>}
           </div>
           <p className="small muted foot-note">
-            Ранговые одиночные игры Master, Grandmaster и Challenger. Тир учитывает винрейт с поправкой на размер выборки, пикрейт и банрейт; тиры считаются отдельно
-            для каждой роли.
+            {t('Ранговые одиночные игры Master, Grandmaster и Challenger. Тир учитывает винрейт с поправкой на размер выборки, пикрейт и банрейт; тиры считаются отдельно для каждой роли.')}
           </p>
         </>
       )}

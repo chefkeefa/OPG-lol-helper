@@ -6,6 +6,7 @@ import { OverlayTimers } from './components/OverlayTimers'
 import { OverlayBench } from './components/OverlayBench'
 import type { LiveData } from './types'
 import type { Benchmarks } from './lib/statsTypes'
+import { t } from './lib/i18n'
 import './styles.css'
 
 /** Content of the transparent in-game overlay window (desktop only). */
@@ -36,11 +37,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     if (!this.state.error) return this.props.children
     return (
       <div className="crash">
-        <h2>Что-то пошло не так</h2>
-        <p>Пришлите этот текст разработчику:</p>
+        <h2>{t('Что-то пошло не так')}</h2>
+        <p>{t('Пришлите этот текст разработчику:')}</p>
         <pre>{String(this.state.error.stack ?? this.state.error)}</pre>
         <button className="btn primary" onClick={() => location.reload()}>
-          Перезапустить интерфейс
+          {t('Перезапустить интерфейс')}
         </button>
       </div>
     )

@@ -1,4 +1,5 @@
 import type { LiveData } from '../types'
+import { t } from './i18n'
 
 export interface ObjectiveTimer {
   id: 'dragon' | 'elder' | 'grubs' | 'herald' | 'baron'
@@ -10,11 +11,11 @@ export interface ObjectiveTimer {
 }
 
 const LABEL: Record<ObjectiveTimer['id'], string> = {
-  dragon: 'Дракон',
-  elder: 'Древний',
-  grubs: 'Личинки',
-  herald: 'Герольд',
-  baron: 'Барон',
+  dragon: t('Дракон'),
+  elder: t('Древний'),
+  grubs: t('Личинки'),
+  herald: t('Герольд'),
+  baron: t('Барон'),
 }
 
 /**

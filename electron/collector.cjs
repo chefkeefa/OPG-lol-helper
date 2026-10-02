@@ -3,6 +3,7 @@
 // solo games (match + timeline) through the official Riot API and aggregates, per patch and per
 // champion+role: win/pick rates, bans, item builds, boots, starting items, rune pages, summoner
 // spells, skill order and lane matchups. Only the aggregates are stored, never raw matches.
+const { t } = require('./i18n.cjs')
 const fs = require('node:fs')
 const path = require('node:path')
 const { regionalOf } = require('./riot.cjs')
@@ -114,7 +115,7 @@ class Collector {
 
   async api(host, p) {
     const r = await this.riot.request(host, p, 'low')
-    if (r.status === 401 || r.status === 403) throw Object.assign(new Error('Ключ Riot API недействителен или истёк'), { fatal: true })
+    if (r.status === 401 || r.status === 403) throw Object.assign(new Error(t('Ключ Riot API недействителен или истёк')), { fatal: true })
     if (r.status >= 400) throw new Error(`Riot API ${r.status}`)
     return r.body
   }

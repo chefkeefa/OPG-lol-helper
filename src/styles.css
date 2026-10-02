@@ -4604,3 +4604,19 @@ button.mu-trow:hover,
 .feat-team { display: flex; gap: 4px; margin-top: 8px; }
 .feat-mid { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 2px; }
 .feat-mid .watch { position: static; translate: none; }
+
+/* language switch */
+.tb-icon.lang-btn { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; width: auto; padding: 0 9px; }
+.lang-pick { display: flex; gap: 8px; margin-top: 4px; }
+.lang-pick button {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.lang-pick button:hover { color: #fff; }
+.lang-pick button.on { color: #fff; border-color: var(--accent); background: rgba(111, 94, 246, 0.2); }

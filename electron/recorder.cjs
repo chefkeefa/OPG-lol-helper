@@ -1,3 +1,4 @@
+const { t } = require('./i18n.cjs')
 // Game recording: a hidden window captures the screen (and system sound) with MediaRecorder,
 // chunks are streamed to disk, and ffmpeg turns the result into a seekable mp4 when the game
 // ends. Kills, deaths, multikills and objectives are saved as moments with the video.
@@ -17,7 +18,7 @@ function ffmpegPath() {
 function ffmpeg(args) {
   return new Promise((resolve, reject) => {
     const bin = ffmpegPath()
-    if (!bin) return reject(new Error('ffmpeg не найден'))
+    if (!bin) return reject(new Error(t('ffmpeg не найден')))
     execFile(bin, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { windowsHide: true, timeout: 10 * 60_000 }, (err, _o, stderr) =>
       err ? reject(new Error(stderr || err.message)) : resolve(),
     )
@@ -25,7 +26,7 @@ function ffmpeg(args) {
 }
 
 const QUALITY = { high: 14_000_000, medium: 8_000_000, low: 4_000_000 }
-const MULTI = { 2: 'Двойное убийство', 3: 'Тройное убийство', 4: 'Четверное убийство', 5: 'ПЕНТАКИЛЛ' }
+const MULTI = () => ({ 2: t('Двойное убийство'), 3: t('Тройное убийство'), 4: t('Четверное убийство'), 5: t('ПЕНТАКИЛЛ') })
 
 class Recorder {
   constructor({ getSettings, defaultFolder, onChange }) {
@@ -132,21 +133,21 @@ class Recorder {
       if (this.seenEvents.has(ev.EventID)) continue
       this.seenEvents.add(ev.EventID)
       if (ev.EventTime < c.gameOffset - 1) continue
-      const t = Math.max(0, ev.EventTime - c.gameOffset)
+      const at = Math.max(0, ev.EventTime - c.gameOffset)
       const killer = names.has(ev.KillerName)
       let m = null
       if (ev.EventName === 'ChampionKill') {
-        if (killer) m = { kind: 'kill', label: `Убийство: ${ev.VictimName}` }
-        else if (names.has(ev.VictimName)) m = { kind: 'death', label: `Смерть от ${ev.KillerName}` }
-        else if ((ev.Assisters || []).some((a) => names.has(a))) m = { kind: 'assist', label: `Помощь: ${ev.VictimName}` }
-      } else if (ev.EventName === 'Multikill' && killer) m = { kind: 'multikill', label: MULTI[ev.KillStreak] || 'Мультикилл' }
-      else if (ev.EventName === 'FirstBlood' && (names.has(ev.Recipient) || killer)) m = { kind: 'kill', label: 'Первая кровь' }
-      else if (ev.EventName === 'Ace') m = { kind: 'objective', label: 'Эйс' }
+        if (killer) m = { kind: 'kill', label: t('Убийство: {name}', { name: ev.VictimName }) }
+        else if (names.has(ev.VictimName)) m = { kind: 'death', label: t('Смерть от {name}', { name: ev.KillerName }) }
+        else if ((ev.Assisters || []).some((a) => names.has(a))) m = { kind: 'assist', label: t('Помощь: {name}', { name: ev.VictimName }) }
+      } else if (ev.EventName === 'Multikill' && killer) m = { kind: 'multikill', label: MULTI()[ev.KillStreak] || t('Мультикилл') }
+      else if (ev.EventName === 'FirstBlood' && (names.has(ev.Recipient) || killer)) m = { kind: 'kill', label: t('Первая кровь') }
+      else if (ev.EventName === 'Ace') m = { kind: 'objective', label: t('Эйс') }
       else if (['DragonKill', 'BaronKill', 'HeraldKill', 'HordeKill'].includes(ev.EventName)) {
-        const name = { DragonKill: 'Дракон', BaronKill: 'Барон', HeraldKill: 'Герольд', HordeKill: 'Личинки' }[ev.EventName]
-        m = { kind: ev.Stolen === 'True' ? 'steal' : 'objective', label: `${name}${ev.Stolen === 'True' ? ' (украден)' : ''}` }
+        const name = { DragonKill: t('Дракон'), BaronKill: t('Барон'), HeraldKill: t('Герольд'), HordeKill: t('Личинки') }[ev.EventName]
+        m = { kind: ev.Stolen === 'True' ? 'steal' : 'objective', label: ev.Stolen === 'True' ? t('{name} (украден)', { name }) : name }
       } else if (ev.EventName === 'GameEnd') c.result = ev.Result
-      if (m) c.moments.push({ t, ...m })
+      if (m) c.moments.push({ t: at, ...m })
     }
   }
 

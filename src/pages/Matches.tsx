@@ -5,6 +5,7 @@ import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel } from '../li
 import { champSplash } from '../lib/ddragon'
 import { matchSplash, useSkins } from '../lib/skins'
 import { Champ, Icon, Item, Ring, Segmented, Splash, ease, fadeUp, stagger } from '../components/ui'
+import { t } from '../lib/i18n'
 
 export function Matches({
   matches,
@@ -25,10 +26,10 @@ export function Matches({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="film" size={30} /> История матчей
+          <Icon name="film" size={30} /> {t('История матчей')}
         </h1>
         <p className="page-sub">
-          {matches.length} игр · {wins}W {matches.length - wins}L · нажмите на игру, чтобы раскрыть составы и статистику всех десяти игроков.
+          {t('{n} игр · {w}W {l}L · нажмите на игру, чтобы раскрыть составы и статистику всех десяти игроков.', { n: matches.length, w: wins, l: matches.length - wins })}
         </p>
         <div className="push" />
         <Segmented id="queue-m" options={QUEUE_FILTERS} value={filter} onChange={setFilter} />
@@ -37,7 +38,7 @@ export function Matches({
         {matches.map((m) => (
           <MatchRow key={m.id} m={m} open={m.id === openId} onToggle={() => setOpenId(m.id === openId ? undefined : m.id)} />
         ))}
-        {!matches.length && <div className="card empty">Нет игр в этом режиме</div>}
+        {!matches.length && <div className="card empty">{t('Нет игр в этом режиме')}</div>}
       </motion.div>
     </div>
   )
@@ -55,7 +56,7 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
         <Splash src={matchSplash(m)} fallback={champSplash(m.champion)} className="hrow-bg" position="center 25%" />
         <span className="hrow-stripe" />
         <div className="hrow-meta">
-          <b className={m.win ? 'win-text' : 'loss-text'}>{m.win ? 'Победа' : 'Поражение'}</b>
+          <b className={m.win ? 'win-text' : 'loss-text'}>{m.win ? t('Победа') : t('Поражение')}</b>
           <span>{queueLabel(m.queueId, m.mode)}</span>
           <span className="muted small">
             {duration(m.durationSec)} · {ago(m.endedAt)}
@@ -79,7 +80,7 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
             <b>{Math.round(m.kp * 100)}%</b> KP
           </span>
           <span>
-            <b>{Math.round(m.dmgPerMin)}</b> урон/мин
+            <b>{Math.round(m.dmgPerMin)}</b> {t('урон/мин')}
           </span>
         </div>
         <div className="items">
@@ -126,7 +127,7 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
 
 function Scoreboard({ m }: { m: MatchSummary }) {
   const ps = m.players
-  if (!ps?.length) return <div className="muted pad">Подробности недоступны для этой игры. Обновите данные, чтобы загрузить составы.</div>
+  if (!ps?.length) return <div className="muted pad">{t('Подробности недоступны для этой игры. Обновите данные, чтобы загрузить составы.')}</div>
   const myTeam = ps.find((p) => p.me)?.teamId
   const teams = [ps.filter((p) => p.teamId === myTeam), ps.filter((p) => p.teamId !== myTeam)]
   const maxDmg = Math.max(...ps.map((p) => p.damage), 1)
@@ -137,14 +138,14 @@ function Scoreboard({ m }: { m: MatchSummary }) {
         return (
           <div key={ti} className="sb-team">
             <div className={`sb-head ${won ? 'win-text' : 'loss-text'}`}>
-              <b>{ti === 0 ? 'Ваша команда' : 'Противники'}</b> · {won ? 'Победа' : 'Поражение'} · {team.reduce((s, p) => s + p.kills, 0)} убийств
+              <b>{ti === 0 ? t('Ваша команда') : t('Противники')}</b> · {won ? t('Победа') : t('Поражение')} · {t('{n} убийств', { n: team.reduce((s, p) => s + p.kills, 0) })}
               <span className="sb-cols">
                 <span>KDA</span>
-                <span>Урон</span>
+                <span>{t('Урон')}</span>
                 <span>CS</span>
-                <span>Обзор</span>
-                <span>Предметы</span>
-                <span>Оценка</span>
+                <span>{t('Обзор')}</span>
+                <span>{t('Предметы')}</span>
+                <span>{t('Оценка')}</span>
               </span>
             </div>
             {team.map((p, i) => (

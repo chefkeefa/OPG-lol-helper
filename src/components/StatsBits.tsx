@@ -6,6 +6,7 @@ import { championList, type ChampionInfo } from '../lib/ddragon'
 import { ROLE_LABEL, TIER_COLOR } from '../lib/statsApi'
 import { Champ, Icon, ease, spring } from './ui'
 import { RoleIcon } from './RoleIcon'
+import { fmtNum, t } from '../lib/i18n'
 
 export function TierBadge({ tier, size = 30 }: { tier: string; size?: number }) {
   return (
@@ -22,11 +23,11 @@ export function RoleTabs({ value, onChange, id, counts, all = true }: { value: s
   return (
     <div className="role-tabs">
       {tabs.map((r) => (
-        <button key={r || 'all'} className={value === r ? 'on' : ''} onClick={() => onChange(r)} title={r ? ROLE_LABEL[r] : 'Все роли'}>
+        <button key={r || 'all'} className={value === r ? 'on' : ''} onClick={() => onChange(r)} title={r ? ROLE_LABEL[r] : t('Все роли')}>
           {value === r && <motion.span layoutId={`roles-${id}`} className="seg-bg" transition={spring} />}
           <span className="seg-label">
             <RoleIcon role={r || 'ALL'} size={16} />
-            <span>{r ? ROLE_LABEL[r] : 'Все'}</span>
+            <span>{r ? ROLE_LABEL[r] : t('Все')}</span>
             {counts && r && <em>{counts[r]}</em>}
           </span>
         </button>
@@ -39,15 +40,15 @@ export function RoleTabs({ value, onChange, id, counts, all = true }: { value: s
 export function PatchSelect({ status, value, onChange }: { status: StatsStatus | null; value: string; onChange: (v: string) => void }) {
   return (
     <label className="select-pill">
-      <span>Патч</span>
+      <span>{t('Патч')}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Актуальный</option>
+        <option value="">{t('Актуальный')}</option>
         {status?.patches.map((p) => (
           <option key={p.patch} value={p.patch}>
-            {p.patch} · {p.matches.toLocaleString('ru')} игр
+            {p.patch} · {t('{n} игр', { n: fmtNum(p.matches) })}
           </option>
         ))}
-        {(status?.patches.length ?? 0) > 1 && <option value="*">Все патчи</option>}
+        {(status?.patches.length ?? 0) > 1 && <option value="*">{t('Все патчи')}</option>}
       </select>
     </label>
   )
@@ -55,7 +56,7 @@ export function PatchSelect({ status, value, onChange }: { status: StatsStatus |
 export const patchList = (status: StatsStatus | null, v: string) => (v === '*' ? status?.patches.map((p) => p.patch) ?? [] : v ? [v] : [])
 
 /** Search-as-you-type champion picker with icons. */
-export function ChampPicker({ value, onPick, placeholder = 'Найти чемпиона…', only }: { value?: string; onPick: (id: string) => void; placeholder?: string; only?: string[] }) {
+export function ChampPicker({ value, onPick, placeholder = t('Найти чемпиона…'), only }: { value?: string; onPick: (id: string) => void; placeholder?: string; only?: string[] }) {
   const [list, setList] = useState<ChampionInfo[]>([])
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
@@ -124,7 +125,7 @@ export function ChampPicker({ value, onPick, placeholder = 'Найти чемп�
 
 /** Shown instead of statistics until the collector has data; explains what to do. */
 export function StatsGate({ status, onDemo, onSettings }: { status: StatsStatus | null; onDemo: () => void; onSettings: () => void }) {
-  if (!status) return <div className="card gate">Загрузка…</div>
+  if (!status) return <div className="card gate">{t('Загрузка…')}</div>
   const total = status.patches.reduce((s, p) => s + p.matches, 0)
   return (
     <motion.div className="card gate" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
@@ -133,50 +134,54 @@ export function StatsGate({ status, onDemo, onSettings }: { status: StatsStatus 
       </div>
       {!status.hasKey ? (
         <>
-          <h2>Нужен ключ Riot API</h2>
+          <h2>{t('Нужен ключ Riot API')}</h2>
           <p className="muted">
-            Тир-лист, билды, руны и матчапы считаются из реальных ранговых игр Master+ вашего региона. Программа сама скачивает их через официальный Riot API в
-            фоне, для этого нужен ключ (бесплатно, developer.riotgames.com).
+            {t(
+              'Тир-лист, билды, руны и матчапы считаются из реальных ранговых игр Master+ вашего региона. Программа сама скачивает их через официальный Riot API в фоне, для этого нужен ключ (бесплатно, developer.riotgames.com).',
+            )}
           </p>
           <div className="gate-actions">
             <button className="btn primary" onClick={onSettings}>
-              <Icon name="key" size={16} /> Добавить ключ
+              <Icon name="key" size={16} /> {t('Добавить ключ')}
             </button>
             <button className="btn" onClick={onDemo}>
-              Показать пример
+              {t('Показать пример')}
             </button>
           </div>
         </>
       ) : !status.enabled ? (
         <>
-          <h2>Сбор статистики выключен</h2>
-          <p className="muted">Включите его в настройках, и программа начнёт собирать игры Master+ региона {PLATFORMS[status.platform] ?? status.platform}.</p>
+          <h2>{t('Сбор статистики выключен')}</h2>
+          <p className="muted">{t('Включите его в настройках, и программа начнёт собирать игры Master+ региона {region}.', { region: PLATFORMS[status.platform] ?? status.platform })}</p>
           <div className="gate-actions">
             <button className="btn primary" onClick={onSettings}>
-              Открыть настройки
+              {t('Открыть настройки')}
             </button>
             <button className="btn" onClick={onDemo}>
-              Показать пример
+              {t('Показать пример')}
             </button>
           </div>
         </>
       ) : (
         <>
-          <h2>Собираю статистику…</h2>
+          <h2>{t('Собираю статистику…')}</h2>
           <p className="muted">
-            Скачиваю ранговые игры лучших игроков {PLATFORMS[status.platform] ?? status.platform}. Тир-лист появится после первых {MIN_MATCHES} игр, точность растёт
-            с каждым часом работы программы.
+            {t('Скачиваю ранговые игры лучших игроков {region}. Тир-лист появится после первых {n} игр, точность растёт с каждым часом работы программы.', {
+              region: PLATFORMS[status.platform] ?? status.platform,
+              n: MIN_MATCHES,
+            })}
           </p>
           <div className="gate-progress">
             <motion.span animate={{ width: `${Math.min(100, (total / MIN_MATCHES) * 100)}%` }} transition={{ duration: 0.6, ease }} />
           </div>
           <p className="small muted">
-            {total} из {MIN_MATCHES} игр{status.perHour ? ` · ${status.perHour} игр/час` : ''}
+            {t('{total} из {n} игр', { total, n: MIN_MATCHES })}
+            {status.perHour ? ` · ${t('{n} игр/час', { n: status.perHour })}` : ''}
             {status.error ? ` · ${status.error}` : ''}
           </p>
           <div className="gate-actions">
             <button className="btn" onClick={onDemo}>
-              Показать пример
+              {t('Показать пример')}
             </button>
           </div>
         </>
@@ -190,13 +195,13 @@ export const hasData = (s: StatsStatus | null) => Boolean(s && s.patches.reduce(
 /** Small status line about the collector shown in page headers. */
 export function CollectorPill({ status, demo }: { status: StatsStatus | null; demo: boolean }) {
   if (!status) return null
-  if (demo) return <span className="collector-pill demo">Пример данных</span>
+  if (demo) return <span className="collector-pill demo">{t('Пример данных')}</span>
   const total = status.patches.reduce((s, p) => s + p.matches, 0)
   return (
     <span className={`collector-pill ${status.enabled && status.hasKey && !status.error ? 'on' : ''}`} title={status.error || undefined}>
       <i />
-      {(PLATFORMS[status.platform] ?? status.platform).toString()} · Master+ · {total.toLocaleString('ru')} игр
-      {status.perHour ? ` · +${status.perHour}/ч` : ''}
+      {(PLATFORMS[status.platform] ?? status.platform).toString()} · Master+ · {t('{n} игр', { n: fmtNum(total) })}
+      {status.perHour ? ` · +${t('{n}/ч', { n: status.perHour })}` : ''}
     </span>
   )
 }

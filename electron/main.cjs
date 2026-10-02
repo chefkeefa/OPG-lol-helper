@@ -7,6 +7,7 @@ const { RiotClient } = require('./riot.cjs')
 const { Collector } = require('./collector.cjs')
 const { Recorder } = require('./recorder.cjs')
 const builds = require('./builds.cjs')
+const { t, setLangGetter } = require('./i18n.cjs')
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL
 
@@ -18,6 +19,7 @@ const settingsFile = path.join(app.getPath('userData'), 'settings.json')
 const DEFAULTS = {
   riotApiKey: '',
   myRiotId: '',
+  lang: 'ru',
   platform: 'euw1',
   overlayEnabled: true,
   overlayCorner: 'top-right',
@@ -55,6 +57,7 @@ const store = {
     } catch {}
   },
 }
+setLangGetter(() => store.get('lang'))
 
 const lcu = new LeagueClient(store)
 const riot = new RiotClient(() => store.get('riotApiKey'))
@@ -180,7 +183,7 @@ async function autoImport(championKey, role) {
   const champion = collector.items?.champById?.[championKey]
   if (!champion) return
   const d = collector.detail(champion, role, collector.recentPatches())
-  if (!d.rec) return send('import:done', { champion, ok: false, error: 'Пока нет статистики по этому чемпиону' })
+  if (!d.rec) return send('import:done', { champion, ok: false, error: t('Пока нет статистики по этому чемпиону') })
   const done = []
   const errors = []
   const tryIt = async (label, fn) => {
@@ -192,9 +195,9 @@ async function autoImport(championKey, role) {
     }
   }
   const r = d.role || role
-  if (want.runes) await tryIt('руны', () => builds.importRunes(lcu, { champion, role: r, runes: d.rec.runes }))
-  if (want.items) await tryIt('предметы', () => builds.importItems(lcu, { champion, championKey, role: r, ...d.rec }))
-  if (want.spells) await tryIt('заклинания', () => builds.importSpells(lcu, d.rec.spells))
+  if (want.runes) await tryIt(t('руны'), () => builds.importRunes(lcu, { champion, role: r, runes: d.rec.runes }))
+  if (want.items) await tryIt(t('предметы'), () => builds.importItems(lcu, { champion, championKey, role: r, ...d.rec }))
+  if (want.spells) await tryIt(t('заклинания'), () => builds.importSpells(lcu, d.rec.spells))
   send('import:done', { champion, ok: !errors.length, done, error: errors.join('; ') })
 }
 
@@ -315,7 +318,7 @@ ipcMain.handle('build:import', async (_e, what, b) => {
     return { ok: true }
   } catch (e) {
     const offline = e.status === 503 || /ECONNREFUSED|not running/i.test(e.message)
-    return { ok: false, error: offline ? 'Клиент League of Legends не запущен' : e.message }
+    return { ok: false, error: offline ? t('Клиент League of Legends не запущен') : e.message }
   }
 })
 
@@ -325,7 +328,7 @@ ipcMain.handle('lcu:spectate', async (_e, puuid, name) => {
     await lcu.post('/lol-spectator/v1/spectate/launch', { allowObserveMode: 'ALL', dropInSpectateGameId: name || '', gameQueueType: '', puuid })
     return { ok: true }
   } catch (e) {
-    return { ok: false, error: e.status === 503 ? 'Клиент League of Legends не запущен' : e.message }
+    return { ok: false, error: e.status === 503 ? t('Клиент League of Legends не запущен') : e.message }
   }
 })
 

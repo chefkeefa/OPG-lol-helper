@@ -5,6 +5,7 @@ import { clock, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Icon, Item, Ring, Splash, ease, stagger } from '../components/ui'
 import { liveChamp, liveSplash } from '../lib/skins'
 import { ObjectiveGlyph } from './Dashboard'
+import { t } from '../lib/i18n'
 
 export function Live({ live, preview, onPreview }: { live: LiveData | null; preview: boolean; onPreview: () => void }) {
   if (!live)
@@ -15,13 +16,13 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
           <motion.div className="radar" animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 2.2 }}>
             <Icon name="eye" size={34} />
           </motion.div>
-          <h3>Сейчас вы не в игре</h3>
+          <h3>{t('Сейчас вы не в игре')}</h3>
           <p className="muted">
-            Как только начнётся матч, здесь появятся оба состава, счёт в реальном времени и таймеры объектов.
-            {!window.rp && ' Живые данные доступны только в десктоп-версии.'}
+            {t('Как только начнётся матч, здесь появятся оба состава, счёт в реальном времени и таймеры объектов.')}
+            {!window.rp && ' ' + t('Живые данные доступны только в десктоп-версии.')}
           </p>
           <button className="btn" onClick={onPreview}>
-            Показать пример
+            {t('Показать пример')}
           </button>
         </motion.div>
       </div>
@@ -30,16 +31,16 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
   const me = live.activePlayer?.riotIdGameName ?? live.activePlayer?.summonerName
   const myTeam = live.allPlayers.find((p) => [p.riotIdGameName, p.summonerName].includes(me))?.team ?? 'ORDER'
   const teams = [live.allPlayers.filter((p) => p.team === myTeam), live.allPlayers.filter((p) => p.team !== myTeam)]
-  const kills = teams.map((t) => t.reduce((s, p) => s + p.scores.kills, 0))
+  const kills = teams.map((tm) => tm.reduce((s, p) => s + p.scores.kills, 0))
   const timers = objectiveTimers(live)
 
   return (
     <div className="page">
-      <PageHead extra={preview ? <span className="chip">пример</span> : <span className="rec-dot" />} />
+      <PageHead extra={preview ? <span className="chip">{t('пример')}</span> : <span className="rec-dot" />} />
       <motion.div key="grid" variants={stagger} initial="hidden" animate="show" className="live-grid">
         <Card className="live-score" hover={false}>
           <div className="ls-side">
-            <span className="muted small">Ваша команда</span>
+            <span className="muted small">{t('Ваша команда')}</span>
             <b className="ls-kills">{kills[0]}</b>
           </div>
           <div className="ls-clock">
@@ -47,23 +48,23 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
             <span className="muted small">{live.gameData.gameMode}</span>
           </div>
           <div className="ls-side right">
-            <span className="muted small">Противники</span>
+            <span className="muted small">{t('Противники')}</span>
             <b className="ls-kills">{kills[1]}</b>
           </div>
         </Card>
         <Card className="live-timers" hover={false}>
-          {timers.map((t) => (
-            <div key={t.id} className="lt">
-              <Ring value={t.remaining ? 100 - (t.remaining / t.window) * 100 : 100} size={46} stroke={3} color={t.remaining ? 'var(--accent)' : 'var(--win)'}>
-                <ObjectiveGlyph id={t.id} />
+          {timers.map((tm) => (
+            <div key={tm.id} className="lt">
+              <Ring value={tm.remaining ? 100 - (tm.remaining / tm.window) * 100 : 100} size={46} stroke={3} color={tm.remaining ? 'var(--accent)' : 'var(--win)'}>
+                <ObjectiveGlyph id={tm.id} />
               </Ring>
               <div>
-                <b>{t.remaining ? clock(t.remaining) : 'Доступен'}</b>
-                <span className="muted small">{t.label}</span>
+                <b>{tm.remaining ? clock(tm.remaining) : t('Доступен')}</b>
+                <span className="muted small">{tm.label}</span>
               </div>
             </div>
           ))}
-          {!timers.length && <span className="muted">Таймеры доступны только на Ущелье призывателей</span>}
+          {!timers.length && <span className="muted">{t('Таймеры доступны только на Ущелье призывателей')}</span>}
         </Card>
         {teams.map((team, ti) => (
           <Card key={ti} className={`live-team ${ti ? 'enemy' : 'ally'}`} hover={false}>
@@ -84,7 +85,7 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
                   <b>{p.riotIdGameName ?? p.summonerName}</b>
                   <span className="muted small">
                     {p.championName}
-                    {p.isDead && p.respawnTimer ? ` · воскрешение ${Math.ceil(p.respawnTimer)}с` : ''}
+                    {p.isDead && p.respawnTimer ? ' · ' + t('воскрешение {n}с', { n: Math.ceil(p.respawnTimer) }) : ''}
                   </span>
                 </div>
                 <div className="lp-kda">
@@ -110,7 +111,7 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
 const PageHead = ({ extra }: { extra?: React.ReactNode }) => (
   <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
     <h1>
-      <Icon name="eye" size={30} /> Текущая игра {extra}
+      <Icon name="eye" size={30} /> {t('Текущая игра')} {extra}
     </h1>
   </motion.div>
 )

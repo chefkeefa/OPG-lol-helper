@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import type { MatchSummary, PlayerData } from '../types'
 import { championAggs } from '../lib/stats'
+import { t } from '../lib/i18n'
 import { champSplash } from '../lib/ddragon'
 import { champSkinSplash, useSkins } from '../lib/skins'
 import { Champ, Counter, Icon, Splash, ease, fadeUp, stagger } from '../components/ui'
@@ -27,21 +28,21 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
   const top = rows[0]
 
   const cols: [SortKey, string][] = [
-    ['games', 'Игры'],
-    ['wr', 'Винрейт'],
+    ['games', t('Игры')],
+    ['wr', t('Винрейт')],
     ['kda', 'KDA'],
-    ['cs', 'CS/мин'],
-    ['dmg', 'Урон/мин'],
-    ['score', 'Оценка'],
+    ['cs', t('CS/мин')],
+    ['dmg', t('Урон/мин')],
+    ['score', t('Оценка')],
   ]
 
   return (
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="chart" size={30} /> Чемпионы
+          <Icon name="chart" size={30} /> {t('Чемпионы')}
         </h1>
-        <p className="page-sub">Статистика по чемпионам за загруженные игры. Нажмите на заголовок столбца, чтобы отсортировать.</p>
+        <p className="page-sub">{t('Статистика по чемпионам за загруженные игры. Нажмите на заголовок столбца, чтобы отсортировать.')}</p>
       </motion.div>
 
       <motion.div variants={stagger} initial="hidden" animate="show" className="champs-layout">
@@ -51,14 +52,14 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
               <Splash src={champSkinSplash(top.champion)} fallback={champSplash(top.champion)} position="center 20%" />
               <div className="champ-hero-shade" />
               <div className="champ-hero-body">
-                <span className="chip">Лучший по «{cols.find((c) => c[0] === sort)?.[1]}»</span>
+                <span className="chip">{t('Лучший по «{col}»', { col: cols.find((c) => c[0] === sort)?.[1] ?? '' })}</span>
                 <h2>{top.champion}</h2>
                 <div className="champ-hero-stats">
                   <div>
                     <b>
                       <Counter value={top.wr * 100} format={(v) => `${Math.round(v)}%`} />
                     </b>
-                    <span>винрейт</span>
+                    <span>{t('винрейт')}</span>
                   </div>
                   <div>
                     <b>
@@ -68,13 +69,13 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
                   </div>
                   <div>
                     <b>{top.games}</b>
-                    <span>игр</span>
+                    <span>{t('игр')}</span>
                   </div>
                   <div>
                     <b>
                       <Counter value={top.score} format={(v) => v.toFixed(0)} />
                     </b>
-                    <span>оценка</span>
+                    <span>{t('оценка')}</span>
                   </div>
                 </div>
               </div>
@@ -84,7 +85,7 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
           <motion.section variants={fadeUp} className="card table-card">
             <div className="ctable">
               <div className="ctr head">
-                <span>Чемпион</span>
+                <span>{t('Чемпион')}</span>
                 {cols.map(([k, l]) => (
                   <button key={k} className={sort === k ? 'on' : ''} onClick={() => setSort(k)}>
                     {l}
@@ -122,14 +123,14 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
 
         <motion.section variants={fadeUp} className="card mastery-list">
           <h3 className="card-title">
-            <Icon name="sparkle" size={16} /> Мастерство
+            <Icon name="sparkle" size={16} /> {t('Мастерство')}
           </h3>
           {(data.mastery ?? []).map((m, i) => (
             <motion.div key={m.champion} className="ml-row" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.05, ease }}>
               <Champ name={m.champion} size={40} radius={10} />
               <div className="ml-text">
                 <b>{m.champion}</b>
-                <span className="muted small">Уровень {m.level}</span>
+                <span className="muted small">{t('Уровень {level}', { level: m.level })}</span>
                 <span className="bar-track thin">
                   <motion.span
                     className="bar-fill"
@@ -142,7 +143,7 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
               <b className="ml-pts">{(m.points / 1000).toFixed(0)}k</b>
             </motion.div>
           ))}
-          {!data.mastery?.length && <div className="muted small">Нет данных о мастерстве.</div>}
+          {!data.mastery?.length && <div className="muted small">{t('Нет данных о мастерстве.')}</div>}
         </motion.section>
       </motion.div>
     </div>

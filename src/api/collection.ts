@@ -1,3 +1,4 @@
+import { cdLocale, t } from '../lib/i18n'
 // Skins and ward skins: catalogue data from CommunityDragon (rarity, sets, legacy status),
 // ownership, purchase dates and prices from the League client when it is running.
 import { championList } from '../lib/ddragon'
@@ -8,14 +9,14 @@ export const cdAsset = (p?: string) => (p ? `${CD}/default/${p.replace(/^\/lol-g
 
 export type Tier = 'kNoRarity' | 'kRare' | 'kEpic' | 'kLegendary' | 'kMythic' | 'kUltimate' | 'kExalted' | 'kTranscendent'
 export const TIERS: { id: Tier; label: string; color: string }[] = [
-  { id: 'kNoRarity', label: 'Обычный', color: '#9aa3c7' },
-  { id: 'kRare', label: 'Редкий', color: '#6fb6ff' },
-  { id: 'kEpic', label: 'Эпический', color: '#3fa2ff' },
-  { id: 'kLegendary', label: 'Легендарный', color: '#ff6b5c' },
-  { id: 'kMythic', label: 'Мифический', color: '#b06bff' },
-  { id: 'kUltimate', label: 'Ультимативный', color: '#f4b63f' },
-  { id: 'kExalted', label: 'Возвышенный', color: '#ff6fb1' },
-  { id: 'kTranscendent', label: 'Трансцендентный', color: '#37e0c1' },
+  { id: 'kNoRarity', label: t('Обычный'), color: '#9aa3c7' },
+  { id: 'kRare', label: t('Редкий'), color: '#6fb6ff' },
+  { id: 'kEpic', label: t('Эпический'), color: '#3fa2ff' },
+  { id: 'kLegendary', label: t('Легендарный'), color: '#ff6b5c' },
+  { id: 'kMythic', label: t('Мифический'), color: '#b06bff' },
+  { id: 'kUltimate', label: t('Ультимативный'), color: '#f4b63f' },
+  { id: 'kExalted', label: t('Возвышенный'), color: '#ff6fb1' },
+  { id: 'kTranscendent', label: t('Трансцендентный'), color: '#37e0c1' },
 ]
 
 export interface SkinItem {
@@ -84,9 +85,9 @@ const lcuDate = (s?: string) => {
 
 async function catalogue() {
   const [skins, lines, wards] = await Promise.all([
-    getJson<Record<string, CdSkin>>(`${CD}/ru_ru/v1/skins.json`).then((x) => x ?? getJson<Record<string, CdSkin>>(`${CD}/default/v1/skins.json`)),
-    getJson<{ id: number; name: string }[]>(`${CD}/ru_ru/v1/skinlines.json`),
-    getJson<CdWard[]>(`${CD}/ru_ru/v1/ward-skins.json`),
+    getJson<Record<string, CdSkin>>(`${CD}/${cdLocale}/v1/skins.json`).then((x) => x ?? getJson<Record<string, CdSkin>>(`${CD}/default/v1/skins.json`)),
+    getJson<{ id: number; name: string }[]>(`${CD}/${cdLocale}/v1/skinlines.json`),
+    getJson<CdWard[]>(`${CD}/${cdLocale}/v1/ward-skins.json`),
   ])
   return {
     skins: skins && typeof skins === 'object' && !Array.isArray(skins) ? skins : null,

@@ -1,3 +1,4 @@
+import { ddLocale, t } from './i18n'
 // Game data from Data Dragon in Russian: runes, items and summoner spells.
 import { useEffect, useState } from 'react'
 
@@ -41,7 +42,7 @@ let cache: Promise<GameData> | null = null
 export function gameData() {
   cache ??= (async () => {
     const version: string = (await (await fetch(`${CDN}/api/versions.json`)).json())[0]
-    const base = `${CDN}/cdn/${version}/data/ru_RU`
+    const base = `${CDN}/cdn/${version}/data/${ddLocale}`
     const [runesJ, itemsJ, spellsJ] = await Promise.all(
       ['runesReforged', 'item', 'summoner'].map((f) =>
         fetch(`${base}/${f}.json`)
@@ -88,19 +89,19 @@ export const spellIcon = (id: string, v: string) => `${CDN}/cdn/${v || '15.24.1'
 /** Stat shards: three rows of choices (offense, flex, defense). */
 export const SHARDS: { id: number; name: string; icon: string }[][] = [
   [
-    { id: 5008, name: 'Адаптивная сила', icon: 'StatModsAdaptiveForceIcon' },
-    { id: 5005, name: 'Скорость атаки', icon: 'StatModsAttackSpeedIcon' },
-    { id: 5007, name: 'Ускорение умений', icon: 'StatModsCDRScalingIcon' },
+    { id: 5008, name: t('Адаптивная сила'), icon: 'StatModsAdaptiveForceIcon' },
+    { id: 5005, name: t('Скорость атаки'), icon: 'StatModsAttackSpeedIcon' },
+    { id: 5007, name: t('Ускорение умений'), icon: 'StatModsCDRScalingIcon' },
   ],
   [
-    { id: 5008, name: 'Адаптивная сила', icon: 'StatModsAdaptiveForceIcon' },
-    { id: 5010, name: 'Скорость передвижения', icon: 'StatModsMovementSpeedIcon' },
-    { id: 5001, name: 'Здоровье (растёт с уровнем)', icon: 'StatModsHealthScalingIcon' },
+    { id: 5008, name: t('Адаптивная сила'), icon: 'StatModsAdaptiveForceIcon' },
+    { id: 5010, name: t('Скорость передвижения'), icon: 'StatModsMovementSpeedIcon' },
+    { id: 5001, name: t('Здоровье (растёт с уровнем)'), icon: 'StatModsHealthScalingIcon' },
   ],
   [
-    { id: 5011, name: 'Здоровье', icon: 'StatModsHealthPlusIcon' },
-    { id: 5013, name: 'Стойкость и сопротивление замедлению', icon: 'StatModsTenacityIcon' },
-    { id: 5001, name: 'Здоровье (растёт с уровнем)', icon: 'StatModsHealthScalingIcon' },
+    { id: 5011, name: t('Здоровье'), icon: 'StatModsHealthPlusIcon' },
+    { id: 5013, name: t('Стойкость и сопротивление замедлению'), icon: 'StatModsTenacityIcon' },
+    { id: 5001, name: t('Здоровье (растёт с уровнем)'), icon: 'StatModsHealthScalingIcon' },
   ],
 ]
 export const shardIcon = (icon: string) => `${CDN}/cdn/img/perk-images/StatMods/${icon}.png`
