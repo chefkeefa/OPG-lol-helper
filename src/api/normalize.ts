@@ -1,11 +1,27 @@
-import type { MatchSummary, PlayerLine, Role } from '../types'
+import type { MatchSummary, PingKind, PlayerLine, Role } from '../types'
+
+/** bump when normalizeMatch starts reading new fields, so cached games are read again once */
+export const NORM_V = 2
 
 /** match-v5 participant (only the fields we read). LCU games are converted to this shape. */
 export interface RawParticipant {
   puuid: string
   participantId?: number
   riotIdGameName?: string
+  riotIdTagline?: string
   summonerName?: string
+  summoner1Id?: number
+  summoner2Id?: number
+  perks?: { styles?: { style: number; selections?: { perk: number }[] }[] }
+  onMyWayPings?: number
+  pushPings?: number
+  enemyMissingPings?: number
+  assistMePings?: number
+  getBackPings?: number
+  needVisionPings?: number
+  allInPings?: number
+  basicPings?: number
+  commandPings?: number
   teamId: number
   championName: string
   champLevel: number
@@ -43,6 +59,14 @@ export interface RawMatch {
 const DDRAGON_FIX: Record<string, string> = { FiddleSticks: 'Fiddlesticks' }
 const champ = (n: string) => DDRAGON_FIX[n] ?? n
 const itemsOf = (p: RawParticipant) => [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5, p.item6]
+const PING_KINDS: PingKind[] = ['onMyWay', 'push', 'enemyMissing', 'assistMe', 'getBack', 'needVision', 'allIn', 'basic']
+function pingsOf(p: RawParticipant) {
+  if (p.enemyMissingPings === undefined && p.onMyWayPings === undefined) return undefined
+  const out: Partial<Record<PingKind, number>> = {}
+  for (const k of PING_KINDS) out[k] = Number((p as unknown as Record<string, number>)[`${k}Pings`] ?? 0)
+  out.basic = (out.basic ?? 0) + (p.commandPings ?? 0)
+  return out
+}
 
 export function normalizeMatch(m: RawMatch, puuid: string): MatchSummary | null {
   const ps = m.info.participants
@@ -94,10 +118,18 @@ export function normalizeMatch(m: RawMatch, puuid: string): MatchSummary | null 
       vision: p.visionScore,
       score: Math.round((raw[i] / max) * 100),
       items: itemsOf(p),
+      tag: p.riotIdTagline,
+      puuid: p.puuid || undefined,
     }))
     .sort((a, b) => Number(b.teamId === me.teamId) - Number(a.teamId === me.teamId))
 
+  const styles = me.perks?.styles ?? []
   return {
+    v: NORM_V,
+    spells: me.summoner1Id ? [me.summoner1Id, me.summoner2Id ?? 0] : undefined,
+    keystone: styles[0]?.selections?.[0]?.perk || undefined,
+    subStyle: styles[1]?.style || undefined,
+    pings: pingsOf(me),
     id: m.metadata.matchId,
     queueId: m.info.queueId,
     mode: m.info.gameMode,
@@ -141,10 +173,12 @@ interface LcuGame {
     participantId: number
     teamId: number
     championId: number
+    spell1Id?: number
+    spell2Id?: number
     stats: Record<string, number | boolean>
     timeline?: { lane?: string; role?: string }
   }[]
-  participantIdentities: { participantId: number; player: { puuid: string; gameName?: string; summonerName?: string } }[]
+  participantIdentities: { participantId: number; player: { puuid: string; gameName?: string; tagLine?: string; summonerName?: string } }[]
 }
 
 function lcuRole(lane = '', role = ''): string {
@@ -169,6 +203,10 @@ export function lcuGameToRaw(g: LcuGame, champs: Record<number, string>): RawMat
           puuid: id?.puuid ?? '',
           participantId: p.participantId,
           riotIdGameName: id?.gameName,
+          riotIdTagline: id?.tagLine,
+          summoner1Id: p.spell1Id,
+          summoner2Id: p.spell2Id,
+          perks: s.perk0 ? { styles: [{ style: n(s.perkPrimaryStyle), selections: [{ perk: n(s.perk0) }] }, { style: n(s.perkSubStyle) }] } : undefined,
           summonerName: id?.summonerName,
           teamId: p.teamId,
           championName: champs[p.championId] ?? `Champion${p.championId}`,

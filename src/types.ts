@@ -37,7 +37,18 @@ export interface MatchSummary {
   d15?: { gold: number; ka: number; cs: number; xp: number } | null
   /** All ten players, own team first; absent in older cached entries */
   players?: PlayerLine[]
+  /** normalizer version the entry was built with; older cached entries are re-read once */
+  v?: number
+  /** summoner spell ids */
+  spells?: number[]
+  /** keystone rune id and the secondary tree id */
+  keystone?: number
+  subStyle?: number
+  /** pings you sent (match-v5 only) */
+  pings?: Partial<Record<PingKind, number>>
 }
+
+export type PingKind = 'onMyWay' | 'push' | 'enemyMissing' | 'assistMe' | 'getBack' | 'needVision' | 'allIn' | 'basic'
 
 export interface PlayerLine {
   name: string
@@ -53,6 +64,8 @@ export interface PlayerLine {
   vision: number
   score: number
   items: number[]
+  tag?: string
+  puuid?: string
 }
 
 export interface RankEntry {

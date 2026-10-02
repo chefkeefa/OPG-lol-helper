@@ -1,5 +1,5 @@
 import type { MatchSummary, PlayerData, RankEntry } from '../types'
-import { lcuGameToRaw, normalizeMatch, type LcuGame } from './normalize'
+import { NORM_V, lcuGameToRaw, normalizeMatch, type LcuGame } from './normalize'
 import { championMap } from '../lib/ddragon'
 import { mapLimit, proxyConfig, readCache, regionalOf, riot, writeCache } from './riot'
 import type { RawMatch } from './normalize'
@@ -68,9 +68,11 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
   const matches = await mapLimit(games, 4, async (g) => {
     const key = `${me.puuid}:${g.platformId ?? 'LCU'}_${g.gameId}`
     let m: MatchSummary | null | undefined = cache[key]
-    if (!m || !m.players) {
+    if (!m || !m.players || (m.v ?? 0) < NORM_V) {
+      const old = m
       const full = await get<LcuGame>(`/lol-match-history/v1/games/${g.gameId}`).catch(() => g)
       m = normalizeMatch(lcuGameToRaw(full, champs), me.puuid)
+      if (m && old?.d15 !== undefined) m.d15 = old.d15
       if (m) cache[key] = m
     }
     onProgress?.(++done, games.length)
@@ -97,10 +99,13 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
     const extra = await mapLimit(missing, 4, async (id) => {
       const key = `${me.puuid}:${id}`
       let m: MatchSummary | null | undefined = cache[key]
-      if (!m || !m.players) {
+      if (!m || !m.players || (m.v ?? 0) < NORM_V) {
+        const old = m
         m = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`)
           .then((raw) => normalizeMatch(raw, me.puuid))
           .catch(() => null)
+        if (m && old?.d15 !== undefined) m.d15 = old.d15
+        m ??= old
         if (m) cache[key] = m
       }
       onProgress?.(games.length + ++extraDone, games.length + missing.length)

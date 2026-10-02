@@ -8,6 +8,7 @@ import { AugmentOverlay } from './components/AugmentOverlay'
 import type { LiveData } from './types'
 import type { Benchmarks } from './lib/statsTypes'
 import { t } from './lib/i18n'
+import './fonts.css'
 import './styles.css'
 
 /** Content of the transparent in-game overlay window (desktop only). */

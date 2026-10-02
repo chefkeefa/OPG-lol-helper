@@ -33,6 +33,14 @@ const OTHERS = [
 const NAMES = ['Mercy9', 'Densi', 'Koussay', 'nightowl', 'Zerg Rush', 'Tilted', 'Akkyo', 'Kanavi fan', 'mid or feed', 'Lumen', 'Hydra', 'Velvet', 'Sion Main', 'Pyro', 'Glacier']
 const ITEMS = [3031, 3006, 3046, 3094, 3036, 6672, 3072, 3087, 3190, 3109, 3050, 3047, 3157, 3089, 4645, 3020]
 const QUEUES = [420, 420, 420, 440, 440, 450, 400]
+const KEYSTONES: [number, number][] = [[8008, 8100], [8021, 8300], [8439, 8400], [8465, 8300], [8112, 8200], [8010, 8000]]
+const SUB = [8000, 8100, 8200, 8300, 8400]
+// regular duo partners, so "Played with" has someone to show
+const MATES = [
+  { name: 'TiTiJovka', tag: 'RU1' },
+  { name: 'fakers chair', tag: 'udk' },
+  { name: 'XO Lacoste', tag: 'z0v' },
+]
 
 export function mockPlayer(): PlayerData {
   const r = rng(420)
@@ -58,7 +66,15 @@ export function mockPlayer(): PlayerData {
     const teamKills = Math.max(kills + assists, Math.round((aram ? 45 : 28) * (0.7 + r() * 0.6)))
     const score = Math.max(12, Math.min(100, Math.round(55 * skill + r() * 25)))
     const shuffled = [...OTHERS].sort(() => r() - 0.5)
+    const ks = pick(KEYSTONES)
+    const mate = r() < 0.6 ? MATES[Math.floor(r() * r() * 3)] : null
+    const ping = (base: number) => Math.round(base * (0.4 + r() * 1.2))
     matches.push({
+      v: 2,
+      spells: [4, aram ? 32 : role === 'JUNGLE' ? 11 : role === 'UTILITY' ? 3 : role === 'TOP' ? 12 : 7],
+      keystone: ks[0],
+      subStyle: SUB.filter((x) => x !== ks[1])[Math.floor(r() * 4)],
+      pings: { onMyWay: ping(4), push: ping(2), enemyMissing: ping(3), assistMe: ping(0.1), getBack: ping(5.8), needVision: ping(0.1), allIn: ping(0.3), basic: ping(9) },
       id: `DEMO_${7000000 + i}`,
       queueId,
       endedAt: t,
@@ -88,7 +104,8 @@ export function mockPlayer(): PlayerData {
         const me = j === 0
         const k = me ? kills : Math.round(r() * 12)
         return {
-          name: me ? 'mentally stable' : NAMES[(i * 7 + j) % NAMES.length],
+          name: me ? 'mentally stable' : j === 1 && mate ? mate.name : NAMES[(i * 7 + j) % NAMES.length],
+          tag: me ? 'xd420' : j === 1 && mate ? mate.tag : 'EUW',
           champion: c,
           teamId: j < 5 ? 100 : 200,
           me,

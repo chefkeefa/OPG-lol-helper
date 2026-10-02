@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData, Page, PlayerData, QueueFilter } from './types'
 import type { ClientStatus, DesktopSettings, UpdateState } from './env'
@@ -13,27 +13,46 @@ import { Sidebar } from './components/Sidebar'
 import { TitleBar } from './components/TitleBar'
 import { ease } from './components/ui'
 import { Dashboard } from './pages/Dashboard'
-import { Matches } from './pages/Matches'
-import { Champions } from './pages/Champions'
-import { Live } from './pages/Live'
-import { Overlays } from './pages/Overlays'
-import { Settings } from './pages/Settings'
-import { Leaderboards } from './pages/Leaderboards'
-import { TierList } from './pages/TierList'
-import { Champion } from './pages/Champion'
-import { Draft } from './pages/Draft'
-import { Mayhem } from './pages/Mayhem'
-import { Matchups } from './pages/Matchups'
-import { Recordings } from './pages/Recordings'
-import { Spectate } from './pages/Spectate'
-import { Collections } from './pages/Collections'
-import { Studio } from './pages/Studio'
 import { statsStatus } from './lib/statsApi'
 import { recordRanks } from './lib/lp'
 import { noteAccount, type Account } from './lib/accounts'
 import { gameAlert } from './lib/alerts'
 import { getBoards, refreshBoard } from './lib/boards'
 import type { StatsStatus } from './lib/statsTypes'
+
+const Matches = lazy(() => import('./pages/Matches').then((m) => ({ default: m.Matches })))
+const Champions = lazy(() => import('./pages/Champions').then((m) => ({ default: m.Champions })))
+const Live = lazy(() => import('./pages/Live').then((m) => ({ default: m.Live })))
+const Overlays = lazy(() => import('./pages/Overlays').then((m) => ({ default: m.Overlays })))
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })))
+const Leaderboards = lazy(() => import('./pages/Leaderboards').then((m) => ({ default: m.Leaderboards })))
+const TierList = lazy(() => import('./pages/TierList').then((m) => ({ default: m.TierList })))
+const Champion = lazy(() => import('./pages/Champion').then((m) => ({ default: m.Champion })))
+const Draft = lazy(() => import('./pages/Draft').then((m) => ({ default: m.Draft })))
+const Mayhem = lazy(() => import('./pages/Mayhem').then((m) => ({ default: m.Mayhem })))
+const Matchups = lazy(() => import('./pages/Matchups').then((m) => ({ default: m.Matchups })))
+const Recordings = lazy(() => import('./pages/Recordings').then((m) => ({ default: m.Recordings })))
+const Spectate = lazy(() => import('./pages/Spectate').then((m) => ({ default: m.Spectate })))
+const Collections = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Collections })))
+const Studio = lazy(() => import('./pages/Studio').then((m) => ({ default: m.Studio })))
+// the other pages are fetched once the dashboard has rendered, so switching pages never waits
+const prefetchPages = () => {
+  import('./pages/Matches')
+  import('./pages/Champions')
+  import('./pages/Live')
+  import('./pages/Overlays')
+  import('./pages/Settings')
+  import('./pages/Leaderboards')
+  import('./pages/TierList')
+  import('./pages/Champion')
+  import('./pages/Draft')
+  import('./pages/Mayhem')
+  import('./pages/Matchups')
+  import('./pages/Recordings')
+  import('./pages/Spectate')
+  import('./pages/Collections')
+  import('./pages/Studio')
+}
 
 const LAST = 'riftpulse.last'
 // the signed-in account, remembered so it can be loaded via Riot API while League is closed
@@ -107,6 +126,10 @@ const WEB_SETTINGS: DesktopSettings = {
 
 export default function App() {
   useDDragon()
+  useEffect(() => {
+    const id = setTimeout(prefetchPages, 1200)
+    return () => clearTimeout(id)
+  }, [])
   const [data, setData] = useState<PlayerData>(() => mockPlayer())
   // every loaded profile leaves an LP snapshot, which is how LP history builds up
   useEffect(() => {
@@ -458,11 +481,12 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
-              initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }}
-              transition={{ duration: 0.32, ease }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.28, ease }}
             >
+              <Suspense fallback={<div className="page-loading" />}>
               {page === 'dashboard' && (
                 <Dashboard
                   data={data}
@@ -553,6 +577,7 @@ export default function App() {
                   }}
                 />
               )}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

@@ -4,7 +4,7 @@ import { champSplash } from '../lib/ddragon'
 import { clock, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Icon, Item, Ring, Splash, ease, stagger } from '../components/ui'
 import { liveChamp, liveSplash } from '../lib/skins'
-import { ObjectiveGlyph } from './Dashboard'
+import { ObjectiveGlyph } from '../components/ObjectiveGlyph'
 import { t } from '../lib/i18n'
 
 export function Live({ live, preview, onPreview }: { live: LiveData | null; preview: boolean; onPreview: () => void }) {

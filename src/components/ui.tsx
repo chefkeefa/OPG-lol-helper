@@ -11,8 +11,9 @@ export const stagger: Variants = {
   show: { transition: { staggerChildren: 0.055, delayChildren: 0.04 } },
 }
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 14, filter: 'blur(4px)' },
-  show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.55, ease } },
+  // transform and opacity only: they stay on the compositor, unlike an animated blur
+  hidden: { opacity: 0, y: 14, scale: 0.985 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease } },
 }
 
 /** Panel with entrance animation (driven by a parent `stagger`) and a soft hover lift. */
@@ -63,6 +64,7 @@ export function Img({
       onLoad={() => setState('ok')}
       onError={() => setState('fail')}
       loading="lazy"
+      decoding="async"
       draggable={false}
     />
   )
@@ -372,6 +374,12 @@ const PATHS = {
   pie: <path d="M12 3v9h9a9 9 0 1 1-9-9zM15 3.5A9 9 0 0 1 20.5 9H15z" />,
   check: <path d="M5 12l5 5L20 7" />,
   info: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5v.5" />,
+  sliders: <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4" />,
+  users: <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6" />,
+  wand: <path d="M4 20L15 9M14 4v2M19 9h2M17.5 5.5L19 4M18 13l1.5 1.5M10 5.5L8.5 4M15 9l-2-2" />,
+  flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
+  medal: <path d="M8 3h8l-2 6h-4zM12 21a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 12.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" />,
+  brain: <path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1" />,
 }
 
 /** iOS-style toggle with a springy knob. */

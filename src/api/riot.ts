@@ -1,5 +1,5 @@
 import type { MatchSummary, PlayerData, RankEntry } from '../types'
-import { normalizeMatch, type RawMatch } from './normalize'
+import { NORM_V, normalizeMatch, type RawMatch } from './normalize'
 import { championMap } from '../lib/ddragon'
 import { t } from '../lib/i18n'
 
@@ -280,16 +280,19 @@ export async function loadPlayer(
     source: 'riot',
     fetchedAt: Date.now(),
   })
-  const missing = ids.map((id, i) => ({ id, i })).filter(({ i }) => found[i] === undefined)
+  // games cached by an older version are shown right away and quietly read again for the new fields
+  const missing = ids.map((id, i) => ({ id, i })).filter(({ i }) => found[i] === undefined || (found[i]!.v ?? 0) < NORM_V)
   // show what is already cached right away, then fill in the rest as it arrives
   if (onPartial && found.some(Boolean)) onPartial(snapshot())
   let done = ids.length - missing.length
   onProgress?.(done, ids.length)
   await mapLimit(missing, 4, async ({ id, i }) => {
+    const old = found[i]
     const raw = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`).catch(() => null)
     const m = raw ? normalizeMatch(raw, account.puuid) : null
+    if (m && old?.d15 !== undefined) m.d15 = old.d15
     if (m) cache[`${account.puuid}:${id}`] = m
-    found[i] = m
+    found[i] = m ?? old ?? null
     onProgress?.(++done, ids.length)
     if (done % 10 === 0) {
       writeCache(cache)

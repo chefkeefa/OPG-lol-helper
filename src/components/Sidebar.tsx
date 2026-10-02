@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { Page, PlayerData } from '../types'
 import type { UpdateState } from '../env'
-import { profileIcon } from '../lib/ddragon'
+import { profileIcon, rankEmblem } from '../lib/ddragon'
 import { Icon, Img, spring, type IconName } from './ui'
 import { t } from '../lib/i18n'
 import { useState } from 'react'
@@ -9,36 +9,56 @@ import { useAccounts, type Account } from '../lib/accounts'
 
 const GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
   {
-    title: t('Основное'),
+    title: t('Rift Core'),
     items: [
       { page: 'dashboard', icon: 'home', label: t('Дашборд') },
-      { page: 'matches', icon: 'film', label: t('История матчей') },
-      { page: 'champions', icon: 'chart', label: t('Мои чемпионы') },
-      { page: 'studio', icon: 'pie', label: 'Data Studio' },
-    ],
-  },
-  {
-    title: t('Статистика'),
-    items: [
-      { page: 'draft', icon: 'target', label: t('Драфт') },
-      { page: 'tierlist', icon: 'list', label: t('Тир-лист') },
-      { page: 'mayhem', icon: 'bolt', label: 'ARAM Mayhem' },
-      { page: 'matchups', icon: 'swords', label: t('Матчапы') },
+      { page: 'tierlist', icon: 'chart', label: t('Тир-лист и билды') },
       { page: 'leaderboards', icon: 'trophy', label: t('Лидеры') },
     ],
   },
   {
     title: t('Приложение'),
     items: [
-      { page: 'live', icon: 'eye', label: t('Текущая игра') },
-      { page: 'recordings', icon: 'video', label: t('Записи') },
+      { page: 'recordings', icon: 'film', label: t('Записи') },
+      { page: 'overlays', icon: 'layers', label: t('Оверлеи') },
       { page: 'spectate', icon: 'tv', label: t('Наблюдение') },
       { page: 'collections', icon: 'box', label: t('Коллекция') },
-      { page: 'overlays', icon: 'layers', label: t('Оверлеи') },
     ],
   },
-  { title: t('Система'), items: [{ page: 'settings', icon: 'gear', label: t('Настройки') }] },
+  {
+    title: t('Аналитика'),
+    items: [
+      { page: 'studio', icon: 'file', label: 'Data Studio' },
+      { page: 'matchups', icon: 'swords', label: t('Матчапы') },
+      { page: 'champions', icon: 'pie', label: t('Мои чемпионы') },
+      { page: 'matches', icon: 'list', label: t('История матчей') },
+    ],
+  },
+  {
+    title: t('В игре'),
+    items: [
+      { page: 'draft', icon: 'target', label: t('Драфт') },
+      { page: 'live', icon: 'eye', label: t('Текущая игра') },
+      { page: 'mayhem', icon: 'bolt', label: 'ARAM Mayhem' },
+    ],
+  },
 ]
+
+/** Own mark: a speech-bubble "P" with a pulse line through it. */
+function BrandMark() {
+  return (
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden>
+      <defs>
+        <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#c9ccff" />
+        </linearGradient>
+      </defs>
+      <path d="M5 6a4 4 0 0 1 4-4h10a12 12 0 0 1 0 24h-5l-7 6a1.2 1.2 0 0 1-2-.9z" fill="url(#bm)" />
+      <path className="brand-pulse" d="M8.5 14.5h4l2-4.5 3.2 9 2.3-4.5h4.5" fill="none" stroke="#0e0f13" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export function Sidebar({
   page,
@@ -66,8 +86,8 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand drag">
-        <motion.div className="brand-mark" whileHover={{ rotate: -8, scale: 1.06 }} transition={spring}>
-          <Icon name="bolt" size={22} />
+        <motion.div className="brand-mark" whileHover={{ rotate: -6, scale: 1.06 }} transition={spring}>
+          <BrandMark />
         </motion.div>
         <div>
           <div className="brand-name">Rift Pulse</div>
@@ -177,13 +197,18 @@ export function Sidebar({
       <motion.button className="side-profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} onClick={() => setMenu((v) => !v)} title={t('Сменить аккаунт')}>
         <div className="avatar-wrap">
           <span className="region-tag">{data.profile.platform.replace(/\d+$/, '').toUpperCase()}</span>
-          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={56} radius={12} />
+          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={60} radius={10} />
           <span className="lvl">{data.profile.level}</span>
         </div>
         <div className="side-profile-text">
           <div className="side-name">{data.profile.gameName}</div>
           <div className="muted">#{data.profile.tagLine}</div>
-          {solo && <div className="tier-text">{solo.tier}</div>}
+          {solo && (
+            <div className="tier-text">
+              <Img src={rankEmblem(solo.tier)} alt="" size={18} radius={0} className="tier-mini" />
+              {solo.tier}
+            </div>
+          )}
         </div>
         <Icon name="chevron" size={14} />
       </motion.button>

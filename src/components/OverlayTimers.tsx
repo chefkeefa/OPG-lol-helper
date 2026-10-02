@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData } from '../types'
 import { clock, objectiveTimers } from '../lib/objectives'
 import { Ring } from './ui'
-import { ObjectiveGlyph } from '../pages/Dashboard'
+import { ObjectiveGlyph } from './ObjectiveGlyph'
 
 /** Compact timer stack used by the in-game overlay window and its preview. */
 export function OverlayTimers({ live }: { live: LiveData | null }) {
