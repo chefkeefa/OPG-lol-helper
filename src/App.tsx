@@ -134,12 +134,15 @@ export default function App() {
     setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 6000)
   }
 
+  const runSeq = useRef(0)
   const run = useCallback(async (job: (p: (d: number, t: number) => void, partial: (d: PlayerData) => void) => Promise<PlayerData>) => {
+    const seq = ++runSeq.current
     setProgress(0.05)
     try {
       const d = await job(
         (done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85),
-        (part) => setData(part),
+        // late updates (streamed games, timelines) only apply while this load is still the latest
+        (part) => seq === runSeq.current && setData(part),
       )
       setData(d)
       setOpenId(undefined)

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData, MatchSummary, Page, PlayerData, QueueFilter, Role } from '../types'
-import { PLATFORMS } from '../api/riot'
+import { PLATFORMS, riot } from '../api/riot'
+import { loadCollection } from '../api/collection'
+import { championMap } from '../lib/ddragon'
 import { champName, champSplash, profileIcon, rankEmblem } from '../lib/ddragon'
 import { ROLES, ago, badge, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCards, QUEUE_FILTERS } from '../lib/stats'
 import { clock, demoLive, objectiveTimers } from '../lib/objectives'
@@ -66,12 +68,12 @@ export function Dashboard({
         <div className="col-main">
           <Hero data={data} matches={shown} role={role} setRole={setRole} />
           <div className="row r2">
-            <Showcase matches={shown} live={live} onOpen={openMatch} onLive={() => navigate('live')} />
+            <Showcase matches={shown} live={live} platform={data.profile.platform} demo={data.source === 'demo'} onOpen={openMatch} onLive={() => navigate('live')} onSpectate={() => navigate('spectate')} />
             <LastGame matches={shown} onOpen={openMatch} onAll={() => navigate('matches')} />
           </div>
           <div className="row r3">
             <OverlayPromo live={live} onOpen={() => navigate('overlays')} />
-            <MasteryCard data={data} onOpen={() => navigate('champions')} />
+            <CollectionTile data={data} onOpen={() => navigate('collections')} onMastery={() => navigate('champions')} />
             <Lens matches={shown} />
           </div>
         </div>
@@ -144,7 +146,63 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
 }
 
 // ---------------------------------------------------------------- showcase (live / best games carousel)
-function Showcase({ matches, live, onOpen, onLive }: { matches: MatchSummary[]; live: LiveData | null; onOpen: (id: string) => void; onLive: () => void }) {
+interface Featured {
+  gameId: number
+  gameMode: string
+  gameQueueConfigId: number
+  gameLength: number
+  gameStartTime: number
+  participants: { championId: number; teamId: number; riotId?: string }[]
+}
+
+/** a live high-elo game from the official spectator feed, refreshed every few minutes */
+function useFeatured(platform: string, enabled: boolean) {
+  const [game, setGame] = useState<{ g: Featured; champs: Record<number, string> } | null>(null)
+  useEffect(() => {
+    if (!enabled) return
+    let off = false
+    const load = () =>
+      Promise.all([riot<{ gameList: Featured[] }>(platform, '/lol/spectator/v5/featured-games'), championMap()])
+        .then(([r, champs]) => {
+          const list = (r.gameList ?? []).filter((g) => g.participants?.length === 10)
+          const g = list.find((x) => x.gameQueueConfigId === 420) ?? list[0]
+          if (!off) setGame(g ? { g, champs } : null)
+        })
+        .catch(() => !off && setGame(null))
+    load()
+    const id = setInterval(load, 4 * 60_000)
+    return () => {
+      off = true
+      clearInterval(id)
+    }
+  }, [platform, enabled])
+  return game
+}
+
+function Showcase({
+  matches,
+  live,
+  platform,
+  demo,
+  onOpen,
+  onLive,
+  onSpectate,
+}: {
+  matches: MatchSummary[]
+  live: LiveData | null
+  platform: string
+  demo: boolean
+  onOpen: (id: string) => void
+  onLive: () => void
+  onSpectate: () => void
+}) {
+  const featured = useFeatured(platform, Boolean(window.rp) && !demo && !live)
+  const [tab, setTab] = useState<'live' | 'best'>('live')
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
   const pages = useMemo(() => {
     const best = [...matches].sort((a, b) => b.score - a.score).slice(0, 9)
     const out: MatchSummary[][] = []
@@ -188,6 +246,63 @@ function Showcase({ matches, live, onOpen, onLive }: { matches: MatchSummary[]; 
     )
   }
 
+  if (featured && tab === 'live') {
+    const { g, champs } = featured
+    const blue = g.participants.filter((p) => p.teamId === 100)
+    const red = g.participants.filter((p) => p.teamId === 200)
+    const name = (p?: Featured['participants'][number]) => (p?.riotId ?? '').split('#')[0] || '—'
+    const champ = (p?: Featured['participants'][number]) => (p ? champs[p.championId] ?? '' : '')
+    // mid laners are the usual faces of a broadcast; fall back to the first player
+    const a = blue[2] ?? blue[0]
+    const b = red[2] ?? red[0]
+    const secs = g.gameStartTime > 0 ? Math.max(0, (now - g.gameStartTime) / 1000) : g.gameLength
+    return (
+      <Card className="showcase featured">
+        <div className="show-panels">
+          {[a, b].map((p, i) => (
+            <div key={i} className={`show-panel p${i}`}>
+              <Splash src={champSplash(champ(p))} position="center 18%" />
+              <div className="show-shade" />
+            </div>
+          ))}
+        </div>
+        <div className="show-top">
+          <span className="rec-dot" /> <b>{clock(secs)}</b> <span className="chip">{(PLATFORMS[platform] ?? platform).toUpperCase()}</span>
+          <div className="push" />
+          <button className="chip ghost" onClick={() => setTab('best')}>
+            Лучшие игры <Icon name="right" size={11} />
+          </button>
+        </div>
+        <div className="feat-row">
+          <div className="feat-side">
+            <b>{name(a)}</b>
+            <span className="muted">{champName(champ(a))}</span>
+            <div className="feat-team">
+              {blue.map((p, i) => (
+                <Champ key={i} name={champ(p)} size={24} radius={6} />
+              ))}
+            </div>
+          </div>
+          <div className="feat-mid">
+            <span className="vs-text">VS</span>
+            <motion.button className="watch" onClick={onSpectate} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+              <Icon name="eye" size={15} /> Смотреть
+            </motion.button>
+          </div>
+          <div className="feat-side right">
+            <b>{name(b)}</b>
+            <span className="muted">{champName(champ(b))}</span>
+            <div className="feat-team">
+              {red.map((p, i) => (
+                <Champ key={i} name={champ(p)} size={24} radius={6} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <Card className="showcase">
       <AnimatePresence initial={false} custom={dir} mode="popLayout">
@@ -219,6 +334,14 @@ function Showcase({ matches, live, onOpen, onLive }: { matches: MatchSummary[]; 
       </AnimatePresence>
       <div className="show-top">
         <Icon name="star" size={15} /> <b>Лучшие игры</b> <span className="chip">по оценке</span>
+        {featured && (
+          <>
+            <div className="push" />
+            <button className="chip ghost" onClick={() => setTab('live')}>
+              <span className="rec-dot" /> В эфире
+            </button>
+          </>
+        )}
       </div>
       {pages.length > 1 && (
         <>
@@ -253,7 +376,7 @@ function LastGame({ matches, onOpen, onAll }: { matches: MatchSummary[]; onOpen:
             <div>
               <b>Полная игра</b>
               <div className="muted small">
-                {queueLabel(m.queueId)} · {ago(m.endedAt)}
+                {queueLabel(m.queueId, m.mode)} · {ago(m.endedAt)}
               </div>
             </div>
           </div>
@@ -348,6 +471,47 @@ export function ObjectiveGlyph({ id }: { id: string }) {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={d[id]} />
     </svg>
+  )
+}
+
+/** owned skins from the last collection snapshot, like DPM's collections tile; mastery until one exists */
+function CollectionTile({ data, onOpen, onMastery }: { data: PlayerData; onOpen: () => void; onMastery: () => void }) {
+  const [col, setCol] = useState<{ owned: number; total: number; art: string } | null>(null)
+  useEffect(() => {
+    if (!window.rp) return
+    let off = false
+    loadCollection(false)
+      .then((c) => {
+        if (off || c.source === 'demo' || !c.skins.length) return
+        const owned = c.skins.filter((s) => s.owned)
+        const pick = [...owned].sort((a, b) => b.acquired - a.acquired)[0] ?? c.skins[0]
+        setCol({ owned: owned.length, total: c.skins.length, art: pick?.loadScreen ? champSplash(pick.champ, pick.num) : '' })
+      })
+      .catch(() => {})
+    return () => {
+      off = true
+    }
+  }, [])
+  if (!col) return <MasteryCard data={data} onOpen={onMastery} />
+  return (
+    <Card className="mastery collection-tile" onClick={onOpen}>
+      {col.art && <Splash src={col.art} position="center 20%" />}
+      <div className="mastery-shade" />
+      <div className="mastery-body">
+        <div className="mastery-title">
+          <Icon name="sparkle" size={14} /> Коллекция <Icon name="arrow" size={13} />
+        </div>
+        <div className="mastery-row">
+          <span className="muted">Скины</span>
+          <b>
+            <Counter value={col.owned} /> <span className="muted">/ {col.total}</span>
+          </b>
+        </div>
+        <div className="bar-track">
+          <motion.div className="bar-fill" initial={{ width: 0 }} animate={{ width: `${(col.owned / Math.max(1, col.total)) * 100}%` }} transition={{ duration: 1.1, ease, delay: 0.3 }} />
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -494,7 +658,7 @@ function MatchList({ matches, onOpen }: { matches: MatchSummary[]; onOpen: (id: 
                 <div>
                   <b>{duration(m.durationSec)}</b> <span className="muted">{ago(m.endedAt)}</span>
                 </div>
-                <div className="match-queue">{queueLabel(m.queueId)}</div>
+                <div className="match-queue">{queueLabel(m.queueId, m.mode)}</div>
               </div>
               <div className="match-champ">
                 <Champ name={m.champion} size={42} radius={10} />

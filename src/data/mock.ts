@@ -77,6 +77,7 @@ export function mockPlayer(): PlayerData {
       dmgShare: Math.min(0.48, (support ? 0.1 : 0.24) * skill * (0.8 + r() * 0.4)),
       goldPerMin: (support ? 260 : 400) * (0.85 + skill * 0.15 + r() * 0.1),
       visionPerMin: support ? 1.6 + r() * 1.2 : 0.4 + r() * 0.6,
+      d15: aram ? undefined : { gold: Math.round((r() - 0.4) * 1800), ka: Math.round((r() - 0.4) * 6), cs: Math.round((r() - 0.4) * 30), xp: Math.round((r() - 0.4) * 900) },
       score,
       placement: score >= 95 ? 1 : Math.max(2, Math.min(10, Math.round(11 - score / 10))),
       largestMultiKill: kills > 12 ? 3 : kills > 7 ? 2 : 1,

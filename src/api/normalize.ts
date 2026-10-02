@@ -3,6 +3,7 @@ import type { MatchSummary, PlayerLine, Role } from '../types'
 /** match-v5 participant (only the fields we read). LCU games are converted to this shape. */
 export interface RawParticipant {
   puuid: string
+  participantId?: number
   riotIdGameName?: string
   summonerName?: string
   teamId: number
@@ -34,6 +35,7 @@ export interface RawMatch {
     gameDuration: number
     gameEndTimestamp: number
     queueId: number
+    gameMode?: string
     participants: RawParticipant[]
   }
 }
@@ -98,6 +100,9 @@ export function normalizeMatch(m: RawMatch, puuid: string): MatchSummary | null 
   return {
     id: m.metadata.matchId,
     queueId: m.info.queueId,
+    mode: m.info.gameMode,
+    myPid: me.participantId,
+    oppPid: me.teamPosition ? ps.find((p) => p.teamId !== me.teamId && p.teamPosition === me.teamPosition)?.participantId : undefined,
     endedAt: m.info.gameEndTimestamp,
     durationSec: m.info.gameDuration,
     win: me.win,
@@ -130,6 +135,7 @@ interface LcuGame {
   gameCreation: number
   gameDuration: number
   queueId: number
+  gameMode?: string
   platformId?: string
   participants: {
     participantId: number
@@ -155,11 +161,13 @@ export function lcuGameToRaw(g: LcuGame, champs: Record<number, string>): RawMat
       gameDuration: g.gameDuration,
       gameEndTimestamp: g.gameCreation + g.gameDuration * 1000,
       queueId: g.queueId,
+      gameMode: g.gameMode,
       participants: g.participants.map((p) => {
         const id = g.participantIdentities.find((x) => x.participantId === p.participantId)?.player
         const s = p.stats
         return {
           puuid: id?.puuid ?? '',
+          participantId: p.participantId,
           riotIdGameName: id?.gameName,
           summonerName: id?.summonerName,
           teamId: p.teamId,

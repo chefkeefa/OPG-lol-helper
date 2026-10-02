@@ -54,7 +54,7 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
         <span className="hrow-stripe" />
         <div className="hrow-meta">
           <b className={m.win ? 'win-text' : 'loss-text'}>{m.win ? 'Победа' : 'Поражение'}</b>
-          <span>{queueLabel(m.queueId)}</span>
+          <span>{queueLabel(m.queueId, m.mode)}</span>
           <span className="muted small">
             {duration(m.durationSec)} · {ago(m.endedAt)}
           </span>

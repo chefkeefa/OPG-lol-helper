@@ -28,6 +28,13 @@ export interface MatchSummary {
   items: number[]
   allies: string[]
   enemies: string[]
+  /** game mode from Riot (ARAM, CLASSIC, CHERRY…), used when the queue id is unknown */
+  mode?: string
+  /** own and lane opponent participant ids, for the @15 timeline diffs */
+  myPid?: number
+  oppPid?: number
+  /** own minus lane opponent at 15:00, from the match timeline */
+  d15?: { gold: number; ka: number; cs: number; xp: number } | null
   /** All ten players, own team first; absent in older cached entries */
   players?: PlayerLine[]
 }

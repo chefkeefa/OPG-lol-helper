@@ -154,6 +154,72 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Pr
   return out
 }
 
+interface Timeline {
+  metadata: { participants: string[] }
+  info: {
+    frames: {
+      timestamp: number
+      participantFrames: Record<string, { totalGold: number; xp: number; minionsKilled: number; jungleMinionsKilled: number }>
+      events: { type: string; timestamp: number; killerId?: number; assistingParticipantIds?: number[] }[]
+    }[]
+  }
+}
+
+/** own minus lane opponent at 15:00 */
+export function diffAt15(tl: Timeline, me: number, opp: number): MatchSummary['d15'] {
+  const f = tl.info.frames.find((x) => x.timestamp >= 15 * 60_000 - 5000)
+  if (!f) return null
+  const a = f.participantFrames[me]
+  const b = f.participantFrames[opp]
+  if (!a || !b) return null
+  let ka = 0
+  for (const fr of tl.info.frames)
+    for (const e of fr.events)
+      if (e.type === 'CHAMPION_KILL' && e.timestamp <= 15 * 60_000) {
+        if (e.killerId === me || e.assistingParticipantIds?.includes(me)) ka++
+        if (e.killerId === opp || e.assistingParticipantIds?.includes(opp)) ka--
+      }
+  return {
+    gold: a.totalGold - b.totalGold,
+    xp: a.xp - b.xp,
+    cs: a.minionsKilled + a.jungleMinionsKilled - (b.minionsKilled + b.jungleMinionsKilled),
+    ka,
+  }
+}
+
+const SR_QUEUES = new Set([400, 420, 430, 440, 480, 490, 700])
+/**
+ * Loads match timelines for the latest Summoner's Rift games (one extra request each, cached)
+ * so the dashboard can show gold and K+A differences against the lane opponent at 15 minutes.
+ */
+async function enrichTimelines(puuid: string, regional: string, matches: MatchSummary[], cache: Record<string, MatchSummary>, onUpdate: () => void) {
+  const todo = matches
+    .filter((m) => m.d15 === undefined && m.role && SR_QUEUES.has(m.queueId) && m.durationSec > 16 * 60)
+    .sort((a, b) => b.endedAt - a.endedAt)
+    .slice(0, 20)
+  let changed = 0
+  await mapLimit(todo, 2, async (m) => {
+    try {
+      if (!m.oppPid || !m.myPid) {
+        // cached before participant ids were stored: re-read the match once
+        const fresh = normalizeMatch(await riot<RawMatch>(regional, `/lol/match/v5/matches/${m.id}`), puuid)
+        m.myPid = fresh?.myPid
+        m.oppPid = fresh?.oppPid
+      }
+      if (!m.oppPid || !m.myPid) m.d15 = null
+      else m.d15 = diffAt15(await riot<Timeline>(regional, `/lol/match/v5/matches/${m.id}/timeline`), m.myPid, m.oppPid)
+    } catch {
+      return
+    }
+    cache[`${puuid}:${m.id}`] = m
+    if (++changed % 5 === 0) onUpdate()
+  })
+  if (changed) {
+    writeCache(cache)
+    onUpdate()
+  }
+}
+
 export async function loadPlayer(
   riotId: string,
   platform: string,
@@ -230,6 +296,7 @@ export async function loadPlayer(
     }
   })
   writeCache(cache)
+  if (onPartial) enrichTimelines(account.puuid, regional, found.filter((m): m is MatchSummary => Boolean(m)), cache, () => onPartial({ ...snapshot(), matches: [...snapshot().matches] }))
 
   return {
     profile,
