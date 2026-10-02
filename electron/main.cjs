@@ -295,7 +295,8 @@ ipcMain.on('overlay:benchmarks', (_e, b) => {
 
 ipcMain.handle('lcu:status', () => lastStatus)
 ipcMain.handle('lcu:get', async (_e, pathname) => {
-  if (typeof pathname !== 'string' || !pathname.startsWith('/lol-')) throw new Error('bad path')
+  const ok = typeof pathname === 'string' && (pathname.startsWith('/lol-') || pathname === '/riotclient/region-locale' || pathname === '/riotclient/get_region_locale')
+  if (!ok) throw new Error('bad path')
   return lcu.get(pathname)
 })
 ipcMain.handle('live:get', () => liveGameData())
