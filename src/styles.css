@@ -634,16 +634,26 @@ select {
 }
 .segmented.icons {
   border-radius: 10px;
-  background: rgba(12, 13, 26, 0.7);
+  padding: 4px;
+  gap: 2px;
+  background: rgba(22, 23, 30, 0.88);
+  border-color: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(8px);
 }
 .segmented.icons button {
-  padding: 6px 8px;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-radius: 7px;
+  color: #9ea1ad;
 }
+.segmented.icons button:hover { color: #d6d8e2; }
+.segmented.icons button.on { color: #0d0e18; }
 .segmented.icons .seg-bg {
   border-radius: 7px;
-  background: var(--accent);
+  background: #a9adf7;
   box-shadow: none;
 }
 
