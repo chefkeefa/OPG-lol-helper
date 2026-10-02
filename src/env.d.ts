@@ -1,4 +1,4 @@
-import type { LiveData } from './types'
+import type { LiveData, MatchSummary } from './types'
 import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks } from './lib/statsTypes'
 
 interface RiotResult {
@@ -46,6 +46,10 @@ declare global {
       window: { minimize(): void; maximize(): void; close(): void; onState(cb: (s: { maximized: boolean }) => void): Off }
       version(): Promise<string>
       settings: { get(): Promise<DesktopSettings>; set<K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]): Promise<boolean> }
+      history: {
+        get(puuid: string): Promise<MatchSummary[]>
+        put(puuid: string, matches: MatchSummary[]): Promise<number>
+      }
       riot(host: string, path: string): Promise<RiotResult>
       lcu: {
         status(): Promise<ClientStatus>

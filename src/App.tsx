@@ -111,6 +111,7 @@ export default function App() {
   const page = hist.stack[hist.i]
   const viewing = useRef<{ kind: 'client' } | { kind: 'riot'; riotId: string; platform: string } | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
+  const hinted = useRef(false)
 
   const navigate = useCallback((p: Page) => {
     setHist(({ stack, i }) => (stack[i] === p ? { stack, i } : { stack: [...stack.slice(0, i + 1), p], i: i + 1 }))
@@ -141,7 +142,19 @@ export default function App() {
 
   const loadSelf = useCallback(() => {
     viewing.current = { kind: 'client' }
-    return run((p) => loadFromClient(count, p))
+    return run(async (p) => {
+      const d = await loadFromClient(count, p)
+      if (d.matches.length < count && !hinted.current) {
+        hinted.current = true
+        const st = await window.rp?.settings.get().catch(() => null)
+        if (!st?.riotApiKey)
+          showToast(
+            `Загружено ${d.matches.length} игр: клиент LoL хранит только последние 20. Добавьте ключ Riot API в настройках, чтобы подтянуть всю историю. Без ключа игры будут копиться с каждой новой партией.`,
+            'info',
+          )
+      }
+      return d
+    })
   }, [run, count])
 
   const search = useCallback(

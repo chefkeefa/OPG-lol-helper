@@ -241,6 +241,29 @@ ipcMain.handle('settings:set', (_e, key, value) => {
 
 ipcMain.handle('riot:fetch', (_e, host, pathname) => riot.request(host, pathname, 'high'))
 
+// own match history: the League client only returns the last 20 games, so every game
+// we ever see is kept on disk and the history grows from launch to launch
+const historyDir = path.join(app.getPath('userData'), 'history')
+const historyFile = (puuid) => path.join(historyDir, String(puuid).replace(/[^\w-]/g, '') + '.json')
+const readHistory = (puuid) => {
+  try {
+    return JSON.parse(fs.readFileSync(historyFile(puuid), 'utf8'))
+  } catch {
+    return {}
+  }
+}
+ipcMain.handle('history:get', (_e, puuid) => Object.values(readHistory(puuid)))
+ipcMain.handle('history:put', (_e, puuid, matches) => {
+  const all = readHistory(puuid)
+  for (const m of matches || []) if (m && m.id) all[m.id] = m
+  const kept = Object.values(all).sort((a, b) => b.endedAt - a.endedAt).slice(0, 2000)
+  try {
+    fs.mkdirSync(historyDir, { recursive: true })
+    fs.writeFileSync(historyFile(puuid), JSON.stringify(Object.fromEntries(kept.map((m) => [m.id, m]))))
+  } catch {}
+  return kept.length
+})
+
 // statistics
 ipcMain.handle('stats:status', () => collector.status())
 ipcMain.handle('stats:summary', (_e, patches) => collector.summary(patches?.length ? patches : collector.recentPatches()))
