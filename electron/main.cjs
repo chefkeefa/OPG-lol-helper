@@ -165,6 +165,7 @@ async function pollChampSelect() {
       send('champselect', { championId, position })
     }
     const locked = (session.actions || []).flat().some((a) => a.actorCellId === session.localPlayerCellId && a.type === 'pick' && a.completed)
+    if (locked && me?.championId && me.selectedSkinId) noteSkin({ key: me.championId, num: me.selectedSkinId % 1000 })
     if (locked && me?.championId && key !== lastImport) {
       lastImport = key
       autoImport(me.championId, POSITION[position] || '')
@@ -197,6 +198,32 @@ async function autoImport(championKey, role) {
   send('import:done', { champion, ok: !errors.length, done, error: errors.join('; ') })
 }
 
+// ---- which skin you played: Riot's match data has no skin, so it is noted in champ select and in game
+const skinsFile = path.join(app.getPath('userData'), 'skins.json')
+let skins = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(skinsFile, 'utf8'))
+  } catch {
+    return { games: [] }
+  }
+})()
+function noteSkin(rec) {
+  if (!rec || !(rec.num >= 0) || (!rec.champ && !rec.key)) return
+  const last = skins.games[skins.games.length - 1]
+  // the same game reports every second: refresh the entry instead of adding one
+  if (last && Date.now() - last.at < 3 * 3600_000 && (last.champ === rec.champ || last.key === rec.key) && last.num === rec.num) {
+    Object.assign(last, rec, { at: last.at })
+    if (rec.champ && !last.champ) last.champ = rec.champ
+  } else skins.games.push({ ...rec, at: Date.now() })
+  skins.games = skins.games.slice(-1000)
+  try {
+    fs.writeFileSync(skinsFile, JSON.stringify(skins))
+  } catch {}
+  send('skins:update', skins)
+}
+ipcMain.handle('skins:get', () => skins)
+let skinNotedFor = ''
+
 let endTimer = null
 async function pollLive() {
   const data = await liveGameData()
@@ -214,7 +241,16 @@ async function pollLive() {
       recorder.start({ champion: mine?.championName, gameMode: data.gameData.gameMode, gameTime: data.gameData.gameTime }).catch(() => {})
     }
     recorder.onLive(data)
+    const me = data.activePlayer
+    const mine = data.allPlayers?.find((p) => [p.riotIdGameName, p.riotId, p.summonerName].filter(Boolean).includes(me?.riotIdGameName || me?.riotId || me?.summonerName))
+    const champ = String(mine?.rawChampionName || '').replace('game_character_displayname_', '')
+    const tag = `${champ}:${mine?.skinID}`
+    if (mine && champ && tag !== skinNotedFor) {
+      skinNotedFor = tag
+      noteSkin({ champ, num: Number(mine.skinID) || 0 })
+    }
   } else if (was) {
+    skinNotedFor = ''
     send('live:data', null)
     hideOverlay()
     // the game window closed: stop recording a moment later

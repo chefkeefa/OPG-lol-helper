@@ -104,6 +104,8 @@ export interface LiveData {
   activePlayer?: { riotId?: string; riotIdGameName?: string; summonerName?: string; level: number; currentGold: number }
   allPlayers: {
     championName: string
+    rawChampionName?: string
+    skinID?: number
     riotId?: string
     riotIdGameName?: string
     summonerName?: string

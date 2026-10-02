@@ -69,14 +69,32 @@ export function Img({
 }
 
 /** Full-bleed background that fades in only once the image actually loads. */
-export function Splash({ src, className = '', position = 'center 20%' }: { src: string; className?: string; position?: string }) {
+export function Splash({ src, fallback, className = '', position = 'center 20%' }: { src: string; fallback?: string; className?: string; position?: string }) {
   const [ok, setOk] = useState(false)
+  const [url, setUrl] = useState(src)
   useEffect(() => {
     setOk(false)
+    setUrl(src)
+    let off = false
     const i = new Image()
-    i.onload = () => setOk(true)
+    i.onload = () => !off && setOk(true)
+    // e.g. a chroma has no splash of its own: show the base art instead
+    i.onerror = () => {
+      if (off || !fallback || fallback === src) return
+      const j = new Image()
+      j.onload = () => {
+        if (off) return
+        setUrl(fallback)
+        setOk(true)
+      }
+      j.src = fallback
+    }
     i.src = src
-  }, [src])
+    return () => {
+      off = true
+    }
+  }, [src, fallback])
+  src = url
   return (
     <motion.div
       className={`splash ${className}`}

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { MatchSummary, QueueFilter } from '../types'
 import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel } from '../lib/stats'
 import { champSplash } from '../lib/ddragon'
+import { matchSplash, useSkins } from '../lib/skins'
 import { Champ, Icon, Item, Ring, Segmented, Splash, ease, fadeUp, stagger } from '../components/ui'
 
 export function Matches({
@@ -18,6 +19,7 @@ export function Matches({
   openId?: string
   setOpenId: (id?: string) => void
 }) {
+  useSkins()
   const wins = matches.filter((m) => m.win).length
   return (
     <div className="page">
@@ -50,7 +52,7 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
   return (
     <motion.div ref={ref} variants={fadeUp} layout className={`hrow ${m.win ? 'win' : 'loss'} ${open ? 'open' : ''}`}>
       <button className="hrow-head" onClick={onToggle}>
-        <Splash src={champSplash(m.champion)} className="hrow-bg" position="center 25%" />
+        <Splash src={matchSplash(m)} fallback={champSplash(m.champion)} className="hrow-bg" position="center 25%" />
         <span className="hrow-stripe" />
         <div className="hrow-meta">
           <b className={m.win ? 'win-text' : 'loss-text'}>{m.win ? 'Победа' : 'Поражение'}</b>

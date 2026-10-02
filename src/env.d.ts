@@ -37,6 +37,7 @@ export interface ClientStatus {
 }
 
 type Off = () => void
+export type SkinLog = { games: { champ?: string; key?: number; num: number; at: number }[] }
 export type UpdateState = { state: 'idle' | 'checking' | 'latest' | 'downloading' | 'ready' | 'error'; version: string; error?: string }
 type Result = { ok: boolean; error?: string }
 
@@ -48,6 +49,7 @@ declare global {
       version(): Promise<string>
       settings: { get(): Promise<DesktopSettings>; set<K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]): Promise<boolean> }
       riot(host: string, path: string): Promise<RiotResult>
+      skins: { get(): Promise<SkinLog>; onUpdate(cb: (s: SkinLog) => void): Off }
       cache: { read(): Promise<Record<string, MatchSummary>>; write(d: Record<string, MatchSummary>): Promise<boolean>; clear(): Promise<boolean> }
       lcu: {
         status(): Promise<ClientStatus>

@@ -8,6 +8,7 @@ import { champName, champSplash, profileIcon, rankEmblem } from '../lib/ddragon'
 import { ROLES, ago, badge, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCards, QUEUE_FILTERS } from '../lib/stats'
 import { clock, demoLive, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger } from '../components/ui'
+import { champSkinSplash, liveChamp, liveSplash, matchSplash, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
 
 type RoleFilter = 'ALL' | Exclude<Role, ''>
@@ -37,6 +38,7 @@ export function Dashboard({
   openMatch: (id: string) => void
   navigate: (p: Page) => void
 }) {
+  useSkins()
   const [role, setRole] = useState<RoleFilter>('ALL')
   const shown = useMemo(() => (role === 'ALL' ? matches : matches.filter((m) => m.role === role)), [matches, role])
 
@@ -93,7 +95,7 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
   const main = championAggs(matches)[0]?.champion ?? data.matches[0]?.champion
   return (
     <Card className="hero" hover={false}>
-      {main && <Splash src={champSplash(main)} className="hero-bg" />}
+      {main && <Splash src={champSkinSplash(main)} fallback={champSplash(main)} className="hero-bg" />}
       <div className="hero-top">
         <motion.div className="avatar-wrap big" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...spring, delay: 0.1 }}>
           <span className="region-tag">{PLATFORMS[data.profile.platform] ?? data.profile.platform.toUpperCase()}</span>
@@ -224,7 +226,7 @@ function Showcase({
         <div className="show-panels">
           {panels.map((p, i) => (
             <div key={i} className={`show-panel p${i}`}>
-              <Splash src={champSplash(p.championName)} position="center 18%" />
+              <Splash src={liveSplash(p)} fallback={champSplash(liveChamp(p))} position="center 18%" />
               <div className="show-shade" />
               <div className="show-who">
                 <b>{p.riotIdGameName ?? p.summonerName}</b>
@@ -317,7 +319,7 @@ function Showcase({
         >
           {page.map((m, i) => (
             <button key={m.id} className={`show-panel p${i}`} onClick={() => onOpen(m.id)}>
-              <Splash src={champSplash(m.champion)} position="center 18%" />
+              <Splash src={matchSplash(m)} fallback={champSplash(m.champion)} position="center 18%" />
               <div className="show-shade" />
               <div className="show-who">
                 <b>
@@ -364,7 +366,7 @@ function LastGame({ matches, onOpen, onAll }: { matches: MatchSummary[]; onOpen:
   return (
     <Card className="last">
       <button className="last-main" onClick={() => onOpen(m.id)}>
-        <Splash src={champSplash(m.champion)} position="center 15%" />
+        <Splash src={matchSplash(m)} fallback={champSplash(m.champion)} position="center 15%" />
         <div className="last-shade" />
         <div className="last-top">
           <span className={`result ${m.win ? 'win' : 'loss'}`}>{m.win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</span>
@@ -521,7 +523,7 @@ function MasteryCard({ data, onOpen }: { data: PlayerData; onOpen: () => void })
   const total = all.reduce((s, m) => s + m.points, 0)
   return (
     <Card className="mastery" onClick={onOpen}>
-      {top && <Splash src={champSplash(top.champion)} position="center 15%" />}
+      {top && <Splash src={champSkinSplash(top.champion)} fallback={champSplash(top.champion)} position="center 15%" />}
       <div className="mastery-shade" />
       <div className="mastery-body">
         <div className="mastery-title">
