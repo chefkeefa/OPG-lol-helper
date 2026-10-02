@@ -185,6 +185,47 @@ export function Settings({
               <input type="number" min={5} max={2000} value={s?.recordingMaxGB ?? 50} onChange={(e) => update('recordingMaxGB', Math.max(5, Number(e.target.value) || 50))} />
             </label>
           </div>
+          <label className="field">
+            <span>{t('Что сохранять')}</span>
+            <select value={s?.recordingMode ?? 'full'} onChange={(e) => update('recordingMode', e.target.value as DesktopSettings['recordingMode'])}>
+              <option value="full">{t('Всю игру')}</option>
+              <option value="highlights">{t('Только моменты (хайлайты)')}</option>
+            </select>
+          </label>
+          {s?.recordingMode === 'highlights' && (
+            <div className="hl-box">
+              <p className="muted small">
+                {t('Игра пишется целиком, а после матча программа вырезает выбранные моменты и склеивает их в один ролик. Сам APM без перехвата клавиатуры не измерить, поэтому «горячие» моменты определяются по плотности боя.')}
+              </p>
+              <label className="field">
+                <span>{t('Мультикиллы')}</span>
+                <select value={s.hlMultikill ?? 2} onChange={(e) => update('hlMultikill', Number(e.target.value))}>
+                  <option value={0}>{t('Не сохранять')}</option>
+                  <option value={2}>{t('Двойное и выше')}</option>
+                  <option value={3}>{t('Тройное и выше')}</option>
+                  <option value={4}>{t('Квадра и выше')}</option>
+                  <option value={5}>{t('Только пента')}</option>
+                </select>
+              </label>
+              <Switch on={s.hlSteal ?? true} onChange={(v) => update('hlSteal', v)} label={t('Кражи дракона, барона и герольда')} />
+              <Switch on={s.hlFight ?? true} onChange={(v) => update('hlFight', v)} label={t('Жаркие бои')} hint={t('3+ убийства с вашим участием за 20 секунд')} />
+              <Switch on={s.hlAce ?? true} onChange={(v) => update('hlAce', v)} label={t('Эйс')} />
+              <Switch on={Boolean(s.hlObjective)} onChange={(v) => update('hlObjective', v)} label={t('Все драконы, бароны и герольды команды')} />
+              <Switch on={Boolean(s.hlKill)} onChange={(v) => update('hlKill', v)} label={t('Каждое ваше убийство')} />
+              <Switch on={Boolean(s.hlDeath)} onChange={(v) => update('hlDeath', v)} label={t('Ваши смерти')} />
+              <div className="field-row">
+                <label className="field">
+                  <span>{t('Секунд до момента')}</span>
+                  <input type="number" min={3} max={60} value={s.hlBefore ?? 12} onChange={(e) => update('hlBefore', Math.min(60, Math.max(3, Number(e.target.value) || 12)))} />
+                </label>
+                <label className="field">
+                  <span>{t('Секунд после')}</span>
+                  <input type="number" min={2} max={60} value={s.hlAfter ?? 6} onChange={(e) => update('hlAfter', Math.min(60, Math.max(2, Number(e.target.value) || 6)))} />
+                </label>
+              </div>
+              <Switch on={Boolean(s.hlKeepFull)} onChange={(v) => update('hlKeepFull', v)} label={t('Оставлять и полную запись')} hint={t('иначе полная запись удаляется после нарезки')} />
+            </div>
+          )}
           {desktop && (
             <button className="btn" onClick={() => window.rp?.rec.open()}>
               <Icon name="folder" size={16} /> {t('Открыть папку записей')}

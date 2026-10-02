@@ -30,6 +30,18 @@ export interface DesktopSettings {
   recordingAudio: boolean
   recordingSource: 'screen' | 'window'
   recordingMaxGB: number
+  /** full game, or only a reel of the moments picked below */
+  recordingMode: 'full' | 'highlights'
+  hlMultikill: number
+  hlSteal: boolean
+  hlFight: boolean
+  hlAce: boolean
+  hlObjective: boolean
+  hlKill: boolean
+  hlDeath: boolean
+  hlBefore: number
+  hlAfter: number
+  hlKeepFull: boolean
 }
 
 export interface ClientStatus {

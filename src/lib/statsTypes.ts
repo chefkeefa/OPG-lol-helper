@@ -82,7 +82,7 @@ export interface BuildPayload {
 
 export interface Moment {
   t: number
-  kind: 'kill' | 'death' | 'assist' | 'multikill' | 'objective' | 'steal'
+  kind: 'kill' | 'death' | 'assist' | 'multikill' | 'objective' | 'steal' | 'ace' | 'fight'
   label: string
 }
 
@@ -99,6 +99,9 @@ export interface Recording {
   clips: { file: string; start: number; end: number; label: string }[]
   size: number
   error?: string
+  /** cut down to the chosen moments; segments are its parts on its own timeline, from = where each part starts in the game */
+  highlights?: boolean
+  segments?: { start: number; end: number; from: number; label: string }[]
 }
 
 export interface Bench {

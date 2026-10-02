@@ -4638,3 +4638,24 @@ button.mu-trow:hover,
 .roles .role-name { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .tier-role { display: inline-flex; align-items: center; gap: 6px; }
 .tier-role small { font-size: 12px; color: var(--muted); }
+
+/* highlight-only recording */
+.hl-box {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  margin: 4px 0 12px;
+  border-radius: 12px;
+  background: rgba(169, 173, 247, 0.06);
+  border: 1px solid rgba(169, 173, 247, 0.16);
+}
+.hl-box > p { margin: 0 0 4px; }
+.hl-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-style: normal;
+  font-size: 11px;
+  color: #ffd166;
+  background: rgba(255, 209, 102, 0.12);
+}

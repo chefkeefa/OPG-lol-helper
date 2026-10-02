@@ -104,7 +104,7 @@ class Recorder {
     const s = this.getSettings()
     const id = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
     const raw = path.join(this.folder(), `${id}.webm`)
-    this.cur = { id, raw, stream: fs.createWriteStream(raw), info, moments: [], lastGameTime: info.gameTime, me: info.me }
+    this.cur = { id, raw, stream: fs.createWriteStream(raw), info, moments: [], fight: [], lastGameTime: info.gameTime, me: info.me }
     this.seenEvents = new Set()
     await this.ensureWindow()
     const [w, h] = (s.recordingResolution || '1920x1080').split('x').map(Number)
@@ -137,15 +137,19 @@ class Recorder {
       const killer = names.has(ev.KillerName)
       let m = null
       if (ev.EventName === 'ChampionKill') {
+        if (killer || names.has(ev.VictimName) || (ev.Assisters || []).some((a) => names.has(a))) c.fight.push(at)
         if (killer) m = { kind: 'kill', label: t('Убийство: {name}', { name: ev.VictimName }) }
         else if (names.has(ev.VictimName)) m = { kind: 'death', label: t('Смерть от {name}', { name: ev.KillerName }) }
         else if ((ev.Assisters || []).some((a) => names.has(a))) m = { kind: 'assist', label: t('Помощь: {name}', { name: ev.VictimName }) }
-      } else if (ev.EventName === 'Multikill' && killer) m = { kind: 'multikill', label: MULTI()[ev.KillStreak] || t('Мультикилл') }
+      } else if (ev.EventName === 'Multikill' && killer) m = { kind: 'multikill', streak: Number(ev.KillStreak) || 2, label: MULTI()[ev.KillStreak] || t('Мультикилл') }
       else if (ev.EventName === 'FirstBlood' && (names.has(ev.Recipient) || killer)) m = { kind: 'kill', label: t('Первая кровь') }
-      else if (ev.EventName === 'Ace') m = { kind: 'objective', label: t('Эйс') }
+      else if (ev.EventName === 'Ace') m = { kind: 'ace', label: t('Эйс') }
       else if (['DragonKill', 'BaronKill', 'HeraldKill', 'HordeKill'].includes(ev.EventName)) {
         const name = { DragonKill: t('Дракон'), BaronKill: t('Барон'), HeraldKill: t('Герольд'), HordeKill: t('Личинки') }[ev.EventName]
-        m = { kind: ev.Stolen === 'True' ? 'steal' : 'objective', label: ev.Stolen === 'True' ? t('{name} (украден)', { name }) : name }
+        // the event names the killer, so a steal by your team is told apart from one against you
+        const ours = (data.allPlayers || []).find((p) => [p.riotIdGameName, p.summonerName, p.riotId].includes(ev.KillerName))?.team === mine?.team
+        const stolen = ev.Stolen === 'True'
+        m = { kind: stolen ? 'steal' : 'objective', ours, label: stolen ? t('{name} (украден)', { name }) : name }
       } else if (ev.EventName === 'GameEnd') c.result = ev.Result
       if (m) c.moments.push({ t: at, ...m })
     }
@@ -177,8 +181,40 @@ class Recorder {
         fs.renameSync(fixed, c.raw)
       } catch {}
     }
+    let segments = null
+    let moments = c.moments
+    if (this.getSettings().recordingMode === 'highlights') {
+      const reel = await this.highlightReel(c, folder, file, duration).catch(() => null)
+      if (reel === 'empty') {
+        // nothing worth keeping in this game
+        if (!this.getSettings().hlKeepFull) {
+          fs.rmSync(path.join(folder, file), { force: true })
+          this.onChange?.('idle')
+          return
+        }
+      } else if (reel) {
+        if (this.getSettings().hlKeepFull) {
+          // the full game stays as its own recording next to the reel
+          fs.writeFileSync(path.join(folder, `${c.id}-full.json`), JSON.stringify(this.metaFor(c, `${c.id}-full`, file, duration, c.moments)))
+        } else fs.rmSync(path.join(folder, file), { force: true })
+        file = reel.file
+        segments = reel.segments
+        moments = reel.moments
+      }
+    }
     const meta = {
-      id: c.id,
+      ...this.metaFor(c, c.id, file, segments ? segments.reduce((s, x) => s + x.end - x.start, 0) : duration, moments),
+      highlights: Boolean(segments),
+      segments: segments || undefined,
+    }
+    fs.writeFileSync(path.join(folder, `${c.id}.json`), JSON.stringify(meta, null, 2))
+    this.cleanup()
+    this.onChange?.('idle')
+  }
+
+  metaFor(c, id, file, duration, moments) {
+    return {
+      id,
       file,
       createdAt: c.startedAt || Date.now(),
       duration,
@@ -186,13 +222,83 @@ class Recorder {
       gameMode: c.info.gameMode || '',
       result: c.result || '',
       kda: c.final?.scores ? [c.final.scores.kills, c.final.scores.deaths, c.final.scores.assists] : null,
-      moments: c.moments,
+      moments,
       clips: [],
       error: c.error || '',
     }
-    fs.writeFileSync(path.join(folder, `${c.id}.json`), JSON.stringify(meta, null, 2))
-    this.cleanup()
-    this.onChange?.('idle')
+  }
+
+  /** Which moments the settings ask to keep, as [time, label] pairs on the recording timeline. */
+  pickHighlights(c) {
+    const s = this.getSettings()
+    const out = []
+    for (const m of c.moments) {
+      if (m.kind === 'multikill' && s.hlMultikill > 0 && (m.streak || 2) >= s.hlMultikill) out.push(m)
+      else if (m.kind === 'steal' && s.hlSteal) out.push(m)
+      else if (m.kind === 'ace' && s.hlAce) out.push(m)
+      else if (m.kind === 'objective' && s.hlObjective && m.ours !== false) out.push(m)
+      else if (m.kind === 'kill' && s.hlKill) out.push(m)
+      else if (m.kind === 'death' && s.hlDeath) out.push(m)
+    }
+    if (s.hlFight) {
+      // a fight: you take part in three or more champion kills (kill, assist or death) within 20 s
+      const f = [...c.fight].sort((a, b) => a - b)
+      for (let i = 0; i + 2 < f.length; i++) {
+        if (f[i + 2] - f[i] > 20) continue
+        let j = i + 2
+        while (j + 1 < f.length && f[j + 1] - f[j] <= 12) j++
+        out.push({ t: f[j], kind: 'fight', label: t('Командный бой, убийств: {n}', { n: j - i + 1 }), from: f[i] })
+        i = j
+      }
+    }
+    return out.sort((a, b) => a.t - b.t)
+  }
+
+  /** Cuts the chosen moments out of the game and joins them into one highlight video. */
+  async highlightReel(c, folder, file, duration) {
+    const s = this.getSettings()
+    const before = Math.max(3, Number(s.hlBefore) || 12)
+    const after = Math.max(2, Number(s.hlAfter) || 6)
+    const picks = this.pickHighlights(c)
+    if (!picks.length) return 'empty'
+    // windows around each moment, merged where they overlap
+    const wins = []
+    for (const m of picks) {
+      const start = Math.max(0, (m.from ?? m.t) - before)
+      const end = Math.min(duration, m.t + after)
+      const last = wins[wins.length - 1]
+      if (last && start <= last.end + 1) {
+        last.end = Math.max(last.end, end)
+        last.labels.push(m.label)
+      } else wins.push({ start, end, labels: [m.label] })
+    }
+    const ext = path.extname(file)
+    const tmp = path.join(folder, `${c.id}-parts`)
+    fs.mkdirSync(tmp, { recursive: true })
+    try {
+      const parts = []
+      for (const [i, w] of wins.entries()) {
+        const part = path.join(tmp, `${i}${ext}`)
+        await ffmpeg(['-ss', String(w.start), '-i', path.join(folder, file), '-t', String(w.end - w.start), '-c', 'copy', '-avoid_negative_ts', 'make_zero', part])
+        parts.push(part)
+      }
+      const list = path.join(tmp, 'list.txt')
+      fs.writeFileSync(list, parts.map((p) => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'))
+      const out = `${c.id}-highlights${ext}`
+      await ffmpeg(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', path.join(folder, out)])
+      // moments on the new, shorter timeline
+      let offset = 0
+      const segments = []
+      const moments = []
+      for (const w of wins) {
+        segments.push({ start: offset, end: offset + (w.end - w.start), from: w.start, label: w.labels.join(' · ') })
+        for (const m of picks) if (m.t >= w.start && m.t <= w.end) moments.push({ ...m, t: offset + (m.t - w.start) })
+        offset += w.end - w.start
+      }
+      return { file: out, segments, moments }
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
   }
 
   /** Deletes the oldest recordings once the folder grows past the size limit (clips are kept). */

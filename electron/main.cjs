@@ -42,6 +42,17 @@ const DEFAULTS = {
   recordingAudio: true,
   recordingSource: 'screen',
   recordingMaxGB: 50,
+  recordingMode: 'full',
+  hlMultikill: 2,
+  hlSteal: true,
+  hlFight: true,
+  hlAce: true,
+  hlObjective: false,
+  hlKill: false,
+  hlDeath: false,
+  hlBefore: 12,
+  hlAfter: 6,
+  hlKeepFull: false,
 }
 let settings = { ...DEFAULTS }
 try {

@@ -14,6 +14,8 @@ const KIND: Record<Moment['kind'], { label: string; color: string }> = {
   assist: { label: t('Помощь'), color: 'var(--accent-2)' },
   objective: { label: t('Объекты'), color: '#c48bff' },
   steal: { label: t('Кражи'), color: '#ff9f43' },
+  ace: { label: t('Эйс'), color: '#ff5d8f' },
+  fight: { label: t('Жаркие бои'), color: '#ffd166' },
 }
 
 const media = (file: string) => `rpmedia://media/${encodeURIComponent(file)}`
@@ -154,10 +156,11 @@ export function Recordings({
                   <span className="muted small">
                     {dateText(r.createdAt)} · {duration(Math.round(r.duration))}
                     {r.kda && ` · ${r.kda.join('/')}`}
+                    {r.highlights && <em className="hl-tag">{t('Хайлайты')}</em>}
                   </span>
                   <span className="rec-dots">
                     {r.moments.slice(0, 14).map((m, i) => (
-                      <i key={i} style={{ background: KIND[m.kind].color }} />
+                      <i key={i} style={{ background: KIND[m.kind]?.color }} />
                     ))}
                   </span>
                 </span>
@@ -261,7 +264,7 @@ function Player({
               key={i}
               className="timeline-mark"
               title={`${duration(Math.round(m.t))} ${m.label}`}
-              style={{ left: `${(m.t / len) * 100}%`, background: KIND[m.kind].color }}
+              style={{ left: `${(m.t / len) * 100}%`, background: KIND[m.kind]?.color }}
               initial={{ scaleY: 0 }}
               animate={{ scaleY: 1 }}
               transition={{ delay: 0.2 + i * 0.03 }}
@@ -322,7 +325,7 @@ function Player({
       <div className="moments">
         {moments.map((m, i) => (
           <motion.div key={i} className="moment" initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.025 }}>
-            <i style={{ background: KIND[m.kind].color }} />
+            <i style={{ background: KIND[m.kind]?.color }} />
             <button className="moment-time" onClick={() => seek(m.t - 5)}>
               {duration(Math.round(m.t))}
             </button>
