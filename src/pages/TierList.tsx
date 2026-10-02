@@ -123,6 +123,7 @@ export function TierList({
                     </span>
                     <span className="tier-role" title={ROLE_LABEL[r.role]}>
                       <RoleIcon role={r.role} size={18} />
+                      <small>{ROLE_LABEL[r.role]}</small>
                     </span>
                     <span className="tier-wr">
                       <b className={r.wr >= 0.52 ? 'good' : r.wr < 0.48 ? 'bad' : ''}>{pct(r.wr, 2)}</b>

@@ -19,7 +19,6 @@ const GROUPS: { title: string; items: { page: Page; icon: IconName; label: strin
     title: t('Статистика'),
     items: [
       { page: 'tierlist', icon: 'list', label: t('Тир-лист') },
-      { page: 'champion', icon: 'shield', label: t('Билды и руны') },
       { page: 'matchups', icon: 'swords', label: t('Матчапы') },
       { page: 'leaderboards', icon: 'trophy', label: t('Лидеры') },
     ],

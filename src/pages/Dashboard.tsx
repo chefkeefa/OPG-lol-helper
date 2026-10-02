@@ -117,7 +117,10 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
             className="icons"
             value={role}
             onChange={setRole}
-            options={[{ id: 'ALL' as RoleFilter, label: <RoleIcon role="ALL" size={16} />, title: t('Все роли') }, ...ROLES.map((r) => ({ id: r.id as RoleFilter, label: <RoleIcon role={r.id} size={16} />, title: r.label }))]}
+            options={[
+              { id: 'ALL' as RoleFilter, label: <RoleOpt role="ALL" text={t('Все')} on={role === 'ALL'} />, title: t('Все роли') },
+              ...ROLES.map((r) => ({ id: r.id as RoleFilter, label: <RoleOpt role={r.id} text={r.label} on={role === r.id} />, title: r.label })),
+            ]}
           />
           <span className="hero-note">{t('последние 5 игр против вашего среднего')}</span>
         </div>
@@ -739,6 +742,7 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
         {roles.map((r) => (
           <div key={r.id} className={`role ${r.games ? '' : 'dim'}`} title={r.label}>
             <RoleIcon role={r.id} size={24} />
+            <span className="role-name">{r.label}</span>
             <b>{r.games ? `${Math.round((r.wins / r.games) * 100)}%` : '–'}</b>
             <span className="muted tiny">{t('{n} игр', { n: r.games })}</span>
           </div>
@@ -751,4 +755,20 @@ function ChampionPerformance({ matches, onAll }: { matches: MatchSummary[]; onAl
 /** "16 авг · Ahri" for every point of a stat card's series */
 function pointLabels(c: { dates: number[]; champs: string[] }) {
   return c.dates.map((d, i) => `${new Date(d).toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · ${champName(c.champs[i])}`)
+}
+
+/** role filter option: the icon, plus its name while selected */
+function RoleOpt({ role, text, on }: { role: string; text: string; on: boolean }) {
+  return (
+    <span className="role-opt">
+      <RoleIcon role={role} size={16} />
+      <AnimatePresence initial={false}>
+        {on && (
+          <motion.span initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.25, ease }}>
+            {text}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  )
 }
