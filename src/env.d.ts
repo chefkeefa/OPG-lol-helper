@@ -44,6 +44,8 @@ export interface DesktopSettings {
   hlKeepFull: boolean
   collectMayhem: boolean
   augmentsEnabled: boolean
+  discordWebhook: string
+  discordGameAlerts: boolean
 }
 
 export interface ClientStatus {
@@ -87,6 +89,11 @@ declare global {
       build: {
         import(what: 'runes' | 'items' | 'spells', build: BuildPayload): Promise<Result>
         onAutoImport(cb: (r: { champion: string; ok: boolean; done?: string[]; error?: string }) => void): Off
+      }
+      discord(url: string, payload: { content?: string; embeds?: unknown[] }): Promise<Result>
+      replay: {
+        state(gameId: number): Promise<{ ok: boolean; state?: string; progress?: number; error?: string }>
+        run(what: 'download' | 'watch' | 'folder', gameId: number): Promise<Result>
       }
       spectate(puuid: string, name: string): Promise<Result>
       update: {

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { MatchBreakdown } from '../components/MatchBreakdown'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MatchSummary, QueueFilter } from '../types'
 import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel } from '../lib/stats'
@@ -117,11 +118,81 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.45, ease }}
           >
-            <Scoreboard m={m} />
+            <MatchDetail m={m} />
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  )
+}
+
+function MatchDetail({ m }: { m: MatchSummary }) {
+  const [tab, setTab] = useState<'board' | 'breakdown'>('board')
+  return (
+    <>
+      <div className="hrow-tabs">
+        <Segmented
+          id={`md-${m.id}`}
+          value={tab}
+          onChange={setTab}
+          options={[
+            { id: 'board', label: t('Составы') },
+            { id: 'breakdown', label: t('Разбор игры') },
+          ]}
+        />
+        <div className="push" />
+        <ReplayButton m={m} />
+      </div>
+      {tab === 'board' ? <Scoreboard m={m} /> : <MatchBreakdown m={m} />}
+    </>
+  )
+}
+
+const REPLAY_TEXT: Record<string, string> = {
+  checking: t('Проверяю повтор…'),
+  download: t('Скачать повтор'),
+  downloading: t('Скачивается…'),
+  watch: t('Смотреть повтор'),
+  incompatible: t('Повтор со старого патча'),
+  missingOrExpired: t('Повтор недоступен'),
+  lost: t('Повтор недоступен'),
+  retry: t('Скачать повтор'),
+  error: t('Повтор недоступен'),
+}
+
+/** Download or watch the full-game replay through the League client. */
+function ReplayButton({ m }: { m: MatchSummary }) {
+  const gameId = Number(m.id.split('_')[1])
+  const [st, setSt] = useState<{ state: string; progress: number; error?: string } | null>(null)
+  useEffect(() => {
+    if (!window.rp?.replay || !gameId) return
+    let alive = true
+    let timer = 0
+    const poll = async () => {
+      const r = await window.rp!.replay.state(gameId)
+      if (!alive) return
+      setSt(r.ok ? { state: r.state ?? 'checking', progress: r.progress ?? 0 } : { state: 'offline', progress: 0, error: r.error })
+      if (r.ok && (r.state === 'downloading' || r.state === 'checking')) timer = window.setTimeout(poll, 1000)
+    }
+    poll()
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+  }, [gameId, st?.state === 'downloading'])
+  if (!window.rp?.replay || !gameId || !st) return null
+  if (st.state === 'offline') return <span className="muted small" title={st.error}>{t('Повторы доступны при запущенном клиенте')}</span>
+  const can = st.state === 'download' || st.state === 'retry' || st.state === 'watch'
+  const run = async () => {
+    const r = await window.rp!.replay.run(st.state === 'watch' ? 'watch' : 'download', gameId)
+    if (r.ok && st.state !== 'watch') setSt({ state: 'downloading', progress: 0 })
+  }
+  return (
+    <button className={`btn ${st.state === 'watch' ? 'primary' : ''}`} disabled={!can} onClick={run}>
+      <Icon name={st.state === 'watch' ? 'play' : 'download'} size={15} />
+      {REPLAY_TEXT[st.state] ?? st.state}
+      {st.state === 'downloading' && st.progress > 0 && ` ${Math.round(st.progress * 100)}%`}
+    </button>
   )
 }
 

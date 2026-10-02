@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { CustomBoards } from './CustomBoards'
 import { AnimatePresence, motion } from 'motion/react'
 import { PLATFORMS, RiotError } from '../api/riot'
 import { cachedName, loadLadder, resolveName, type ApexTier, type LadderEntry } from '../api/leaderboard'
@@ -13,14 +14,49 @@ const TIERS: { id: ApexTier; label: string }[] = [
   { id: 'master', label: 'Master' },
 ]
 
-export function Leaderboards({
+export function Leaderboards(props: { defaultPlatform: string; onOpenPlayer: (riotId: string, platform: string) => void; navigate: (p: Page) => void; toast: (msg: string, kind?: 'err' | 'info') => void }) {
+  const [mode, setMode] = useState<'ladder' | 'mine'>(() => (localStorage.getItem('riftpulse.boards.mode') === 'mine' ? 'mine' : 'ladder'))
+  const switcher = (
+    <Segmented
+      id="lb-mode"
+      value={mode}
+      onChange={(m) => {
+        setMode(m)
+        try {
+          localStorage.setItem('riftpulse.boards.mode', m)
+        } catch {}
+      }}
+      options={[
+        { id: 'ladder', label: t('Лестница') },
+        { id: 'mine', label: t('Свои лидерборды') },
+      ]}
+    />
+  )
+  if (mode === 'ladder') return <Ladder {...props} switcher={switcher} />
+  return (
+    <div className="page">
+      <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
+        <h1>
+          <Icon name="trophy" size={30} /> {t('Лидеры')}
+        </h1>
+        <div className="push" />
+        {switcher}
+      </motion.div>
+      <CustomBoards defaultPlatform={props.defaultPlatform} onOpenPlayer={props.onOpenPlayer} toast={props.toast} />
+    </div>
+  )
+}
+
+function Ladder({
   defaultPlatform,
   onOpenPlayer,
   navigate,
+  switcher,
 }: {
   defaultPlatform: string
   onOpenPlayer: (riotId: string, platform: string) => void
   navigate: (p: Page) => void
+  switcher: ReactNode
 }) {
   const [platform, setPlatform] = useState(defaultPlatform)
   const [tier, setTier] = useState<ApexTier>('challenger')
@@ -88,6 +124,7 @@ export function Leaderboards({
         </h1>
         <p className="page-sub">{t('Лучшие игроки ранговой очереди Solo/Duo по региону. Нажмите на игрока, чтобы открыть его профиль.')}</p>
         <div className="push" />
+        {switcher}
         <Segmented id="ladder-tier" options={TIERS} value={tier} onChange={setTier} />
         <select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label={t('Регион')}>
           {Object.entries(PLATFORMS).map(([k, v]) => (

@@ -32,6 +32,9 @@ const DEFAULTS = {
   collectMayhem: true,
   // ARAM Mayhem: tiers on the augment cards
   augmentsEnabled: true,
+  // Discord: a message after each of your games
+  discordWebhook: '',
+  discordGameAlerts: false,
   // champion select
   autoOpenChampion: true,
   autoImportRunes: true,
@@ -424,6 +427,41 @@ ipcMain.handle('lcu:spectate', async (_e, puuid, name) => {
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.status === 503 ? t('Клиент League of Legends не запущен') : e.message }
+  }
+})
+
+// Discord webhooks (custom leaderboards, game alerts): only real webhook URLs are accepted
+ipcMain.handle('discord:post', async (_e, url, payload) => {
+  if (typeof url !== 'string' || !/^https:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(url)) return { ok: false, error: 'bad webhook' }
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'Rift Pulse', ...payload, allowed_mentions: { parse: [] } }), signal: AbortSignal.timeout(15000) })
+    return r.ok ? { ok: true } : { ok: false, error: `Discord ${r.status}` }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+// full-game replays: the League client downloads and plays .rofl files of your recent games
+const replayError = (e) => (e.status === 503 || /ECONNREFUSED|not running/i.test(e.message) ? t('Клиент League of Legends не запущен') : e.message)
+ipcMain.handle('replay:state', async (_e, gameId) => {
+  if (!Number.isSafeInteger(gameId)) return { ok: false, error: 'bad game id' }
+  try {
+    const m = await lcu.get(`/lol-replays/v1/metadata/${gameId}`)
+    return { ok: true, state: m.state, progress: m.downloadProgress ?? 0 }
+  } catch (e) {
+    return { ok: false, error: replayError(e) }
+  }
+})
+ipcMain.handle('replay:run', async (_e, what, gameId) => {
+  if (!Number.isSafeInteger(gameId)) return { ok: false, error: 'bad game id' }
+  try {
+    const body = { componentType: 'replay-button_match-history' }
+    if (what === 'download') await lcu.post(`/lol-replays/v1/rofl/${gameId}/download/graceful`, body)
+    else if (what === 'watch') await lcu.post(`/lol-replays/v1/rofl/${gameId}/watch`, body)
+    else if (what === 'folder') shell.openPath(await lcu.get('/lol-replays/v1/rofls/path'))
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: replayError(e) }
   }
 })
 

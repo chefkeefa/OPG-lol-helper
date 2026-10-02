@@ -11,6 +11,7 @@ import { Card, Champ, Counter, Icon, Img, Ring, Segmented, Sparkline, Splash, ea
 import { champSkinSplash, liveChamp, liveSplash, matchSplash, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
 import { fmtNum, locale, t } from '../lib/i18n'
+import { lpChanges, lpHistory } from '../lib/lp'
 
 type RoleFilter = 'ALL' | Exclude<Role, ''>
 
@@ -632,7 +633,47 @@ function RankCard({ data }: { data: PlayerData }) {
           )}
         </motion.div>
       </AnimatePresence>
+      <LpTrend data={data} queue={q} />
     </Card>
+  )
+}
+
+/** LP over time from the snapshots the app keeps, plus the last LP gains and losses. */
+function LpTrend({ data, queue }: { data: PlayerData; queue: string }) {
+  const list = useMemo(() => lpHistory(data, queue), [data, queue])
+  const changes = useMemo(() => lpChanges(list).slice(-8).reverse(), [list])
+  if (list.length < 2)
+    return <p className="lp-empty muted small">{t('График LP появится после следующих игр: программа запоминает ваш ранг при каждой загрузке профиля.')}</p>
+  const week = list.filter((s) => s.at >= Date.now() - 7 * 86400_000)
+  const delta = week.length ? list[list.length - 1].v - week[0].v : 0
+  const dateFmt = (ts: number) => new Date(ts).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+  return (
+    <div className="lp-trend">
+      <div className="lp-trend-head">
+        <span className="muted small">{t('LP за время')}</span>
+        {week.length > 1 && <b className={delta >= 0 ? 'good' : 'bad'}>{t('{v} LP за 7 дней', { v: `${delta >= 0 ? '+' : ''}${delta}` })}</b>}
+      </div>
+      <Sparkline
+        data={list.map((s) => s.v)}
+        width={300}
+        height={70}
+        stretch
+        dot={false}
+        color="var(--accent-2)"
+        labels={list.map((s) => `${dateFmt(s.at)} · ${s.tier} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(s.tier) ? '' : s.rank}`)}
+        format={(v) => `${list.find((s) => s.v === v)?.lp ?? ''} LP`}
+      />
+      {changes.length > 0 && (
+        <div className="lp-changes">
+          {changes.map((c, i) => (
+            <span key={i} className={c.delta >= 0 ? 'good' : 'bad'} title={dateFmt(c.at)}>
+              {c.delta >= 0 ? '+' : ''}
+              {c.delta}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

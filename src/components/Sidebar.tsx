@@ -4,6 +4,8 @@ import type { UpdateState } from '../env'
 import { profileIcon } from '../lib/ddragon'
 import { Icon, Img, spring, type IconName } from './ui'
 import { t } from '../lib/i18n'
+import { useState } from 'react'
+import { useAccounts, type Account } from '../lib/accounts'
 
 const GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
   {
@@ -46,6 +48,7 @@ export function Sidebar({
   recording,
   version,
   update,
+  onSwitchAccount,
 }: {
   page: Page
   onNavigate: (p: Page) => void
@@ -54,7 +57,11 @@ export function Sidebar({
   recording: boolean
   version: string
   update?: UpdateState
+  onSwitchAccount?: (a: Account) => void
 }) {
+  const accounts = useAccounts()
+  const [menu, setMenu] = useState(false)
+  const current = `${data.profile.gameName}#${data.profile.tagLine}`.toLowerCase()
   const solo = data.ranks.find((r) => r.queueType === 'RANKED_SOLO_5x5')
   return (
     <aside className="sidebar">
@@ -131,7 +138,43 @@ export function Sidebar({
           </div>
         ))}
       </nav>
-      <motion.div className="side-profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+      <AnimatePresence>
+        {menu && (
+          <motion.div className="acc-menu" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.18 }}>
+            <div className="acc-menu-title">{t('Мои аккаунты')}</div>
+            {accounts.map((a) => (
+              <button
+                key={a.riotId + a.platform}
+                className={`acc-item ${a.riotId.toLowerCase() === current ? 'on' : ''}`}
+                onClick={() => {
+                  setMenu(false)
+                  onSwitchAccount?.(a)
+                }}
+              >
+                {a.iconId ? <Img src={profileIcon(a.iconId)} alt="" size={28} radius={7} /> : <span className="acc-blank" />}
+                <span>
+                  <b>{a.riotId}</b>
+                  <span className="muted small">
+                    {a.platform.replace(/\d+$/, '').toUpperCase()}
+                    {a.rank ? ` · ${a.rank}` : ''}
+                  </span>
+                </span>
+              </button>
+            ))}
+            {!accounts.length && <p className="muted small">{t('Добавьте свои аккаунты в настройках, чтобы переключаться между ними.')}</p>}
+            <button
+              className="acc-add"
+              onClick={() => {
+                setMenu(false)
+                onNavigate('settings')
+              }}
+            >
+              <Icon name="gear" size={14} /> {t('Управлять аккаунтами')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <motion.button className="side-profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} onClick={() => setMenu((v) => !v)} title={t('Сменить аккаунт')}>
         <div className="avatar-wrap">
           <span className="region-tag">{data.profile.platform.replace(/\d+$/, '').toUpperCase()}</span>
           <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={56} radius={12} />
@@ -142,7 +185,8 @@ export function Sidebar({
           <div className="muted">#{data.profile.tagLine}</div>
           {solo && <div className="tier-text">{solo.tier}</div>}
         </div>
-      </motion.div>
+        <Icon name="chevron" size={14} />
+      </motion.button>
     </aside>
   )
 }

@@ -54,6 +54,11 @@ contextBridge.exposeInMainWorld('rp', {
     import: (what, build) => ipcRenderer.invoke('build:import', what, build),
     onAutoImport: on('import:done'),
   },
+  discord: (url, payload) => ipcRenderer.invoke('discord:post', url, payload),
+  replay: {
+    state: (gameId) => ipcRenderer.invoke('replay:state', gameId),
+    run: (what, gameId) => ipcRenderer.invoke('replay:run', what, gameId),
+  },
   spectate: (puuid, name) => ipcRenderer.invoke('lcu:spectate', puuid, name),
   update: {
     state: () => ipcRenderer.invoke('update:state'),

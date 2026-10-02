@@ -29,6 +29,10 @@ import { Spectate } from './pages/Spectate'
 import { Collections } from './pages/Collections'
 import { Studio } from './pages/Studio'
 import { statsStatus } from './lib/statsApi'
+import { recordRanks } from './lib/lp'
+import { noteAccount, type Account } from './lib/accounts'
+import { gameAlert } from './lib/alerts'
+import { getBoards, refreshBoard } from './lib/boards'
 import type { StatsStatus } from './lib/statsTypes'
 
 const LAST = 'riftpulse.last'
@@ -97,11 +101,36 @@ const WEB_SETTINGS: DesktopSettings = {
   hlKeepFull: false,
   collectMayhem: true,
   augmentsEnabled: true,
+  discordWebhook: '',
+  discordGameAlerts: false,
 }
 
 export default function App() {
   useDDragon()
   const [data, setData] = useState<PlayerData>(() => mockPlayer())
+  // every loaded profile leaves an LP snapshot, which is how LP history builds up
+  useEffect(() => {
+    recordRanks(data)
+    const v = viewing.current
+    if (data.source === 'client' || (v?.kind === 'riot' && v.self)) {
+      noteAccount(data)
+      const st = settingsRef.current
+      if (st?.discordGameAlerts && st.discordWebhook) gameAlert(data, st.discordWebhook).catch(() => {})
+    }
+  }, [data])
+
+  // custom leaderboards with Discord alerts are checked every 30 minutes while the app is open
+  useEffect(() => {
+    const tick = () => {
+      for (const b of getBoards()) if (b.webhook && b.alerts && b.members.length && (!b.refreshedAt || Date.now() - b.refreshedAt > 25 * 60_000)) refreshBoard(b).catch(() => {})
+    }
+    const first = setTimeout(tick, 60_000)
+    const timer = setInterval(tick, 30 * 60_000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(timer)
+    }
+  }, [])
   const [filter, setFilter] = useState<QueueFilter>('all')
   const [count, setCount] = useState(() => {
     try {
@@ -310,6 +339,17 @@ export default function App() {
     }
   }, [])
 
+  // one of your own accounts picked in the sidebar: it becomes "my account" and loads via Riot API
+  const switchAccount = useCallback(
+    (a: Account) => {
+      navigate('dashboard')
+      if (!window.rp) return void search(a.riotId, a.platform)
+      updateSetting('platform', a.platform)
+      updateSetting('myRiotId', a.riotId)
+    },
+    [navigate, search, updateSetting],
+  )
+
   // champion select → open that champion's build page; report automatic imports
   const autoOpen = useRef(true)
   autoOpen.current = settings?.autoOpenChampion ?? true
@@ -386,7 +426,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar page={page} onNavigate={navigate} data={data} inGame={Boolean(live)} recording={recording} version={version} update={upd} />
+      <Sidebar page={page} onNavigate={navigate} data={data} inGame={Boolean(live)} recording={recording} version={version} update={upd} onSwitchAccount={switchAccount} />
       <div className="main-wrap">
         <TitleBar
           canBack={hist.i > 0}
@@ -499,7 +539,7 @@ export default function App() {
               {page === 'recordings' && <Recordings settings={settings} update={updateSetting} toast={showToast} />}
               {page === 'spectate' && <Spectate defaultPlatform={settings?.platform ?? 'euw1'} toast={showToast} />}
               {page === 'collections' && <Collections data={data} connected={Boolean(client?.connected)} />}
-              {page === 'leaderboards' && <Leaderboards defaultPlatform={settings?.platform ?? 'euw1'} onOpenPlayer={search} navigate={navigate} />}
+              {page === 'leaderboards' && <Leaderboards defaultPlatform={settings?.platform ?? 'euw1'} onOpenPlayer={search} navigate={navigate} toast={showToast} />}
               {page === 'live' && <Live live={shownLive} preview={!live && livePreview} onPreview={() => setLivePreview(true)} />}
               {page === 'overlays' && <Overlays settings={settings} update={updateSetting} />}
               {page === 'settings' && (

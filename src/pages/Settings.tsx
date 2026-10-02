@@ -3,8 +3,11 @@ import { motion } from 'motion/react'
 import type { DesktopSettings } from '../env'
 import type { StatsStatus } from '../lib/statsTypes'
 import { PLATFORMS, getStoredKey, setStoredKey } from '../api/riot'
-import { Card, Icon, Switch, ease, stagger } from '../components/ui'
+import { Card, Icon, Img, Switch, ease, stagger } from '../components/ui'
 import { lang, locale, setLang, t } from '../lib/i18n'
+import { addAccount, removeAccount, useAccounts } from '../lib/accounts'
+import { isWebhook, postDiscord } from '../lib/boards'
+import { profileIcon } from '../lib/ddragon'
 
 export function Settings({
   settings,
@@ -29,6 +32,15 @@ export function Settings({
     setMyId(null)
   }
   const s = settings
+  const accounts = useAccounts()
+  const [tested, setTested] = useState('')
+  const [newAcc, setNewAcc] = useState('')
+  const [newPlat, setNewPlat] = useState(settings?.platform ?? 'euw1')
+  const addAcc = () => {
+    if (!newAcc.includes('#')) return
+    addAccount(newAcc.trim(), newPlat)
+    setNewAcc('')
+  }
 
   const saveKey = () => {
     if (desktop) update('riotApiKey', key.trim())
@@ -104,6 +116,43 @@ export function Settings({
               </div>
             </>
           )}
+        </Card>
+
+        <Card hover={false}>
+          <h3 className="card-title">
+            <Icon name="star" size={16} /> {t('Мои аккаунты')}
+          </h3>
+          <p className="muted small">{t('Основной и дополнительные аккаунты. Переключаться между ними можно, нажав на профиль внизу меню. Для каждого аккаунта отдельно копится история LP.')}</p>
+          <div className="acc-list">
+            {accounts.map((a) => (
+              <div key={a.riotId + a.platform} className="acc-row">
+                {a.iconId ? <Img src={profileIcon(a.iconId)} alt="" size={28} radius={7} /> : <span className="acc-blank" />}
+                <span>
+                  <b>{a.riotId}</b>
+                  <span className="muted small">
+                    {PLATFORMS[a.platform] ?? a.platform}
+                    {a.rank ? ` · ${a.rank}` : ''}
+                  </span>
+                </span>
+                <button className="icon-btn" onClick={() => removeAccount(a.riotId, a.platform)} title={t('Убрать')}>
+                  <Icon name="trash" size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="key-row">
+            <input value={newAcc} onChange={(e) => setNewAcc(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addAcc()} placeholder={t('Имя#ТЕГ')} />
+            <select value={newPlat} onChange={(e) => setNewPlat(e.target.value)}>
+              {regions.map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            <button className="btn" onClick={addAcc} disabled={!newAcc.includes('#')}>
+              {t('Добавить')}
+            </button>
+          </div>
         </Card>
 
         <Card hover={false}>
@@ -241,6 +290,28 @@ export function Settings({
           <Switch on={Boolean(s?.overlayEnabled)} onChange={(v) => update('overlayEnabled', v)} label={t('Показывать оверлей в игре')} hint="Ctrl+Shift+O" />
           <Switch on={s?.overlayBenchmark ?? true} onChange={(v) => update('overlayBenchmark', v)} label={t('Панель «вы и ваше среднее»')} hint={t('CS, KDA, KP и обзор против ваших прошлых игр')} />
           <Switch on={s?.augmentsEnabled ?? true} onChange={(v) => update('augmentsEnabled', v)} label={t('Тиры на карточках аугментов Mayhem')} hint={t('Ctrl+Shift+A прочитать карточки, Ctrl+Shift+T тир-лист')} />
+        </Card>
+
+        <Card hover={false}>
+          <h3 className="card-title">
+            <Icon name="bolt" size={16} /> Discord
+          </h3>
+          <p className="muted small">{t('После каждой вашей игры программа может писать в канал Discord: результат, чемпион, KDA и изменение LP. Нужна ссылка вебхука канала (Настройки канала → Интеграции → Вебхуки). Оповещения для своих лидербордов настраиваются на странице «Лидеры».')}</p>
+          <div className="key-row">
+            <input value={s?.discordWebhook ?? ''} onChange={(e) => update('discordWebhook', e.target.value.trim())} placeholder="https://discord.com/api/webhooks/…" />
+            <button
+              className="btn"
+              disabled={!isWebhook(s?.discordWebhook ?? '')}
+              onClick={() =>
+                postDiscord(s!.discordWebhook, { content: t('Rift Pulse подключён к этому каналу ✅') })
+                  .then(() => setTested(t('Отправлено')))
+                  .catch((e) => setTested((e as Error).message))
+              }
+            >
+              {tested || t('Проверить')}
+            </button>
+          </div>
+          <Switch on={Boolean(s?.discordGameAlerts)} onChange={(v) => update('discordGameAlerts', v)} label={t('Сообщение после каждой игры')} />
         </Card>
 
         <Card hover={false}>
