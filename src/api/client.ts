@@ -61,7 +61,7 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
     championMap(),
   ])
 
-  const cache = readCache()
+  const cache = await readCache()
   let done = 0
   onProgress?.(0, games.length)
   // The history list only carries our own participant; fetch each full game for all ten players.

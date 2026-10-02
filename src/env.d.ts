@@ -48,6 +48,7 @@ declare global {
       version(): Promise<string>
       settings: { get(): Promise<DesktopSettings>; set<K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]): Promise<boolean> }
       riot(host: string, path: string): Promise<RiotResult>
+      cache: { read(): Promise<Record<string, MatchSummary>>; write(d: Record<string, MatchSummary>): Promise<boolean>; clear(): Promise<boolean> }
       lcu: {
         status(): Promise<ClientStatus>
         get<T = unknown>(path: string): Promise<T>

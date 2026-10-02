@@ -102,20 +102,42 @@ export async function proxyConfig(): Promise<{ serverKey: boolean } | null> {
 
 // ---- match cache: finished matches never change, so keep them between sessions
 const CACHE_KEY = 'riftpulse.matches.v1'
-export function readCache(): Record<string, MatchSummary> {
+let memCache: Record<string, MatchSummary> | null = null
+export async function readCache(): Promise<Record<string, MatchSummary>> {
+  if (memCache) return memCache
+  let local: Record<string, MatchSummary> = {}
   try {
-    return JSON.parse(localStorage.getItem(CACHE_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
+    local = JSON.parse(localStorage.getItem(CACHE_KEY) ?? '{}')
+  } catch {}
+  if (window.rp?.cache) {
+    // desktop: file on disk, no browser storage quota; merge what older versions kept in localStorage
+    const disk = await window.rp.cache.read().catch(() => ({}))
+    memCache = { ...local, ...disk }
+    try {
+      localStorage.removeItem(CACHE_KEY)
+    } catch {}
+  } else memCache = local
+  return memCache
 }
 export function writeCache(c: Record<string, MatchSummary>) {
+  memCache = c
+  if (window.rp?.cache) {
+    window.rp.cache.write(c).catch(() => {})
+    return
+  }
   try {
     const entries = Object.entries(c).sort((a, b) => b[1].endedAt - a[1].endedAt).slice(0, 300)
     localStorage.setItem(CACHE_KEY, JSON.stringify(Object.fromEntries(entries)))
   } catch {
     /* quota or unavailable */
   }
+}
+export function clearCache() {
+  memCache = {}
+  try {
+    localStorage.removeItem(CACHE_KEY)
+  } catch {}
+  window.rp?.cache?.clear().catch(() => {})
 }
 
 export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -137,6 +159,7 @@ export async function loadPlayer(
   platform: string,
   count: number,
   onProgress?: (done: number, total: number) => void,
+  onPartial?: (d: PlayerData) => void,
 ): Promise<PlayerData> {
   const [gameName, tagLine] = riotId.split('#').map((s) => s.trim())
   if (!gameName || !tagLine) throw new RiotError(400, 'Введите Riot ID в формате Имя#ТЕГ')
@@ -170,32 +193,48 @@ export async function loadPlayer(
   ])
   const champs = await championMap()
 
-  const cache = readCache()
-  let done = 0
-  onProgress?.(0, ids.length)
-  const matches = await mapLimit(ids, 4, async (id) => {
-    let m: MatchSummary | null | undefined = cache[`${account.puuid}:${id}`]
-    if (!m || !m.players) {
-      const raw = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`)
-      m = normalizeMatch(raw, account.puuid)
-      if (m) cache[`${account.puuid}:${id}`] = m
-    }
+  const cache = await readCache()
+  const profile = {
+    gameName: account.gameName,
+    tagLine: account.tagLine,
+    platform,
+    level: summoner.summonerLevel,
+    iconId: summoner.profileIconId,
+    puuid: account.puuid,
+  }
+  const found: (MatchSummary | null | undefined)[] = ids.map((id) => {
+    const m = cache[`${account.puuid}:${id}`]
+    return m && m.players ? m : undefined
+  })
+  const snapshot = (): PlayerData => ({
+    profile,
+    ranks,
+    matches: found.filter((m): m is MatchSummary => Boolean(m)),
+    source: 'riot',
+    fetchedAt: Date.now(),
+  })
+  const missing = ids.map((id, i) => ({ id, i })).filter(({ i }) => found[i] === undefined)
+  // show what is already cached right away, then fill in the rest as it arrives
+  if (onPartial && found.some(Boolean)) onPartial(snapshot())
+  let done = ids.length - missing.length
+  onProgress?.(done, ids.length)
+  await mapLimit(missing, 4, async ({ id, i }) => {
+    const raw = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`).catch(() => null)
+    const m = raw ? normalizeMatch(raw, account.puuid) : null
+    if (m) cache[`${account.puuid}:${id}`] = m
+    found[i] = m
     onProgress?.(++done, ids.length)
-    return m
+    if (done % 10 === 0) {
+      writeCache(cache)
+      onPartial?.(snapshot())
+    }
   })
   writeCache(cache)
 
   return {
-    profile: {
-      gameName: account.gameName,
-      tagLine: account.tagLine,
-      platform,
-      level: summoner.summonerLevel,
-      iconId: summoner.profileIconId,
-      puuid: account.puuid,
-    },
+    profile,
     ranks,
-    matches: matches.filter((m): m is MatchSummary => Boolean(m)),
+    matches: found.filter((m): m is MatchSummary => Boolean(m)),
     source: 'riot',
     fetchedAt: Date.now(),
     mastery: top.map((t) => ({ champion: champs[t.championId] ?? String(t.championId), level: t.championLevel, points: t.championPoints })),

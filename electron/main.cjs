@@ -229,6 +229,30 @@ ipcMain.on('win:maximize', () => (win?.isMaximized() ? win.unmaximize() : win?.m
 ipcMain.on('win:close', () => win?.close())
 ipcMain.handle('app:version', () => app.getVersion())
 
+// finished matches never change: keep them on disk so the next start only fetches new games
+const matchCacheFile = path.join(app.getPath('userData'), 'matches.json')
+ipcMain.handle('cache:read', () => {
+  try {
+    return JSON.parse(fs.readFileSync(matchCacheFile, 'utf8'))
+  } catch {
+    return {}
+  }
+})
+ipcMain.handle('cache:write', (_e, data) => {
+  if (!data || typeof data !== 'object') return false
+  const entries = Object.entries(data)
+    .sort((a, b) => (b[1]?.endedAt ?? 0) - (a[1]?.endedAt ?? 0))
+    .slice(0, 5000)
+  const tmp = matchCacheFile + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(entries)))
+  fs.renameSync(tmp, matchCacheFile)
+  return true
+})
+ipcMain.handle('cache:clear', () => {
+  fs.rmSync(matchCacheFile, { force: true })
+  return true
+})
+
 ipcMain.handle('settings:get', () => ({ ...settings, riotApiKey: settings.riotApiKey ? '•'.repeat(8) + settings.riotApiKey.slice(-4) : '' }))
 ipcMain.handle('settings:set', (_e, key, value) => {
   if (!(key in DEFAULTS)) return false

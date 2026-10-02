@@ -19,6 +19,11 @@ contextBridge.exposeInMainWorld('rp', {
     set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   },
   riot: (host, path) => ipcRenderer.invoke('riot:fetch', host, path),
+  cache: {
+    read: () => ipcRenderer.invoke('cache:read'),
+    write: (data) => ipcRenderer.invoke('cache:write', data),
+    clear: () => ipcRenderer.invoke('cache:clear'),
+  },
   lcu: {
     status: () => ipcRenderer.invoke('lcu:status'),
     get: (path) => ipcRenderer.invoke('lcu:get', path),

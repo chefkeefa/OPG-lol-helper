@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData, Page, PlayerData, QueueFilter } from './types'
 import type { ClientStatus, DesktopSettings, UpdateState } from './env'
-import { RiotError, getStoredKey, loadPlayer, proxyConfig } from './api/riot'
+import { RiotError, clearCache, getStoredKey, loadPlayer, proxyConfig } from './api/riot'
 import { loadFromClient } from './api/client'
 import { mockPlayer } from './data/mock'
 import { benchmarks, filterMatches } from './lib/stats'
@@ -134,10 +134,13 @@ export default function App() {
     setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 6000)
   }
 
-  const run = useCallback(async (job: (p: (d: number, t: number) => void) => Promise<PlayerData>) => {
+  const run = useCallback(async (job: (p: (d: number, t: number) => void, partial: (d: PlayerData) => void) => Promise<PlayerData>) => {
     setProgress(0.05)
     try {
-      const d = await job((done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85))
+      const d = await job(
+        (done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85),
+        (part) => setData(part),
+      )
       setData(d)
       setOpenId(undefined)
       return true
@@ -180,7 +183,7 @@ export default function App() {
     const me = myAccount()
     if (!me) return Promise.resolve(false)
     viewing.current = { kind: 'riot', ...me, self: true }
-    return run((p) => loadPlayer(me.riotId, me.platform, count, p))
+    return run((p, part) => loadPlayer(me.riotId, me.platform, count, p, part))
   }, [run, count])
 
   const search = useCallback(
@@ -200,7 +203,7 @@ export default function App() {
   const refresh = useCallback(() => {
     const v = viewing.current
     if (v?.kind === 'client') return loadSelf()
-    if (v?.kind === 'riot') return run((p) => loadPlayer(v.riotId, v.platform, count, p))
+    if (v?.kind === 'riot') return run((p, part) => loadPlayer(v.riotId, v.platform, count, p, part))
     if (client?.connected) return loadSelf()
     if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
     showToast('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.', 'info')
@@ -470,9 +473,7 @@ export default function App() {
                   update={updateSetting}
                   stats={stats}
                   onClearCache={() => {
-                    try {
-                      localStorage.removeItem('riftpulse.matches.v1')
-                    } catch {}
+                    clearCache()
                     showToast('Кэш очищен', 'info')
                   }}
                 />
