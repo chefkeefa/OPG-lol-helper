@@ -21,7 +21,7 @@ const shuffle = (a) => {
   return a
 }
 
-const newAgg = () => ({ g: 0, w: 0, core: {}, boots: {}, start: {}, runes: {}, ks: {}, spells: {}, skills: {}, vs: {}, late: {}, first: {} })
+const newAgg = () => ({ g: 0, w: 0, core: {}, boots: {}, start: {}, runes: {}, ks: {}, spells: {}, skills: {}, vs: {}, late: {}, first: {}, with: {}, foe: {} })
 const bump = (map, key, win) => {
   if (key === undefined || key === null || key === '') return
   const e = map[key] || (map[key] = [0, 0])
@@ -208,6 +208,11 @@ class Collector {
 
       const opp = info.participants.find((o) => o.teamId !== p.teamId && o.teamPosition === role)
       if (opp) bump(a.vs, FIX[opp.championName] ?? opp.championName, win)
+      // whole-team pairs for the draft assistant: who this champion wins with and against
+      for (const o of info.participants) {
+        if (o === p) continue
+        bump(o.teamId === p.teamId ? (a.with ||= {}) : (a.foe ||= {}), FIX[o.championName] ?? o.championName, win)
+      }
 
       const st0 = p.perks?.styles?.[0]
       const st1 = p.perks?.styles?.[1]
@@ -284,7 +289,7 @@ class Collector {
           const t = ((out.champs[champ] ||= {})[role] ||= newAgg())
           t.g += a.g
           t.w += a.w
-          for (const key of ['core', 'boots', 'start', 'runes', 'ks', 'spells', 'skills', 'vs', 'late', 'first'])
+          for (const key of ['core', 'boots', 'start', 'runes', 'ks', 'spells', 'skills', 'vs', 'late', 'first', 'with', 'foe'])
             for (const [k, [g, w]] of Object.entries(a[key] || {})) {
               const e = (t[key][k] ||= [0, 0])
               e[0] += g
@@ -312,6 +317,16 @@ class Collector {
     const pick = role && roles[role] ? role : Object.entries(roleGames).sort((a, b) => b[1] - a[1])[0]?.[0]
     const agg = pick ? roles[pick] : null
     return { matches: m.matches, bans: m.bans[champ]?.[0] ?? 0, role: pick || null, roleGames, agg, rec: recommend(agg) }
+  }
+
+  /** Just what the draft assistant needs: per champion and role the record, lane, ally and enemy pairs. */
+  draft(patches) {
+    this.load(this.status().platform)
+    const m = this.merged(patches)
+    const champs = {}
+    for (const [champ, roles] of Object.entries(m.champs))
+      for (const [role, a] of Object.entries(roles)) (champs[champ] ||= {})[role] = { g: a.g, w: a.w, vs: a.vs, with: a.with, foe: a.foe }
+    return { matches: m.matches, bans: Object.fromEntries(Object.entries(m.bans).map(([k, v]) => [k, v[0]])), champs }
   }
 
   /** Newest patches, enough of them for a useful sample (the current patch alone early on is thin). */

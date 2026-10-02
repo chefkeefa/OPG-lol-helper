@@ -15,6 +15,9 @@ export interface Agg {
   vs: PairMap
   late: PairMap
   first: PairMap
+  /** teammates (any role) and enemies (any role) this champion played with / against */
+  with?: PairMap
+  foe?: PairMap
 }
 
 export interface RunePage {
@@ -114,3 +117,29 @@ export interface Bench {
 }
 /** Your own averages: per champion, plus "*" for all games */
 export type Benchmarks = Record<string, Bench>
+
+/** Compact statistics for the draft assistant. */
+export interface DraftData {
+  matches: number
+  bans: Record<string, number>
+  champs: Record<string, Record<string, { g: number; w: number; vs: PairMap; with?: PairMap; foe?: PairMap }>>
+}
+
+export interface DraftSlot {
+  cell: number
+  /** locked champion key, 0 if none yet */
+  champ: number
+  /** hovered champion key */
+  hover: number
+  role: string
+}
+
+/** Champion select as the client reports it. */
+export interface DraftSession {
+  myCell: number
+  queueId: number
+  phase: string
+  allies: DraftSlot[]
+  enemies: DraftSlot[]
+  bans: number[]
+}

@@ -1,6 +1,6 @@
 // Deterministic demo statistics for the web preview and the "show example" mode,
 // shaped exactly like what the desktop collector produces.
-import type { Agg, PairMap, Rec, StatsDetail, StatsStatus, StatsSummary } from '../lib/statsTypes'
+import type { Agg, DraftData, PairMap, Rec, StatsDetail, StatsStatus, StatsSummary } from '../lib/statsTypes'
 
 type Arch = 'adc' | 'mage' | 'assassin' | 'fighter' | 'tank' | 'jungle' | 'jtank' | 'ench' | 'engage'
 const CHAMPS: [string, string, Arch, number][] = [
@@ -161,6 +161,18 @@ function build() {
       const og = Math.round(g * (0.03 + r() * 0.12))
       if (og > 0) vs[o] = [og, Math.round(og * Math.min(0.68, Math.max(0.33, wr + (r() - 0.5) * 0.2)))]
     }
+    // team pairs, from their own generator so the older demo numbers stay the same
+    const rd = rng(champ + role + 'draft')
+    const withMap: PairMap = {}
+    const foe: PairMap = {}
+    for (const [o, orole] of CHAMPS) {
+      if (o === champ) continue
+      const share = orole === role ? 0 : 0.02 + rd() * 0.06
+      const wg = Math.round(g * share)
+      if (wg > 0) withMap[o] = [wg, Math.round(wg * Math.min(0.66, Math.max(0.36, wr + (rd() - 0.5) * 0.12)))]
+      const fg = Math.round(g * (0.02 + rd() * 0.07))
+      if (fg > 0) foe[o] = [(foe[o]?.[0] ?? 0) + fg, (foe[o]?.[1] ?? 0) + Math.round(fg * Math.min(0.66, Math.max(0.36, wr + (rd() - 0.5) * 0.14)))]
+    }
     const lateMap: PairMap = {}
     for (const id of t.late) {
       const lg = Math.round(g * (0.1 + r() * 0.5))
@@ -195,6 +207,8 @@ function build() {
       vs,
       late: lateMap,
       first,
+      with: withMap,
+      foe,
     }
     bans[champ] = (bans[champ] ?? 0) + Math.round(g * (r() < 0.25 ? 0.4 + r() * 1.2 : r() * 0.15))
   }
@@ -241,4 +255,12 @@ export function mockDetail(champ: string, role: string): StatsDetail {
   const pick = role && roles[role] ? role : Object.entries(roleGames).sort((a, b) => b[1] - a[1])[0]?.[0]
   const agg = pick ? roles[pick] : null
   return { matches: MATCHES, bans: bans[champ] ?? 0, role: pick ?? null, roleGames, agg, rec: recommendLocal(agg) }
+}
+
+export function mockDraft(): DraftData {
+  const { aggs, bans } = build()
+  const champs: DraftData['champs'] = {}
+  for (const [champ, roles] of Object.entries(aggs))
+    for (const [role, a] of Object.entries(roles)) (champs[champ] ||= {})[role] = { g: a.g, w: a.w, vs: a.vs, with: a.with, foe: a.foe }
+  return { matches: MATCHES, bans, champs }
 }

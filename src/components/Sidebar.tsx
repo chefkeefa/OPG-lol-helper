@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: { page: Page; icon: IconName; label: strin
   {
     title: t('Статистика'),
     items: [
+      { page: 'draft', icon: 'target', label: t('Драфт') },
       { page: 'tierlist', icon: 'list', label: t('Тир-лист') },
       { page: 'matchups', icon: 'swords', label: t('Матчапы') },
       { page: 'leaderboards', icon: 'trophy', label: t('Лидеры') },

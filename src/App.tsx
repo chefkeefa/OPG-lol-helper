@@ -21,12 +21,12 @@ import { Settings } from './pages/Settings'
 import { Leaderboards } from './pages/Leaderboards'
 import { TierList } from './pages/TierList'
 import { Champion } from './pages/Champion'
+import { Draft } from './pages/Draft'
 import { Matchups } from './pages/Matchups'
 import { Recordings } from './pages/Recordings'
 import { Spectate } from './pages/Spectate'
 import { Collections } from './pages/Collections'
 import { Studio } from './pages/Studio'
-import { championMap } from './lib/ddragon'
 import { statsStatus } from './lib/statsApi'
 import type { StatsStatus } from './lib/statsTypes'
 
@@ -95,7 +95,6 @@ const WEB_SETTINGS: DesktopSettings = {
   hlAfter: 6,
   hlKeepFull: false,
 }
-const POS: Record<string, string> = { top: 'TOP', jungle: 'JUNGLE', middle: 'MIDDLE', bottom: 'BOTTOM', utility: 'UTILITY' }
 
 export default function App() {
   useDDragon()
@@ -314,14 +313,16 @@ export default function App() {
   useEffect(() => {
     const rp = window.rp
     if (!rp) return
-    const off1 = rp.lcu.onChampSelect(async ({ championId, position }) => {
-      if (!autoOpen.current) return
-      const id = (await championMap())[championId]
-      if (!id) return
-      setChamp(id)
-      setChampRole(POS[position] ?? '')
-      setFromChampSelect(true)
-      navigate('champion')
+    // champion select started: open the draft assistant once per lobby
+    let inDraft = false
+    const off1 = rp.draft.onSession((s) => {
+      if (!s) {
+        inDraft = false
+        return
+      }
+      if (inDraft) return
+      inDraft = true
+      if (autoOpen.current) navigate('draft')
     })
     const off2 = rp.build.onAutoImport((r) =>
       showToast(r.ok ? t('{champion}: в клиент импортированы {items}', { champion: r.champion, items: r.done?.join(', ') ?? '' }) : `${r.champion}: ${r.error}`, r.ok ? 'info' : 'err'),
@@ -439,6 +440,18 @@ export default function App() {
               {page === 'studio' && <Studio matches={matches} />}
               {page === 'tierlist' && (
                 <TierList status={stats} demo={demoStats} setDemo={setDemoStats} onOpen={openChampion} onSettings={() => navigate('settings')} version={statsVersion} />
+              )}
+              {page === 'draft' && (
+                <Draft
+                  status={stats}
+                  demo={demoStats}
+                  setDemo={setDemoStats}
+                  version={statsVersion}
+                  data={data}
+                  onSettings={() => navigate('settings')}
+                  onOpenChampion={openChampion}
+                  toast={showToast}
+                />
               )}
               {page === 'champion' && (
                 <Champion

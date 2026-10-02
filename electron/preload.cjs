@@ -44,8 +44,10 @@ contextBridge.exposeInMainWorld('rp', {
     status: () => ipcRenderer.invoke('stats:status'),
     summary: (patches) => ipcRenderer.invoke('stats:summary', patches),
     detail: (champ, role, patches) => ipcRenderer.invoke('stats:detail', champ, role, patches),
+    draft: (patches) => ipcRenderer.invoke('stats:draft', patches),
     onUpdate: on('stats:update'),
   },
+  draft: { get: () => ipcRenderer.invoke('draft:get'), onSession: on('draft:session') },
   build: {
     import: (what, build) => ipcRenderer.invoke('build:import', what, build),
     onAutoImport: on('import:done'),

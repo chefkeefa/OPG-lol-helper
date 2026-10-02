@@ -89,6 +89,7 @@ export type Page =
   | 'champions'
   | 'studio'
   | 'tierlist'
+  | 'draft'
   | 'champion'
   | 'matchups'
   | 'leaderboards'

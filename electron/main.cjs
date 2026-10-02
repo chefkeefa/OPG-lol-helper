@@ -158,7 +158,14 @@ async function pollStatus() {
     win?.webContents.send('lcu:status', s)
   }
   if (s.phase === 'ChampSelect') await pollChampSelect()
-  else lastPick = ''
+  else {
+    lastPick = ''
+    if (draftKey) {
+      draftKey = ''
+      draftState = null
+      send('draft:session', null)
+    }
+  }
   setTimeout(pollStatus, s.phase === 'ChampSelect' ? 1500 : 3000)
 }
 
@@ -178,6 +185,7 @@ async function pollChampSelect() {
       lastPick = key
       send('champselect', { championId, position })
     }
+    sendDraft(session)
     const locked = (session.actions || []).flat().some((a) => a.actorCellId === session.localPlayerCellId && a.type === 'pick' && a.completed)
     if (locked && me?.championId && me.selectedSkinId) noteSkin({ key: me.championId, num: me.selectedSkinId % 1000 })
     if (locked && me?.championId && key !== lastImport) {
@@ -186,6 +194,37 @@ async function pollChampSelect() {
     }
   } catch {}
 }
+
+// the whole lobby for the draft assistant: both teams, roles, hovers and bans
+let draftKey = ''
+let draftState = null
+function sendDraft(session) {
+  const acts = (session.actions || []).flat()
+  const bans = [...(session.bans?.myTeamBans || []), ...(session.bans?.theirTeamBans || [])]
+  for (const a of acts) if (a.type === 'ban' && a.completed && a.championId > 0) bans.push(a.championId)
+  const hoverOf = (cell) => acts.find((a) => a.actorCellId === cell && a.type === 'pick' && !a.completed)?.championId || 0
+  const team = (list) =>
+    (list || []).map((c) => ({
+      cell: c.cellId,
+      champ: c.championId || 0,
+      hover: c.championPickIntent || hoverOf(c.cellId) || 0,
+      role: POSITION[c.assignedPosition] || '',
+    }))
+  const state = {
+    myCell: session.localPlayerCellId,
+    queueId: session.queueId ?? 0,
+    phase: session.timer?.phase || '',
+    allies: team(session.myTeam),
+    enemies: team(session.theirTeam),
+    bans: [...new Set(bans.filter((b) => b > 0))],
+  }
+  const key = JSON.stringify(state)
+  if (key === draftKey) return
+  draftKey = key
+  draftState = state
+  send('draft:session', state)
+}
+ipcMain.handle('draft:get', () => draftState)
 
 async function autoImport(championKey, role) {
   const want = { runes: store.get('autoImportRunes'), items: store.get('autoImportItems'), spells: store.get('autoImportSpells') }
@@ -320,6 +359,7 @@ ipcMain.handle('riot:fetch', (_e, host, pathname) => riot.request(host, pathname
 ipcMain.handle('stats:status', () => collector.status())
 ipcMain.handle('stats:summary', (_e, patches) => collector.summary(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('stats:detail', (_e, champ, role, patches) => collector.detail(champ, role, patches?.length ? patches : collector.recentPatches()))
+ipcMain.handle('stats:draft', (_e, patches) => collector.draft(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('build:import', async (_e, what, b) => {
   try {
     if (what === 'runes') await builds.importRunes(lcu, b)

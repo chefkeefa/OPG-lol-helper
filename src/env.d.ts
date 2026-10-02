@@ -1,5 +1,5 @@
 import type { LiveData } from './types'
-import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks } from './lib/statsTypes'
+import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks, DraftData, DraftSession } from './lib/statsTypes'
 
 interface RiotResult {
   status: number
@@ -76,8 +76,10 @@ declare global {
         status(): Promise<StatsStatus>
         summary(patches?: string[]): Promise<StatsSummary>
         detail(champ: string, role: string, patches?: string[]): Promise<StatsDetail>
+        draft(patches?: string[]): Promise<DraftData>
         onUpdate(cb: () => void): Off
       }
+      draft: { get(): Promise<DraftSession | null>; onSession(cb: (s: DraftSession | null) => void): Off }
       build: {
         import(what: 'runes' | 'items' | 'spells', build: BuildPayload): Promise<Result>
         onAutoImport(cb: (r: { champion: string; ok: boolean; done?: string[]; error?: string }) => void): Off

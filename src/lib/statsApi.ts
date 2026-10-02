@@ -1,6 +1,6 @@
 // Statistics source: the desktop collector, or demo data in the web preview / example mode.
-import type { StatsDetail, StatsStatus, StatsSummary } from './statsTypes'
-import { mockDetail, mockStatus, mockSummary } from '../data/mockStats'
+import type { DraftData, StatsDetail, StatsStatus, StatsSummary } from './statsTypes'
+import { mockDetail, mockDraft, mockStatus, mockSummary } from '../data/mockStats'
 import { t } from './i18n'
 
 export const hasCollector = () => Boolean(window.rp?.stats)
@@ -13,6 +13,10 @@ export async function statsSummary(patches: string[], demo: boolean): Promise<St
 }
 export async function statsDetail(champ: string, role: string, patches: string[], demo: boolean): Promise<StatsDetail> {
   return window.rp?.stats && !demo ? window.rp.stats.detail(champ, role, patches) : mockDetail(champ, role)
+}
+
+export async function statsDraft(demo: boolean): Promise<DraftData> {
+  return window.rp?.stats && !demo ? window.rp.stats.draft() : mockDraft()
 }
 
 export const ROLE_LABEL: Record<string, string> = { TOP: t('Топ'), JUNGLE: t('Лес'), MIDDLE: t('Мид'), BOTTOM: t('Бот'), UTILITY: t('Поддержка') }

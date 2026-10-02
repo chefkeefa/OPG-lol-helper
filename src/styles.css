@@ -4659,3 +4659,104 @@ button.mu-trow:hover,
   color: #ffd166;
   background: rgba(255, 209, 102, 0.12);
 }
+
+/* draft assistant */
+.draft-page .page-head { gap: 14px; flex-wrap: wrap; }
+.draft-mode {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.draft-mode.live { color: var(--win); border-color: rgba(67, 215, 158, 0.35); background: rgba(67, 215, 158, 0.08); }
+.draft-odds { display: grid; gap: 10px; padding: 16px 20px; margin-bottom: 14px; }
+.draft-odds-text { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.draft-odds-text b { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.draft-odds-bar { position: relative; height: 10px; border-radius: 6px; overflow: hidden; display: flex; background: rgba(255, 92, 108, 0.55); }
+.draft-odds-bar .ally { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.draft-odds-bar .enemy { flex: 1; }
+.draft-note { margin: 4px 2px 12px; }
+.draft-grid { display: grid; grid-template-columns: 270px minmax(0, 1fr) 270px; gap: 14px; align-items: start; }
+.draft-center { display: grid; gap: 14px; }
+.draft-team { display: grid; gap: 8px; padding: 14px; }
+.draft-team.ally { border-top: 3px solid var(--accent-2); }
+.draft-team.enemy { border-top: 3px solid var(--loss); }
+.draft-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid transparent;
+  position: relative;
+}
+.draft-slot.me { border-color: var(--accent); background: rgba(111, 94, 246, 0.12); }
+.draft-slot.hover { opacity: 0.7; }
+.draft-slot .champ-picker { flex: 1; min-width: 0; }
+.draft-slot-role { width: 22px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.draft-slot-name { flex: 1; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft-empty { width: 40px; height: 40px; border-radius: 10px; background: var(--panel-3); }
+.draft-me { font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent-2); }
+.draft-picks-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.draft-picks-head .card-title { margin: 0; }
+.draft-picks { display: grid; gap: 6px; }
+.draft-pick {
+  display: grid;
+  grid-template-columns: 22px 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  transition: background 0.2s;
+}
+.draft-pick:hover { background: var(--panel-3); }
+.draft-rank { color: var(--muted); font-weight: 700; text-align: center; }
+.draft-pick-name { display: grid; gap: 4px; min-width: 0; }
+.draft-parts { display: flex; flex-wrap: wrap; gap: 4px; }
+.draft-parts em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+.draft-parts em.good { color: var(--win); background: rgba(67, 215, 158, 0.1); }
+.draft-parts em.bad { color: var(--loss); background: rgba(255, 92, 108, 0.1); }
+.draft-wr { display: grid; justify-items: end; }
+.draft-wr b { font-size: 18px; }
+.draft-actions { display: flex; gap: 6px; }
+.draft-actions .btn { padding: 6px 10px; }
+.draft-bans { display: flex; flex-wrap: wrap; gap: 8px; }
+.draft-ban {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+}
+.draft-ban em { font-style: normal; font-size: 11px; }
+.draft-banned { display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.draft-banned .banned { filter: grayscale(1); opacity: 0.7; cursor: pointer; }
+@media (max-width: 1250px) {
+  .draft-grid { grid-template-columns: 1fr 1fr; }
+  .draft-center { grid-column: 1 / -1; order: 3; }
+}
+.draft-team { overflow: visible; z-index: 2; }
+.draft-slot .champ-picker { min-width: 0; }
+.draft-slot:focus-within { z-index: 5; }
+.draft-slot .champ-picker-menu { z-index: 20; }
+.draft-grid > * { min-width: 0; }
+.draft-slot { min-width: 0; }
+.draft-slot .champ-picker { flex: 1 1 0; width: 0; }
+.draft-slot .champ-picker-input input { width: 100%; }
+.draft-slot .icon-btn { flex: none; width: 26px; height: 26px; }

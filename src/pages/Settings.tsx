@@ -135,7 +135,7 @@ export function Settings({
           <h3 className="card-title">
             <Icon name="download" size={16} /> {t('Выбор чемпиона')}
           </h3>
-          <Switch on={s?.autoOpenChampion ?? true} onChange={(v) => update('autoOpenChampion', v)} label={t('Открывать билд выбранного чемпиона')} />
+          <Switch on={s?.autoOpenChampion ?? true} onChange={(v) => update('autoOpenChampion', v)} label={t('Открывать помощник драфта')} hint={t('когда начинается выбор чемпионов')} />
           <Switch on={Boolean(s?.autoImportRunes)} onChange={(v) => update('autoImportRunes', v)} label={t('Импортировать руны')} hint={t('после того как вы зафиксировали выбор')} />
           <Switch on={Boolean(s?.autoImportItems)} onChange={(v) => update('autoImportItems', v)} label={t('Импортировать набор предметов')} hint={t('виден в магазине в игре')} />
           <Switch on={Boolean(s?.autoImportSpells)} onChange={(v) => update('autoImportSpells', v)} label={t('Ставить заклинания призывателя')} hint={t('Флеш остаётся на привычной клавише')} />
