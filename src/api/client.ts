@@ -1,7 +1,8 @@
 import type { MatchSummary, PlayerData, RankEntry } from '../types'
 import { lcuGameToRaw, normalizeMatch, type LcuGame } from './normalize'
 import { championMap } from '../lib/ddragon'
-import { mapLimit, readCache, writeCache } from './riot'
+import { mapLimit, proxyConfig, readCache, regionalOf, riot, writeCache } from './riot'
+import type { RawMatch } from './normalize'
 
 /** Loads the signed-in account straight from the running League client — no API key needed. */
 export async function loadFromClient(count: number, onProgress?: (done: number, total: number) => void): Promise<PlayerData> {
@@ -51,6 +52,38 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
     onProgress?.(++done, games.length)
     return m
   })
+
+  // The client only keeps the latest ~20 games; older ones come from match-v5 when a key is set.
+  const all = matches.filter((m): m is MatchSummary => Boolean(m))
+  if (all.length < count && (await proxyConfig().catch(() => null))?.serverKey) {
+    const regional = regionalOf(String(platform).toLowerCase())
+    const have = new Set(all.map((m) => m.id.split('_').pop()))
+    const ids: string[] = []
+    try {
+      for (let start = 0; start < count; start += 100) {
+        const n = Math.min(100, count - start)
+        const page = await riot<string[]>(regional, `/lol/match/v5/matches/by-puuid/${me.puuid}/ids?start=${start}&count=${n}`)
+        ids.push(...page)
+        if (page.length < n) break
+      }
+    } catch {}
+    const missing = ids.filter((id) => !have.has(id.split('_').pop())).slice(0, count - all.length)
+    let extraDone = 0
+    onProgress?.(games.length, games.length + missing.length)
+    const extra = await mapLimit(missing, 4, async (id) => {
+      const key = `${me.puuid}:${id}`
+      let m: MatchSummary | null | undefined = cache[key]
+      if (!m || !m.players) {
+        m = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`)
+          .then((raw) => normalizeMatch(raw, me.puuid))
+          .catch(() => null)
+        if (m) cache[key] = m
+      }
+      onProgress?.(games.length + ++extraDone, games.length + missing.length)
+      return m
+    })
+    for (const m of extra) if (m) all.push(m)
+  }
   writeCache(cache)
 
   const ranks: RankEntry[] = ranked.queues
@@ -67,7 +100,7 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       puuid: me.puuid,
     },
     ranks,
-    matches: matches.filter((m): m is MatchSummary => Boolean(m)).sort((a, b) => b.endedAt - a.endedAt),
+    matches: all.sort((a, b) => b.endedAt - a.endedAt),
     source: 'client',
     fetchedAt: Date.now(),
     mastery: mastery
