@@ -16,7 +16,7 @@ const top = (m: PairMap | undefined, n = 99, min = 1) =>
 
 const ids = (k: string) => k.split('.').map(Number)
 
-function parsePage(key: string): RunePage {
+export function parsePage(key: string): RunePage {
   const n = ids(key)
   return { primaryStyleId: n[0], subStyleId: n[5], perks: [n[1], n[2], n[3], n[4], n[6], n[7], n[8], n[9], n[10]] }
 }
@@ -355,7 +355,7 @@ export function ItemTip({ id, gd, size = 32 }: { id: number; gd: GameData | null
   )
 }
 
-function SpellImg({ id, gd, size = 30 }: { id: number; gd: GameData | null; size?: number }) {
+export function SpellImg({ id, gd, size = 30 }: { id: number; gd: GameData | null; size?: number }) {
   const sp = gd?.spells[id]
   return <Img src={spellIcon(sp?.id ?? SPELL_FALLBACK[id] ?? 'SummonerFlash', gd?.version ?? '')} alt={sp?.name ?? String(id)} size={size} radius={7} />
 }
@@ -370,7 +370,7 @@ function RuneImg({ id, gd, size = 28, dim }: { id: number; gd: GameData | null; 
 }
 
 /** Both rune trees with every option shown and the chosen ones lit, plus the stat shards. */
-function RuneTree({ page, gd }: { page: RunePage; gd: GameData }) {
+export function RuneTree({ page, gd }: { page: RunePage; gd: GameData }) {
   const primary = gd.trees.find((t) => t.id === page.primaryStyleId)
   const secondary = gd.trees.find((t) => t.id === page.subStyleId)
   const chosen = new Set(page.perks.slice(0, 6))
@@ -418,7 +418,7 @@ function RuneTree({ page, gd }: { page: RunePage; gd: GameData }) {
   )
 }
 
-function SkillOrder({ a }: { a: Agg }) {
+export function SkillOrder({ a }: { a: Pick<Agg, 'g' | 'skills'> }) {
   const seqs = top(a.skills, 3)
   const [i, setI] = useState(0)
   const cur = seqs[i] ?? seqs[0]

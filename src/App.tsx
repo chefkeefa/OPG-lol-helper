@@ -22,6 +22,7 @@ import { Leaderboards } from './pages/Leaderboards'
 import { TierList } from './pages/TierList'
 import { Champion } from './pages/Champion'
 import { Draft } from './pages/Draft'
+import { Mayhem } from './pages/Mayhem'
 import { Matchups } from './pages/Matchups'
 import { Recordings } from './pages/Recordings'
 import { Spectate } from './pages/Spectate'
@@ -94,6 +95,8 @@ const WEB_SETTINGS: DesktopSettings = {
   hlBefore: 12,
   hlAfter: 6,
   hlKeepFull: false,
+  collectMayhem: true,
+  augmentsEnabled: true,
 }
 
 export default function App() {
@@ -440,6 +443,9 @@ export default function App() {
               {page === 'studio' && <Studio matches={matches} />}
               {page === 'tierlist' && (
                 <TierList status={stats} demo={demoStats} setDemo={setDemoStats} onOpen={openChampion} onSettings={() => navigate('settings')} version={statsVersion} />
+              )}
+              {page === 'mayhem' && (
+                <Mayhem status={stats} demo={demoStats} setDemo={setDemoStats} version={statsVersion} onSettings={() => navigate('settings')} toast={showToast} />
               )}
               {page === 'draft' && (
                 <Draft

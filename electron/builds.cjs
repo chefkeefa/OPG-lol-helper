@@ -66,22 +66,23 @@ async function importItems(lcu, { champion, championKey, role, start = [], core 
   const me = await lcu.get('/lol-summoner/v1/current-summoner')
   const url = `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`
   const data = await lcu.get(url)
-  const uid = `riftpulse-${championKey}`
+  const aram = role === 'ARAM'
+  const uid = `riftpulse-${aram ? 'aram-' : ''}${championKey}`
   const block = (type, ids) => ({ type, items: ids.filter(Boolean).map((id) => ({ id: String(id), count: 1 })) })
   const set = {
     uid,
     title: `${PREFIX}: ${champion}${role ? ' ' + role.toLowerCase() : ''}`,
     associatedChampions: [championKey],
-    associatedMaps: [11],
+    associatedMaps: [aram ? 12 : 11],
     blocks: [
-      block(t('Стартовые предметы'), [...new Set([...start, 3340])]),
+      block(t('Стартовые предметы'), aram ? start : [...new Set([...start, 3340])]),
       block(t('Ботинки'), [boots]),
       block(t('Основная сборка'), core),
       block(t('Поздняя игра'), late),
       block(t('Расходники'), [2003, 2055, 2138, 2139, 2140]),
     ].filter((b) => b.items.length),
-    map: 'SR',
-    mode: 'CLASSIC',
+    map: aram ? 'HA' : 'SR',
+    mode: aram ? 'ARAM' : 'CLASSIC',
     preferredItemSlots: [],
     sortrank: 0,
     startedFrom: 'blank',

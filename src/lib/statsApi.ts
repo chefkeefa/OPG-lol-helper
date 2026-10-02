@@ -1,5 +1,6 @@
 // Statistics source: the desktop collector, or demo data in the web preview / example mode.
-import type { DraftData, StatsDetail, StatsStatus, StatsSummary } from './statsTypes'
+import type { AugTiers, DraftData, MayhemData, StatsDetail, StatsStatus, StatsSummary } from './statsTypes'
+import { mockAugTiers, mockMayhem } from '../data/mockMayhem'
 import { mockDetail, mockDraft, mockStatus, mockSummary } from '../data/mockStats'
 import { t } from './i18n'
 
@@ -17,6 +18,13 @@ export async function statsDetail(champ: string, role: string, patches: string[]
 
 export async function statsDraft(demo: boolean): Promise<DraftData> {
   return window.rp?.stats && !demo ? window.rp.stats.draft() : mockDraft()
+}
+
+export async function statsMayhem(demo: boolean, patches: string[] = []): Promise<MayhemData> {
+  return window.rp?.stats && !demo ? window.rp.stats.mayhem(patches) : mockMayhem()
+}
+export async function augTiers(champ: string, demo: boolean): Promise<AugTiers> {
+  return window.rp?.aug && !demo ? window.rp.aug.tiers(champ) : mockAugTiers(champ)
 }
 
 export const ROLE_LABEL: Record<string, string> = { TOP: t('Топ'), JUNGLE: t('Лес'), MIDDLE: t('Мид'), BOTTOM: t('Бот'), UTILITY: t('Поддержка') }

@@ -47,6 +47,8 @@ export interface StatsStatus {
   perHour: number
   error: string
   demo?: boolean
+  /** ARAM Mayhem games collected */
+  mayhem?: number
 }
 
 export interface StatsRow {
@@ -142,4 +144,50 @@ export interface DraftSession {
   allies: DraftSlot[]
   enemies: DraftSlot[]
   bans: number[]
+}
+
+export interface MayhemChamp {
+  g: number
+  w: number
+  aug: PairMap
+  core: PairMap
+  boots: PairMap
+  spells: PairMap
+  skills: PairMap
+  runes: PairMap
+  first: PairMap
+}
+
+/** ARAM Mayhem aggregates: augments overall and per champion, plus builds. */
+export interface MayhemData {
+  matches: number
+  patches: string[]
+  aug: PairMap
+  champs: Record<string, MayhemChamp>
+}
+
+export interface AugTier {
+  id: number
+  name: string
+  icon: string
+  rarity: 'silver' | 'gold' | 'prismatic'
+  games: number
+  champGames: number
+  /** smoothed win rate used for the tier */
+  wr: number
+  rawWr: number
+  tier: string
+}
+
+export interface AugTiers {
+  matches: number
+  champion: string
+  rows: AugTier[]
+}
+
+/** What the augment overlay window draws. */
+export interface AugOverlayState {
+  cards: (AugTier & { x: number; y: number })[]
+  panel: AugTiers | null
+  champion: string
 }

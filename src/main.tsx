@@ -4,6 +4,7 @@ import { MotionConfig } from 'motion/react'
 import App from './App'
 import { OverlayTimers } from './components/OverlayTimers'
 import { OverlayBench } from './components/OverlayBench'
+import { AugmentOverlay } from './components/AugmentOverlay'
 import type { LiveData } from './types'
 import type { Benchmarks } from './lib/statsTypes'
 import { t } from './lib/i18n'
@@ -49,12 +50,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 const overlay = location.hash === '#overlay'
-if (overlay) document.documentElement.classList.add('overlay-window')
+const augments = location.hash === '#augments'
+if (overlay || augments) document.documentElement.classList.add('overlay-window')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <MotionConfig reducedMotion="user">{overlay ? <OverlayApp /> : <App />}</MotionConfig>
+      <MotionConfig reducedMotion="user">{augments ? <AugmentOverlay /> : overlay ? <OverlayApp /> : <App />}</MotionConfig>
     </ErrorBoundary>
   </StrictMode>,
 )

@@ -11,6 +11,7 @@ const { recommend } = require('./builds.cjs')
 
 const DD = 'https://ddragon.leagueoflegends.com'
 const ROLES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']
+const MAYHEM_QUEUE = 2400
 const FIX = { FiddleSticks: 'Fiddlesticks' }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const shuffle = (a) => {
@@ -49,6 +50,7 @@ class Collector {
     this.items = null
     this.lastError = ''
     this.recent = [] // timestamps of processed matches, for the speed readout
+    this.tick = 0
   }
 
   file(platform) {
@@ -87,7 +89,7 @@ class Collector {
     const completed = new Set()
     const boots = new Set()
     for (const [id, it] of Object.entries(data)) {
-      const sr = it.maps?.['11']
+      const sr = it.maps?.['11'] || it.maps?.['12']
       if (!sr || !it.gold?.purchasable) continue
       const tags = it.tags || []
       if (tags.includes('Boots') && it.from?.length) boots.add(Number(id))
@@ -142,6 +144,9 @@ class Collector {
           }
           st.players = shuffle(all)
           st.ladderAt = Date.now()
+        } else if (s.collectMayhem && ++this.tick % 3 === 0) {
+          // every third step goes to ARAM Mayhem, so its augment and build data grows alongside
+          await this.mayhemStep(st, regional)
         } else if (st.matchQueue.length < 30) {
           const puuid = st.players.shift()
           st.players.push(puuid)
@@ -168,6 +173,106 @@ class Collector {
         await sleep(e.fatal ? 30000 : 3000)
       }
     }
+  }
+
+  // ---------------------------------------------------------------- ARAM Mayhem
+  // Mayhem has no ladder, so the player pool starts from the ranked players and grows with
+  // everyone met in the Mayhem games already downloaded.
+  async mayhemStep(st, regional) {
+    const M = (st.mayhem ||= { players: [], queue: [], patches: {} })
+    if (M.queue.length < 20) {
+      const puuid = M.players.length ? M.players.shift() : st.players[Math.floor(Math.random() * st.players.length)]
+      if (!puuid) return
+      const since = Math.floor(Date.now() / 1000) - 14 * 86400
+      const ids = await this.api(regional, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=${MAYHEM_QUEUE}&start=0&count=20&startTime=${since}`)
+      for (const id of ids || []) if (!this.seen.has(id) && !M.queue.includes(id)) M.queue.push(id)
+      return
+    }
+    const id = M.queue.shift()
+    this.seen.add(id)
+    const match = await this.api(regional, `/lol/match/v5/matches/${id}`)
+    if (match?.info?.queueId !== MAYHEM_QUEUE || match.info.gameDuration < 420) return
+    const timeline = await this.api(regional, `/lol/match/v5/matches/${id}/timeline`).catch(() => null)
+    this.ingestMayhem(match, timeline)
+    for (const p of match.info.participants) if (p.puuid && M.players.length < 3000 && !M.players.includes(p.puuid)) M.players.push(p.puuid)
+    this.recent.push(Date.now())
+  }
+
+  ingestMayhem(match, timeline) {
+    const info = match.info
+    const patch = String(info.gameVersion).split('.').slice(0, 2).join('.')
+    const M = this.state.mayhem
+    this.version = (this.version || 0) + 1
+    const P = (M.patches[patch] ||= { matches: 0, aug: {}, champs: {} })
+    P.matches++
+    const { completed, boots } = this.items
+    const skills = {}
+    const buys = {}
+    for (const f of timeline?.info?.frames || [])
+      for (const ev of f.events || []) {
+        if (ev.type === 'SKILL_LEVEL_UP' && ev.levelUpType === 'NORMAL') (skills[ev.participantId] ||= []).push(ev.skillSlot)
+        else if (ev.type === 'ITEM_PURCHASED') (buys[ev.participantId] ||= []).push(ev.itemId)
+      }
+    for (const p of info.participants) {
+      const champ = FIX[p.championName] ?? p.championName
+      const a = (P.champs[champ] ||= { g: 0, w: 0, aug: {}, core: {}, boots: {}, spells: {}, skills: {}, runes: {}, first: {} })
+      const win = p.win
+      a.g++
+      if (win) a.w++
+      for (let i = 1; i <= 6; i++) {
+        const aug = p[`playerAugment${i}`]
+        if (aug > 0) {
+          bump(P.aug, aug, win)
+          bump(a.aug, aug, win)
+        }
+      }
+      bump(a.spells, [p.summoner1Id, p.summoner2Id].sort((x, y) => x - y).join('.'), win)
+      const st0 = p.perks?.styles?.[0]
+      const st1 = p.perks?.styles?.[1]
+      if (st0 && st1) {
+        const sp = p.perks.statPerks || {}
+        bump(a.runes, [st0.style, ...st0.selections.map((x) => x.perk), st1.style, ...st1.selections.map((x) => x.perk), sp.offense, sp.flex, sp.defense].join('.'), win)
+      }
+      // purchase order when the timeline is there, else the final inventory
+      const order = buys[p.participantId] || [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5]
+      const legendary = []
+      for (const x of order) if (completed.has(x) && !legendary.includes(x)) legendary.push(x)
+      if (legendary.length >= 3) bump(a.core, legendary.slice(0, 3).join('.'), win)
+      if (legendary[0]) bump(a.first, legendary[0], win)
+      const b = order.find((x) => boots.has(x))
+      if (b) bump(a.boots, b, win)
+      const sk = skills[p.participantId]
+      if (sk && sk.length >= 11) bump(a.skills, sk.slice(0, 15).map((x) => 'QWER'[x - 1]).join(''), win)
+      if (a.g % 50 === 0) for (const k of ['core', 'runes', 'skills', 'spells']) prune(a[k])
+    }
+  }
+
+  /** Mayhem aggregates over the given patches (all when empty). */
+  mayhem(patches) {
+    this.load(this.status().platform)
+    const all = this.state?.mayhem?.patches || {}
+    const list = patches?.length ? patches : Object.keys(all).sort(cmpPatch).reverse().slice(0, 2)
+    const out = { matches: 0, patches: Object.keys(all).sort(cmpPatch).reverse(), aug: {}, champs: {} }
+    const add = (to, from) => {
+      for (const [k, [g, w]] of Object.entries(from || {})) {
+        const e = (to[k] ||= [0, 0])
+        e[0] += g
+        e[1] += w
+      }
+    }
+    for (const p of list) {
+      const P = all[p]
+      if (!P) continue
+      out.matches += P.matches
+      add(out.aug, P.aug)
+      for (const [champ, a] of Object.entries(P.champs)) {
+        const t = (out.champs[champ] ||= { g: 0, w: 0, aug: {}, core: {}, boots: {}, spells: {}, skills: {}, runes: {}, first: {} })
+        t.g += a.g
+        t.w += a.w
+        for (const k of ['aug', 'core', 'boots', 'spells', 'skills', 'runes', 'first']) add(t[k], a[k])
+      }
+    }
+    return out
   }
 
   // ---------------------------------------------------------------- aggregation
@@ -262,6 +367,7 @@ class Collector {
       players: st.players.length,
       perHour: Math.round((this.recent.length / 10) * 60),
       error: this.lastError,
+      mayhem: Object.values(st.mayhem?.patches || {}).reduce((n, p) => n + p.matches, 0),
     }
   }
 

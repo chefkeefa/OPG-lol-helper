@@ -6,6 +6,7 @@ const { LeagueClient, liveGameData } = require('./lcu.cjs')
 const { RiotClient } = require('./riot.cjs')
 const { Collector } = require('./collector.cjs')
 const { Recorder } = require('./recorder.cjs')
+const { Augments, norm } = require('./augments.cjs')
 const builds = require('./builds.cjs')
 const { t, setLangGetter } = require('./i18n.cjs')
 
@@ -28,6 +29,9 @@ const DEFAULTS = {
   // statistics collector (tier list, builds, matchups)
   collectorEnabled: true,
   collectorPlatform: '',
+  collectMayhem: true,
+  // ARAM Mayhem: tiers on the augment cards
+  augmentsEnabled: true,
   // champion select
   autoOpenChampion: true,
   autoImportRunes: true,
@@ -76,6 +80,7 @@ let win = null
 let overlay = null
 let collector = null
 let recorder = null
+let augments = null
 let benchmarks = {}
 const send = (channel, data) => win && !win.isDestroyed() && win.webContents.send(channel, data)
 
@@ -146,6 +151,39 @@ function showOverlay() {
   overlay.on('closed', () => (overlay = null))
 }
 const hideOverlay = () => overlay?.close()
+
+// ---------- augment tiers: a click-through window over the whole screen, shown only when needed
+let augWin = null
+let augPanel = false
+let augCards = []
+function augWindow() {
+  if (augWin) return augWin
+  const { bounds } = screen.getPrimaryDisplay()
+  augWin = new BrowserWindow({
+    ...bounds,
+    transparent: true,
+    frame: false,
+    resizable: false,
+    focusable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    alwaysOnTop: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true },
+  })
+  augWin.setAlwaysOnTop(true, 'screen-saver')
+  augWin.setIgnoreMouseEvents(true)
+  load(augWin, 'augments')
+  augWin.webContents.once('did-finish-load', () => pushAug())
+  augWin.on('closed', () => (augWin = null))
+  return augWin
+}
+async function pushAug() {
+  if (!augCards.length && !augPanel) return augWin?.close()
+  const w = augWindow()
+  if (w.webContents.isLoading()) return
+  const tiers = augPanel ? await augments.tiers(augments.champion).catch(() => null) : null
+  w.webContents.send('aug:state', { cards: augCards, panel: tiers, champion: augments.champion })
+}
 
 // ---------- polling: client status + live game ----------
 let lastStatus = { connected: false, phase: 'None' }
@@ -294,6 +332,7 @@ async function pollLive() {
       recorder.start({ champion: mine?.championName, gameMode: data.gameData.gameMode, gameTime: data.gameData.gameTime }).catch(() => {})
     }
     recorder.onLive(data)
+    augments.onLive(data).catch(() => {})
     const me = data.activePlayer
     const mine = data.allPlayers?.find((p) => [p.riotIdGameName, p.riotId, p.summonerName].filter(Boolean).includes(me?.riotIdGameName || me?.riotId || me?.summonerName))
     const champ = String(mine?.rawChampionName || '').replace('game_character_displayname_', '')
@@ -306,6 +345,9 @@ async function pollLive() {
     skinNotedFor = ''
     send('live:data', null)
     hideOverlay()
+    augments.reset()
+    augPanel = false
+    augWin?.close()
     // the game window closed: stop recording a moment later
     if (recorder.recording) endTimer = setTimeout(() => recorder.stop(), 1500)
   }
@@ -359,6 +401,8 @@ ipcMain.handle('riot:fetch', (_e, host, pathname) => riot.request(host, pathname
 ipcMain.handle('stats:status', () => collector.status())
 ipcMain.handle('stats:summary', (_e, patches) => collector.summary(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('stats:detail', (_e, champ, role, patches) => collector.detail(champ, role, patches?.length ? patches : collector.recentPatches()))
+ipcMain.handle('stats:mayhem', (_e, patches) => collector.mayhem(patches))
+ipcMain.handle('aug:tiers', (_e, champ) => augments.tiers(champ || ''))
 ipcMain.handle('stats:draft', (_e, patches) => collector.draft(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('build:import', async (_e, what, b) => {
   try {
@@ -471,6 +515,25 @@ function setupUpdates() {
 }
 ipcMain.handle('update:state', () => updateState)
 
+// diagnostics: `Rift Pulse.exe --ocr-selftest picture.png` prints the augments it reads and quits
+const selftest = process.argv.indexOf('--ocr-selftest')
+if (selftest > 0)
+  app.whenReady().then(async () => {
+    const a = new Augments({ collector: null, lcu, getSettings: () => settings })
+    try {
+      await a.load().catch(() => {
+        a.list = [{ id: 1, names: { en: 'Back to Basics', ru: 'Назад к основам' } }, { id: 2, names: { en: 'ADAPt', ru: '' } }, { id: 3, names: { en: 'Jack of All Trades', ru: 'Мастер на все руки' } }]
+        a.keys = a.list.flatMap((x) => [norm(x.names.en), norm(x.names.ru)].filter(Boolean).map((k) => ({ k, a: x })))
+      })
+      const words = await a.words(fs.readFileSync(process.argv[selftest + 1]))
+      console.log('OCR words:', words.map((w) => w.text).join(' '))
+      console.log('augments:', JSON.stringify(a.match(words).map((m) => ({ id: m.id, score: m.score }))))
+    } catch (e) {
+      console.log('OCR failed:', e.stack || e.message)
+    }
+    app.exit(0)
+  })
+else
 app.whenReady().then(() => {
   setupUpdates()
   collector = new Collector({
@@ -478,6 +541,15 @@ app.whenReady().then(() => {
     riot,
     getSettings: () => settings,
     onUpdate: () => send('stats:update'),
+  })
+  augments = new Augments({
+    collector,
+    lcu,
+    getSettings: () => settings,
+    onCards: (cards) => {
+      augCards = cards
+      pushAug()
+    },
   })
   recorder = new Recorder({
     getSettings: () => settings,
@@ -490,6 +562,12 @@ app.whenReady().then(() => {
   pollLive()
   collector.start()
   globalShortcut.register('CommandOrControl+Shift+O', () => (overlay ? hideOverlay() : showOverlay()))
+  // read the augment cards now / show the full augment tier list
+  globalShortcut.register('CommandOrControl+Shift+A', () => augments.scanFor(20_000))
+  globalShortcut.register('CommandOrControl+Shift+T', () => {
+    augPanel = !augPanel
+    pushAug()
+  })
 })
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()

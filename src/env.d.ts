@@ -1,5 +1,5 @@
 import type { LiveData } from './types'
-import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks, DraftData, DraftSession } from './lib/statsTypes'
+import type { StatsDetail, StatsStatus, StatsSummary, BuildPayload, Recording, Benchmarks, DraftData, DraftSession, MayhemData, AugTiers, AugOverlayState } from './lib/statsTypes'
 
 interface RiotResult {
   status: number
@@ -42,6 +42,8 @@ export interface DesktopSettings {
   hlBefore: number
   hlAfter: number
   hlKeepFull: boolean
+  collectMayhem: boolean
+  augmentsEnabled: boolean
 }
 
 export interface ClientStatus {
@@ -77,8 +79,10 @@ declare global {
         summary(patches?: string[]): Promise<StatsSummary>
         detail(champ: string, role: string, patches?: string[]): Promise<StatsDetail>
         draft(patches?: string[]): Promise<DraftData>
+        mayhem(patches?: string[]): Promise<MayhemData>
         onUpdate(cb: () => void): Off
       }
+      aug: { tiers(champ?: string): Promise<AugTiers>; onState(cb: (s: AugOverlayState) => void): Off }
       draft: { get(): Promise<DraftSession | null>; onSession(cb: (s: DraftSession | null) => void): Off }
       build: {
         import(what: 'runes' | 'items' | 'spells', build: BuildPayload): Promise<Result>

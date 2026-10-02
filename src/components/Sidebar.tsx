@@ -20,6 +20,7 @@ const GROUPS: { title: string; items: { page: Page; icon: IconName; label: strin
     items: [
       { page: 'draft', icon: 'target', label: t('Драфт') },
       { page: 'tierlist', icon: 'list', label: t('Тир-лист') },
+      { page: 'mayhem', icon: 'bolt', label: 'ARAM Mayhem' },
       { page: 'matchups', icon: 'swords', label: t('Матчапы') },
       { page: 'leaderboards', icon: 'trophy', label: t('Лидеры') },
     ],

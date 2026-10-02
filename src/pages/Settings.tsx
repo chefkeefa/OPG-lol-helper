@@ -114,6 +114,7 @@ export function Settings({
             {t('В фоне скачивает ранговые игры Master, Grandmaster и Challenger и считает из них тир-лист, билды, руны и матчапы. Хранятся только итоги, место на диске небольшое. Программа оставляет часть лимита ключа для поиска и других страниц.')}
           </p>
           <Switch on={Boolean(s?.collectorEnabled)} onChange={(v) => update('collectorEnabled', v)} label={t('Собирать статистику')} />
+          <Switch on={s?.collectMayhem ?? true} onChange={(v) => update('collectMayhem', v)} label={t('Собирать игры ARAM Mayhem')} hint={t('тиры аугментов и билды; забирает треть запросов сборщика')} />
           <label className="field">
             <span>{t('Регион статистики')}</span>
             <select value={s?.collectorPlatform || s?.platform || 'euw1'} onChange={(e) => update('collectorPlatform', e.target.value)}>
@@ -239,6 +240,7 @@ export function Settings({
           </h3>
           <Switch on={Boolean(s?.overlayEnabled)} onChange={(v) => update('overlayEnabled', v)} label={t('Показывать оверлей в игре')} hint="Ctrl+Shift+O" />
           <Switch on={s?.overlayBenchmark ?? true} onChange={(v) => update('overlayBenchmark', v)} label={t('Панель «вы и ваше среднее»')} hint={t('CS, KDA, KP и обзор против ваших прошлых игр')} />
+          <Switch on={s?.augmentsEnabled ?? true} onChange={(v) => update('augmentsEnabled', v)} label={t('Тиры на карточках аугментов Mayhem')} hint={t('Ctrl+Shift+A прочитать карточки, Ctrl+Shift+T тир-лист')} />
         </Card>
 
         <Card hover={false}>
