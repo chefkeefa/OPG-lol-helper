@@ -7,7 +7,7 @@ import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { useAccounts, type Account } from '../lib/accounts'
 
-const GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
+export const NAV_GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
   {
     title: t('Rift Core'),
     items: [
@@ -130,7 +130,7 @@ export function Sidebar({
         )}
       </AnimatePresence>
       <nav>
-        {GROUPS.map((g) => (
+        {NAV_GROUPS.map((g) => (
           <div key={g.title} className="nav-group">
             <div className="nav-title">{g.title}</div>
             {g.items.map((it) => {

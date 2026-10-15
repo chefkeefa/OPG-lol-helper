@@ -462,6 +462,8 @@ export default function App() {
           onForward={() => setHist((h) => ({ ...h, i: Math.min(h.stack.length - 1, h.i + 1) }))}
           onRefresh={refresh}
           onSearch={search}
+          onChampion={(c) => openChampion(c, '')}
+          onPage={navigate}
           onSettings={() => navigate('settings')}
           client={client}
           refreshing={progress !== null}

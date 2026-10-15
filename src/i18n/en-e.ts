@@ -208,4 +208,15 @@ export const EN_E: Record<string, string> = {
   'убийств за игру': 'kills per game',
   'уворотов за игру': 'dodges per game',
   'умений в минуту': 'casts per minute',
+  // top search
+  'Ваш аккаунт': 'Your account',
+  'Игрок Имя#ТЕГ, чемпион или раздел': 'Player Name#TAG, champion or section',
+  'Игроки': 'Players',
+  'Недавний поиск': 'Recent search',
+  'Открыть профиль · {region}': 'Open profile · {region}',
+  'Разделы': 'Sections',
+  'Сборки, руны и матчапы': 'Builds, runes and matchups',
+  'Чтобы найти игрока, введите имя с тегом: Имя#EUW': 'To find a player, type the name with its tag: Name#EUW',
+  'Доля игр со сдачей до 21 минуты': 'Share of games surrendered before 21 minutes',
+  'Побед у команды, взявшей её': 'Wins for the team that takes it',
 }
