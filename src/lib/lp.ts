@@ -93,5 +93,3 @@ function demoHistory(d: PlayerData, queue: string): LpSnap[] {
   }
   return out
 }
-
-export const TIER_NAMES = TIERS

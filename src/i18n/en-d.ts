@@ -23,8 +23,6 @@ export const EN_D: Record<string, string> = {
   'Ошибка Riot API ({status}): {message}': 'Riot API error ({status}): {message}',
   'Не удалось загрузить таблицу.': 'Could not load the leaderboard.',
   'Лидеры': 'Leaderboards',
-  'Лучшие игроки ранговой очереди Solo/Duo по региону. Нажмите на игрока, чтобы открыть его профиль.':
-    'Top Ranked Solo/Duo players by region. Click a player to open their profile.',
   'Регион': 'Region',
   'Добавить ключ в настройках': 'Add a key in Settings',
   'Игрок': 'Player',
@@ -223,8 +221,6 @@ export const EN_D: Record<string, string> = {
   "программа проверяет список каждые 30 минут, пока открыта": "checked every 30 minutes while the app is open",
   "Свои лидерборды": "Custom leaderboards",
   "Соберите своих друзей, команду или аккаунты в одну таблицу по рангу в Solo/Duo. Количество лидербордов не ограничено, а изменения можно отправлять в Discord.": "Put your friends, team or accounts into one table ranked by Solo/Duo. Unlimited leaderboards, and changes can be sent to Discord.",
-  "График LP появится после следующих игр: программа запоминает ваш ранг при каждой загрузке профиля.": "The LP chart appears after your next games: the app records your rank every time the profile loads.",
-  "LP за время": "LP over time",
   "{v} LP за 7 дней": "{v} LP in 7 days",
   "Лестница": "Ladder",
   "Составы": "Teams",

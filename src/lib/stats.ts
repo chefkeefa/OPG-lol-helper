@@ -135,17 +135,6 @@ export function roleAggs(ms: MatchSummary[]) {
   })
 }
 
-/** Games and wins per calendar day for the last `days` days, oldest first. */
-export function activity(ms: MatchSummary[], days = 14) {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  return Array.from({ length: days }, (_, i) => {
-    const d0 = start.getTime() - (days - 1 - i) * 86_400_000
-    const g = ms.filter((m) => m.endedAt >= d0 && m.endedAt < d0 + 86_400_000)
-    return { date: new Date(d0), games: g.length, wins: g.filter((m) => m.win).length }
-  })
-}
-
 export function badge(m: MatchSummary): { text: string; tone: 'mvp' | 'ace' | 'plain' } {
   if (m.placement === 1) return { text: 'MVP', tone: 'mvp' }
   if (!m.win && m.score >= 80) return { text: 'ACE', tone: 'ace' }
