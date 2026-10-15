@@ -30,6 +30,7 @@ export function Mayhem({
   setDemo,
   version,
   onSettings,
+  onRanked,
   toast,
 }: {
   status: StatsStatus | null
@@ -37,6 +38,7 @@ export function Mayhem({
   setDemo: (v: boolean) => void
   version: number
   onSettings: () => void
+  onRanked: () => void
   toast: (msg: string, kind?: 'err' | 'info') => void
 }) {
   const [tab, setTab] = useState<Tab>('augments')
@@ -106,6 +108,7 @@ export function Mayhem({
         </h1>
         {data && <span className="muted small">{t('{n} игр Mayhem', { n: data.matches.toLocaleString() })}</span>}
         <div className="grow" />
+        <Segmented id="tier-queue" value="mayhem" onChange={(v) => v === 'ranked' && onRanked()} options={[{ id: 'ranked', label: 'Ranked' }, { id: 'mayhem', label: 'ARAM Mayhem' }]} />
         {demo && (
           <button className="btn" onClick={() => setDemo(false)}>
             {t('Выйти из примера')}

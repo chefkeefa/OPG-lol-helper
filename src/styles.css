@@ -2809,7 +2809,7 @@ html.overlay-window #root {
 }
 .tier-row {
   display: grid;
-  grid-template-columns: 44px 56px minmax(170px, 2.2fr) 70px minmax(150px, 1.5fr) 1fr 1fr 1fr;
+  grid-template-columns: 44px 56px minmax(170px, 2.2fr) 110px minmax(150px, 1.5fr) 1fr 1fr 1fr;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -4119,7 +4119,7 @@ button.mu-trow:hover,
 }
 @media (max-width: 1350px) {
   .tier-row {
-    grid-template-columns: 34px 46px minmax(150px, 2fr) 50px minmax(130px, 1.5fr) 1fr 1fr 1fr;
+    grid-template-columns: 34px 46px minmax(150px, 2fr) 96px minmax(130px, 1.5fr) 1fr 1fr 1fr;
   }
   .rec-layout {
     grid-template-columns: 270px minmax(0, 1fr);
@@ -6541,4 +6541,44 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+/* ================= tier list: role share, winrate change, off-meta ================= */
+.tier-role > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.tier-role em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.tier-wr-num {
+  display: flex;
+  flex-direction: column;
+  width: 62px;
+  line-height: 1.15;
+}
+.tier-wr-num em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tier-wr-num em.good {
+  color: var(--win);
+}
+.tier-wr-num em.bad {
+  color: var(--loss);
+}
+.offmeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
 }

@@ -35,6 +35,9 @@ export const EN_E: Record<string, string> = {
   'с': 's',
   'Сохранить момент': 'Save moment',
   'Запись ещё не началась': 'Recording has not started yet',
+  // tier list
+  'Показывать редкие роли: чемпион играет на этой позиции реже чем в 10% игр': 'Show rare roles: the champion is played in this position in under 10% of games',
+  'Тир-листы по играм Master+: следите за метой и лучшими чемпионами для своей роли.': 'Tier lists from Master+ games: keep up with the meta and the best champions for your role.',
   // dashboard hub tiles
   '{n} моментов': '{n} moments',
   'Вся игра или только лучшие моменты': 'The whole game or just the best moments',

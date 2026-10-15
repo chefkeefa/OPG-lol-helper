@@ -510,10 +510,10 @@ export default function App() {
               {page === 'champions' && <Champions data={data} matches={matches} />}
               {page === 'studio' && <Studio matches={matches} />}
               {page === 'tierlist' && (
-                <TierList status={stats} demo={demoStats} setDemo={setDemoStats} onOpen={openChampion} onSettings={() => navigate('settings')} version={statsVersion} />
+                <TierList status={stats} demo={demoStats} setDemo={setDemoStats} onOpen={openChampion} onSettings={() => navigate('settings')} onMayhem={() => navigate('mayhem')} version={statsVersion} />
               )}
               {page === 'mayhem' && (
-                <Mayhem status={stats} demo={demoStats} setDemo={setDemoStats} version={statsVersion} onSettings={() => navigate('settings')} toast={showToast} />
+                <Mayhem status={stats} demo={demoStats} setDemo={setDemoStats} version={statsVersion} onSettings={() => navigate('settings')} onRanked={() => navigate('tierlist')} toast={showToast} />
               )}
               {page === 'draft' && (
                 <Draft
