@@ -6415,3 +6415,130 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
 .rec-buffer-len {
   width: auto;
 }
+
+/* ================= dashboard hub tiles: recordings and overlays ================= */
+.rec-tile,
+.ov-tile {
+  min-height: 190px;
+  cursor: pointer;
+}
+.rec-tile-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -70%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  transition: transform 0.3s var(--ease), background 0.3s var(--ease);
+}
+.rec-tile:hover .rec-tile-play {
+  transform: scale(1.1);
+  background: var(--accent);
+}
+.rec-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+.rec-cta-frames {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.rec-cta-frames span {
+  width: 52px;
+  height: 34px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+}
+.small-btn {
+  margin-top: 4px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+}
+.ov-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(127, 130, 246, 0.16), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 14px),
+    var(--panel);
+}
+.ov-tile-timers {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.ov-tile-timers span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(10, 11, 22, 0.8);
+  border: 1px solid var(--line-2);
+}
+.ov-tile-timers span.soon {
+  color: var(--loss);
+  border-color: rgba(240, 84, 92, 0.5);
+}
+.ov-tile-bench {
+  align-self: center;
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(10, 11, 22, 0.8);
+  border: 1px solid var(--line-2);
+  font-size: 11.5px;
+}
+.ov-tile-bench > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 3px;
+}
+.ov-tile-bench b {
+  color: var(--accent-2);
+}
+.ov-tile-bench em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ov-tile-bench > div > i {
+  grid-column: 1 / -1;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.ov-tile-bench > div > i > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.ov-tile-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

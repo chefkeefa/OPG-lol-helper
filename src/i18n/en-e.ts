@@ -35,4 +35,9 @@ export const EN_E: Record<string, string> = {
   'с': 's',
   'Сохранить момент': 'Save moment',
   'Запись ещё не началась': 'Recording has not started yet',
+  // dashboard hub tiles
+  '{n} моментов': '{n} moments',
+  'Вся игра или только лучшие моменты': 'The whole game or just the best moments',
+  'Записывайте свои игры': 'Record your games',
+  'Запись включена: видео появится после матча': 'Recording is on: the video appears after the game',
 }

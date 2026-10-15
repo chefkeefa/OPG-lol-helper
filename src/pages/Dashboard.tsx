@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { LiveData, MatchSummary, Page, PingKind, PlayerData, QueueFilter, Role } from '../types'
+import type { Recording } from '../lib/statsTypes'
 import { PLATFORMS, riot } from '../api/riot'
 import { loadCollection } from '../api/collection'
 import { champName, champSplash, champTile, championMap, profileIcon, rankEmblem } from '../lib/ddragon'
@@ -69,6 +70,10 @@ export function Dashboard({
             <Lens matches={shown} />
           </div>
           <Showcase matches={shown} live={live} platform={data.profile.platform} demo={data.source === 'demo'} onOpen={openMatch} onLive={() => navigate('live')} onSpectate={() => navigate('spectate')} />
+          <div className="dash-pair">
+            <RecordTile onOpen={() => navigate('recordings')} />
+            <OverlayTile onOpen={() => navigate('overlays')} />
+          </div>
           <CollectionTile data={data} onOpen={() => navigate('collections')} onMastery={() => navigate('champions')} />
         </div>
         <div className="dash-side">
@@ -701,6 +706,89 @@ function Showcase({
           </motion.button>
         </>
       )}
+    </Card>
+  )
+}
+
+/** The latest recording, or a prompt to turn recording on (the "Record your games" card in DPM). */
+function RecordTile({ onOpen }: { onOpen: () => void }) {
+  const [last, setLast] = useState<Recording | null>(null)
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    if (!window.rp?.rec) return
+    window.rp.rec.list().then((l) => setLast(l[0] ?? null)).catch(() => {})
+    window.rp.settings.get().then((s) => setOn(s.recordingEnabled || s.recordingBuffer))
+  }, [])
+  if (last?.champion)
+    return (
+      <Card className="mastery rec-tile" onClick={onOpen}>
+        <Splash src={champSplash(last.champion)} position="center 20%" />
+        <div className="mastery-shade" />
+        <span className="rec-tile-play">
+          <Icon name="play" size={20} />
+        </span>
+        <div className="mastery-body">
+          <div className="mastery-title">
+            <Icon name="video" size={14} /> {t('Записи')} <Icon name="arrow" size={13} />
+          </div>
+          <div className="mastery-row">
+            <span className="muted">
+              {champName(last.champion)} · {duration(Math.round(last.duration))}
+            </span>
+            <b>{t('{n} моментов', { n: last.moments.length })}</b>
+          </div>
+        </div>
+      </Card>
+    )
+  return (
+    <Card className="rec-tile rec-cta" onClick={onOpen}>
+      <div className="rec-cta-frames">
+        {[0, 1, 2].map((i) => (
+          <motion.span key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 * i, duration: 0.5, ease }}>
+            <Icon name="play" size={14} />
+          </motion.span>
+        ))}
+      </div>
+      <b>{t('Записывайте свои игры')}</b>
+      <span className="muted small">{on ? t('Запись включена: видео появится после матча') : t('Вся игра или только лучшие моменты')}</span>
+      {!on && <span className="btn primary small-btn">{t('Включить запись')}</span>}
+    </Card>
+  )
+}
+
+/** A live preview of the in-game widgets that leads to the overlays page. */
+function OverlayTile({ onOpen }: { onOpen: () => void }) {
+  const rows: [string, string, string][] = [
+    ['CS', '7.1', '6.2'],
+    ['GPM', '452', '392'],
+    ['KDA', '7.2', '2.8'],
+    ['KP%', '37', '35'],
+  ]
+  return (
+    <Card className="ov-tile" onClick={onOpen}>
+      <div className="ov-tile-timers">
+        {['1:41', '0:27', '8:14'].map((x, i) => (
+          <span key={x} className={i === 1 ? 'soon' : ''}>
+            <Icon name="clock" size={12} /> {x}
+          </span>
+        ))}
+      </div>
+      <div className="ov-tile-bench">
+        {rows.map(([k, a, b], i) => (
+          <div key={k}>
+            <span>{k}</span>
+            <b>
+              {a} <em>/ {b}</em>
+            </b>
+            <i>
+              <motion.i initial={{ width: 0 }} animate={{ width: `${55 + i * 9}%` }} transition={{ duration: 0.9, ease, delay: 0.2 + i * 0.08 }} />
+            </i>
+          </div>
+        ))}
+      </div>
+      <div className="ov-tile-title">
+        {t('Оверлеи')} <Icon name="arrow" size={13} />
+      </div>
     </Card>
   )
 }
