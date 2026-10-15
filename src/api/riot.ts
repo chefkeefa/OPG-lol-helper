@@ -120,10 +120,13 @@ export async function readCache(): Promise<Record<string, MatchSummary>> {
   } else memCache = local
   return memCache
 }
+let writeTimer: ReturnType<typeof setTimeout> | undefined
 export function writeCache(c: Record<string, MatchSummary>) {
   memCache = c
   if (window.rp?.cache) {
-    window.rp.cache.write(c).catch(() => {})
+    // the whole cache goes over IPC and is written synchronously by the main process: coalesce bursts
+    clearTimeout(writeTimer)
+    writeTimer = setTimeout(() => window.rp?.cache?.write(memCache ?? {}).catch(() => {}), 3000)
     return
   }
   try {
@@ -134,6 +137,7 @@ export function writeCache(c: Record<string, MatchSummary>) {
   }
 }
 export function clearCache() {
+  clearTimeout(writeTimer)
   memCache = {}
   try {
     localStorage.removeItem(CACHE_KEY)

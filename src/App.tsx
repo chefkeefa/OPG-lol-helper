@@ -491,14 +491,8 @@ export default function App() {
                 : t('Демо-данные. Это веб-версия: для вашего аккаунта запустите десктоп-версию (npm run app) или найдите игрока через поиск сверху.')}
             </motion.div>
           )}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={page}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.28, ease }}
-            >
+          {/* no exit animation: waiting for the old page to fade out made every switch feel slow */}
+            <motion.div key={page} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease }}>
               <Suspense fallback={<div className="page-loading" />}>
               {page === 'dashboard' && (
                 <Dashboard
@@ -592,7 +586,6 @@ export default function App() {
               )}
               </Suspense>
             </motion.div>
-          </AnimatePresence>
         </main>
       </div>
       <AnimatePresence>

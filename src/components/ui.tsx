@@ -8,7 +8,7 @@ export const spring = { type: 'spring', stiffness: 260, damping: 28, mass: 0.9 }
 
 export const stagger: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.055, delayChildren: 0.04 } },
+  show: { transition: { staggerChildren: 0.03 } },
 }
 export const fadeUp: Variants = {
   // transform and opacity only: they stay on the compositor, unlike an animated blur

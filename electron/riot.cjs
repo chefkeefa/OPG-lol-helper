@@ -52,8 +52,8 @@ class RiotClient {
     if (lastSecond.length >= this.limits.perSecond) return 1000 - (now - lastSecond[0]) + 5
     // the collector stands aside entirely while the interface is loading something
     if (priority === 'low' && now - (this.lastHigh || 0) < 20_000) return 1000
-    // the collector keeps 15% of the 2-minute budget free for the interface
-    const cap = priority === 'low' ? Math.floor(this.limits.perTwoMinutes * 0.85) : this.limits.perTwoMinutes
+    // the collector keeps 40% of the 2-minute budget free, so pages and searches never queue behind it
+    const cap = priority === 'low' ? Math.floor(this.limits.perTwoMinutes * 0.6) : this.limits.perTwoMinutes
     if (this.stamps.length >= cap) return 120_000 - (now - this.stamps[this.stamps.length - cap]) + 5
     return 0
   }
