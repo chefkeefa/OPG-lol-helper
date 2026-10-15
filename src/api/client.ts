@@ -79,16 +79,34 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
     return m
   })
 
-  // The client only keeps the latest ~20 games; older ones come from match-v5 when a key is set.
+  // The client only keeps the latest ~20 games. Games seen on earlier launches stay in the
+  // disk cache, so the history keeps growing even without a key.
   const all = matches.filter((m): m is MatchSummary => Boolean(m))
+  const have = new Set(all.map((m) => m.id.split('_').pop()))
+  for (const [key, m] of Object.entries(cache)) {
+    const gameId = m.id.split('_').pop()
+    if (key.startsWith(`${me.puuid}:`) && m.players && !have.has(gameId)) {
+      have.add(gameId)
+      all.push(m)
+    }
+  }
+  // Older games come from match-v5 when a key is set.
   if (all.length < count && (await proxyConfig().catch(() => null))?.serverKey) {
     const regional = regionalOf(String(platform).toLowerCase())
-    const have = new Set(all.map((m) => m.id.split('_').pop()))
     const ids: string[] = []
+    // match-v5 wants the puuid issued for this API key, which may differ from the client's
+    let apiPuuid = me.puuid
     try {
+      if (me.gameName && me.tagLine) {
+        const account = await riot<{ puuid: string }>(
+          regional === 'sea' ? 'asia' : regional,
+          `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(me.gameName)}/${encodeURIComponent(me.tagLine)}`,
+        )
+        apiPuuid = account.puuid
+      }
       for (let start = 0; start < count; start += 100) {
         const n = Math.min(100, count - start)
-        const page = await riot<string[]>(regional, `/lol/match/v5/matches/by-puuid/${me.puuid}/ids?start=${start}&count=${n}`)
+        const page = await riot<string[]>(regional, `/lol/match/v5/matches/by-puuid/${apiPuuid}/ids?start=${start}&count=${n}`)
         ids.push(...page)
         if (page.length < n) break
       }
@@ -102,7 +120,7 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       if (!m || !m.players || (m.v ?? 0) < NORM_V) {
         const old = m
         m = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`)
-          .then((raw) => normalizeMatch(raw, me.puuid))
+          .then((raw) => normalizeMatch(raw, apiPuuid))
           .catch(() => null)
         if (m && old?.d15 !== undefined) m.d15 = old.d15
         m ??= old
@@ -129,7 +147,7 @@ export async function loadFromClient(count: number, onProgress?: (done: number, 
       puuid: me.puuid,
     },
     ranks,
-    matches: all.sort((a, b) => b.endedAt - a.endedAt),
+    matches: all.sort((a, b) => b.endedAt - a.endedAt).slice(0, count),
     source: 'client',
     fetchedAt: Date.now(),
     mastery: mastery
