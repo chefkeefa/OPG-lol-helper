@@ -2036,9 +2036,7 @@ html.overlay-window body {
   background: transparent !important;
 }
 html.overlay-window #root {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px;
+  position: relative;
 }
 
 /* ================= settings ================= */
@@ -5932,4 +5930,455 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
 }
 .beh b {
   white-space: nowrap;
+}
+
+/* ================= overlay window: widgets placed over the whole screen ================= */
+.ov-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+.ov-screen.editing {
+  background: rgba(8, 9, 14, 0.45);
+  outline: 2px dashed rgba(127, 130, 246, 0.6);
+  outline-offset: -6px;
+}
+.ovw {
+  position: absolute;
+  user-select: none;
+}
+.ovw.edit {
+  cursor: grab;
+  padding: 8px;
+  border-radius: 14px;
+  outline: 1.5px dashed rgba(166, 170, 255, 0.75);
+  background: rgba(127, 130, 246, 0.08);
+}
+.ovw.edit:hover {
+  background: rgba(127, 130, 246, 0.16);
+}
+.ovw.dragging {
+  cursor: grabbing;
+  outline-style: solid;
+}
+.ovw-label {
+  position: absolute;
+  top: -22px;
+  left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  white-space: nowrap;
+}
+.ov-editbar {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 14px;
+  background: rgba(18, 19, 24, 0.95);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  z-index: 5;
+}
+.ov-editbar span {
+  color: var(--muted);
+}
+.ov-panel,
+.ov-gold-bar,
+.ov-gold-lane,
+.ov-dead,
+.ov-skills,
+.ov-scout-col {
+  background: rgba(10, 11, 22, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+}
+/* gold */
+.ov-gold {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.ov-gold-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border-radius: 8px;
+  border-color: rgba(246, 201, 78, 0.45);
+  font-size: 17px;
+  font-weight: 800;
+}
+.ov-gold-bar .ally {
+  color: #8fb6ff;
+}
+.ov-gold-bar .enemy {
+  color: #ff8f8f;
+}
+.ov-gold-bar b.good {
+  color: #8fb6ff;
+}
+.ov-gold-bar b.bad {
+  color: #ff8f8f;
+}
+.ov-gold-bar .coin {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe9a3, var(--gold) 60%, #b98a1c);
+}
+.ov-gold-lane {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 3px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.ov-gold-lane img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+.ov-gold-lane.good {
+  color: #8fb6ff;
+}
+.ov-gold-lane.bad {
+  color: #ff8f8f;
+}
+/* respawn */
+.ov-respawn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.ov-dead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 3px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.ov-dead img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  filter: grayscale(1) brightness(0.8);
+  border: 2px solid transparent;
+}
+.ov-dead.enemy img {
+  border-color: var(--loss);
+}
+.ov-dead.ally img {
+  border-color: #5f8fff;
+}
+.ov-dead b {
+  font-size: 15px;
+  min-width: 22px;
+  text-align: right;
+}
+/* skills */
+.ov-skills {
+  display: grid;
+  grid-template-columns: repeat(4, 54px);
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+}
+.ov-skills.ready {
+  border-color: rgba(127, 130, 246, 0.6);
+}
+.ov-skill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+}
+.ov-skill .key {
+  font-weight: 800;
+  font-size: 16px;
+  color: #c3c7e2;
+}
+.ov-skill.next {
+  border-color: var(--accent);
+  background: rgba(127, 130, 246, 0.2);
+  box-shadow: 0 0 18px rgba(127, 130, 246, 0.45);
+}
+.ov-skill.next .key {
+  color: #fff;
+}
+.ov-skill .pips {
+  display: flex;
+  gap: 3px;
+}
+.ov-skill .pips i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.ov-skill .pips i.on {
+  background: var(--gold);
+}
+.ov-skill em {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+.ov-skill-order {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ov-skill-order .done {
+  color: rgba(255, 255, 255, 0.28);
+}
+.ov-skill-order .now {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+/* loading screen scouting */
+.ov-scout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: min(900px, 80vw);
+}
+.ov-scout-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 12px;
+}
+.ov-scout-col.ally {
+  border-color: rgba(95, 143, 255, 0.5);
+}
+.ov-scout-col.enemy {
+  border-color: rgba(240, 84, 92, 0.5);
+}
+.ov-scout-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+.ov-scout-row > img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.ov-scout-row .who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ov-scout-row .who b {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-scout-row .who em,
+.ov-scout-row .rk em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ov-scout-row .rk {
+  display: grid;
+  grid-template-columns: 26px auto;
+  column-gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  text-align: right;
+}
+.ov-scout-row .rk img {
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+.ov-scout-row .rk em.good {
+  color: var(--win);
+}
+.ov-scout-row .rk em.bad {
+  color: var(--loss);
+}
+
+/* ================= overlays page: widget gallery ================= */
+.ovc-actions {
+  display: flex;
+  gap: 8px;
+}
+.ovc-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ovc-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+.ovc-keys .kbd {
+  font-size: 10.5px;
+}
+.ovc-master {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  margin-bottom: 26px;
+}
+.ovc-master > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ovc-section {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.ovc-section-sub {
+  margin: 4px 0 16px;
+}
+.ovc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+.ovc {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: border-color 0.25s var(--ease), opacity 0.25s var(--ease);
+}
+.ovc:hover {
+  border-color: var(--line-2);
+}
+.ovc.off {
+  opacity: 0.6;
+}
+.ovc-preview {
+  position: relative;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(127, 130, 246, 0.14), transparent 60%),
+    radial-gradient(ellipse at 80% 90%, rgba(67, 160, 120, 0.12), transparent 55%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 14px),
+    #101117;
+  border-bottom: 1px solid var(--line);
+}
+.ovc.off .ovc-preview > * {
+  filter: grayscale(0.8);
+}
+.ovc-scale {
+  transform: scale(0.45);
+  transform-origin: center;
+}
+.ovc-scale .ov-scout {
+  width: 860px;
+}
+.ovc-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ovc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+}
+.ovc-body p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ovc-aug {
+  display: flex;
+  gap: 14px;
+}
+.ovc-aug-card {
+  position: relative;
+  width: 74px;
+  height: 110px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #2a2340, #17141f);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ovc-float 3s var(--ease) infinite alternate;
+}
+.ovc-aug-card b {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 1px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #111;
+}
+.ovc-aug-card.t-S b {
+  background: #ff9f43;
+}
+.ovc-aug-card.t-A b {
+  background: #a6aaff;
+}
+.ovc-aug-card.t-B b {
+  background: #8fdc7a;
+}
+@keyframes ovc-float {
+  to {
+    translate: 0 -6px;
+  }
+}
+.ovw.edit:hover {
+  z-index: 2;
+}
+.ovw.dragging {
+  z-index: 3;
 }

@@ -26,6 +26,8 @@ const DEFAULTS = {
   overlayCorner: 'top-right',
   overlayScale: 1,
   overlayBenchmark: true,
+  overlayWidgets: { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true },
+  overlayLayout: {},
   // statistics collector (tier list, builds, matchups)
   collectorEnabled: true,
   collectorPlatform: '',
@@ -120,25 +122,25 @@ function createWindow() {
   })
 }
 
-// ---------- in-game overlay: a transparent, click-through, always-on-top window ----------
+// ---------- in-game overlay: a transparent, click-through, always-on-top window over the whole screen.
+// Widgets are placed inside it; Alt+B turns on the editor, where the window takes the mouse and
+// widgets can be dragged. Positions are stored as fractions of the screen (settings.overlayLayout).
+let overlayEdit = false
+let overlayScout = false
 function placeOverlay() {
   if (!overlay) return
-  const { workArea } = screen.getPrimaryDisplay()
-  const [w, h] = overlay.getSize()
-  const corner = store.get('overlayCorner')
-  const x = corner.endsWith('left') ? workArea.x + 16 : workArea.x + workArea.width - w - 16
-  const y = corner.startsWith('top') ? workArea.y + 90 : workArea.y + workArea.height - h - 90
-  overlay.setPosition(Math.round(x), Math.round(y))
+  overlay.setBounds(screen.getPrimaryDisplay().bounds)
 }
 
 function showOverlay() {
   if (overlay) return
+  const { bounds } = screen.getPrimaryDisplay()
   overlay = new BrowserWindow({
-    width: 250,
-    height: 470,
+    ...bounds,
     transparent: true,
     frame: false,
     resizable: false,
+    movable: false,
     focusable: false,
     skipTaskbar: true,
     hasShadow: false,
@@ -149,9 +151,49 @@ function showOverlay() {
   overlay.setIgnoreMouseEvents(true)
   overlay.setVisibleOnAllWorkspaces(true)
   load(overlay, 'overlay')
-  overlay.webContents.once('did-finish-load', () => overlay?.webContents.send('overlay:benchmarks', benchmarks))
+  overlay.webContents.once('did-finish-load', () => {
+    overlay?.webContents.send('overlay:benchmarks', benchmarks)
+    overlay?.webContents.send('overlay:edit', overlayEdit)
+  })
   placeOverlay()
-  overlay.on('closed', () => (overlay = null))
+  overlay.on('closed', () => {
+    overlay = null
+    overlayEdit = false
+    send('overlay:edit', false)
+    syncOverlayKeys()
+  })
+}
+// Alt+B (editor) and Alt+X (scouting panel), the same keys as in DPM. They are taken only while a
+// game or the editor is on, so other programs keep these keys the rest of the time.
+let overlayKeys = false
+function syncOverlayKeys() {
+  const want = inGame || overlayEdit
+  if (want === overlayKeys) return
+  overlayKeys = want
+  if (!want) {
+    globalShortcut.unregister('Alt+B')
+    globalShortcut.unregister('Alt+X')
+    return
+  }
+  globalShortcut.register('Alt+B', () => setOverlayEdit(!overlayEdit))
+  globalShortcut.register('Alt+X', () => {
+    overlayScout = !overlayScout
+    overlay?.webContents.send('overlay:scout', overlayScout)
+  })
+}
+function setOverlayEdit(on) {
+  overlayEdit = Boolean(on)
+  syncOverlayKeys()
+  if (overlayEdit) showOverlay()
+  if (!overlay) return overlayEdit
+  overlay.setIgnoreMouseEvents(!overlayEdit)
+  overlay.setFocusable(overlayEdit)
+  if (overlayEdit) overlay.focus()
+  overlay.webContents.send('overlay:edit', overlayEdit)
+  send('overlay:edit', overlayEdit)
+  // leaving the editor outside a game: nothing to show any more
+  if (!overlayEdit && !inGame) overlay.close()
+  return overlayEdit
 }
 const hideOverlay = () => overlay?.close()
 
@@ -328,6 +370,7 @@ async function pollLive() {
     endTimer = null
     send('live:data', data)
     overlay?.webContents.send('live:data', data)
+    if (!was) syncOverlayKeys()
     if (!was && store.get('overlayEnabled')) showOverlay()
     if (!was && store.get('recordingEnabled') && !recorder.recording) {
       const me = data.activePlayer
@@ -348,6 +391,8 @@ async function pollLive() {
     skinNotedFor = ''
     send('live:data', null)
     hideOverlay()
+    overlayScout = false
+    syncOverlayKeys()
     augments.reset()
     augPanel = false
     augWin?.close()
@@ -392,7 +437,7 @@ ipcMain.handle('settings:set', (_e, key, value) => {
   if (!(key in DEFAULTS)) return false
   store.set(key, value)
   if (key === 'collectorPlatform' || key === 'riotApiKey' || key === 'collectorEnabled') setTimeout(() => send('stats:update'), 500)
-  if (key === 'overlayCorner') placeOverlay()
+  if (key.startsWith('overlay')) overlay?.webContents.send('overlay:settings', settings)
   if (key === 'overlayEnabled' && !value) hideOverlay()
   if (key === 'overlayEnabled' && value && inGame) showOverlay()
   return true
@@ -497,6 +542,7 @@ ipcMain.handle('lcu:get', async (_e, pathname) => {
   return lcu.get(pathname)
 })
 ipcMain.handle('live:get', () => liveGameData())
+ipcMain.handle('overlay:edit', (_e, on) => setOverlayEdit(on === undefined ? !overlayEdit : on))
 ipcMain.handle('overlay:toggle', () => {
   if (overlay) hideOverlay()
   else showOverlay()

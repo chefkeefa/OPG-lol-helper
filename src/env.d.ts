@@ -7,6 +7,8 @@ interface RiotResult {
   retryAfter?: number
 }
 
+export type OverlayWidget = 'timers' | 'bench' | 'gold' | 'respawn' | 'skills' | 'scout'
+
 export interface DesktopSettings {
   riotApiKey: string
   myRiotId: string
@@ -16,6 +18,10 @@ export interface DesktopSettings {
   overlayCorner: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
   overlayScale: number
   overlayBenchmark: boolean
+  /** which in-game widgets are on */
+  overlayWidgets: Record<OverlayWidget, boolean>
+  /** widget positions as fractions of the screen, set in the overlay editor */
+  overlayLayout: Partial<Record<OverlayWidget, { x: number; y: number }>>
   collectorEnabled: boolean
   collectorPlatform: string
   autoOpenChampion: boolean
@@ -75,7 +81,16 @@ declare global {
         onChampSelect(cb: (p: { championId: number; position: string }) => void): Off
       }
       live: { get(): Promise<LiveData | null>; on(cb: (d: LiveData | null) => void): Off }
-      overlay: { toggle(): Promise<boolean>; setBenchmarks(b: Benchmarks): void; onBenchmarks(cb: (b: Benchmarks) => void): Off }
+      overlay: {
+        toggle(): Promise<boolean>
+        /** turn the overlay editor on or off (Alt+B); resolves to the new state */
+        edit(on?: boolean): Promise<boolean>
+        setBenchmarks(b: Benchmarks): void
+        onBenchmarks(cb: (b: Benchmarks) => void): Off
+        onEdit(cb: (on: boolean) => void): Off
+        onScout(cb: (on: boolean) => void): Off
+        onSettings(cb: (s: DesktopSettings) => void): Off
+      }
       stats: {
         status(): Promise<StatsStatus>
         summary(patches?: string[]): Promise<StatsSummary>

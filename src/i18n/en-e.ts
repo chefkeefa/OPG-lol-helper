@@ -1,0 +1,26 @@
+// English strings for the DPM parity work: overlay widgets and editor.
+export const EN_E: Record<string, string> = {
+  // overlay widgets
+  'Готово': 'Done',
+  'Перетащите виджеты на нужное место. Alt+B или Esc — сохранить и выйти.': 'Drag the widgets where you want them. Alt+B or Esc saves and exits.',
+  'Порядок умений': 'Skill order',
+  'Разница золота': 'Gold difference',
+  'Редактор оверлея': 'Overlay editor',
+  'Таймеры возрождения': 'Respawn timers',
+  'Экран загрузки': 'Loading screen',
+  'без ранга': 'unranked',
+  'линия': 'lane',
+  'Аугменты ARAM Mayhem': 'ARAM Mayhem augments',
+  'Будьте себе тренером: CS, KDA, KP и обзор против ваших прошлых игр на этом чемпионе.': 'Be your own coach: CS, KDA, KP and vision against your past games on this champion.',
+  'Виджеты поверх игры, которые помогают быть на шаг впереди. Работают в режиме «Без рамки».': 'In-game widgets that keep you one step ahead. Work in borderless mode.',
+  'Виджеты, которые рисуются поверх вашей игры.': 'Widgets drawn over your game.',
+  'Выйти из редактора': 'Leave the editor',
+  'Какое умение качать следующим, по статистике игр Master+ на вашем чемпионе.': 'Which skill to level next, from Master+ games on your champion.',
+  'Когда появятся дракон, личинки, герольд и барон.': 'When dragon, grubs, herald and baron spawn.',
+  'Кто богаче: золото в предметах у команд и против соперника по линии.': "Who's richer: item gold of both teams and against your lane opponent.",
+  'Кто мёртв и через сколько вернётся: время для барона или пуша.': "Who's dead and when they're back: your window for baron or a push.",
+  'Оверлей появляется при старте матча и скрывается после. Положение виджетов меняется в редакторе.': 'The overlay appears when a game starts and hides after. Move widgets in the editor.',
+  'Показать/скрыть': 'Show/hide',
+  'Ранг, LP и винрейт всех десяти игроков в начале матча. Нужен ключ Riot API.': 'Rank, LP and winrate of all ten players at the start of a game. Needs a Riot API key.',
+  'Тиры аугментов прямо на карточках выбора.': 'Augment tiers right on the pick cards.',
+}

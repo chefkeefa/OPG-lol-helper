@@ -116,7 +116,15 @@ export type Page =
 
 export interface LiveData {
   gameData: { gameTime: number; gameMode: string; mapNumber: number; mapTerrain?: string }
-  activePlayer?: { riotId?: string; riotIdGameName?: string; summonerName?: string; level: number; currentGold: number }
+  activePlayer?: {
+    riotId?: string
+    riotIdGameName?: string
+    summonerName?: string
+    level: number
+    currentGold: number
+    /** levels of Q, W, E and R (the live client also sends the passive) */
+    abilities?: Partial<Record<'Q' | 'W' | 'E' | 'R', { abilityLevel: number }>>
+  }
   allPlayers: {
     championName: string
     rawChampionName?: string
@@ -130,7 +138,7 @@ export interface LiveData {
     isDead?: boolean
     respawnTimer?: number
     scores: { kills: number; deaths: number; assists: number; creepScore: number; wardScore: number }
-    items: { itemID: number; slot: number }[]
+    items: { itemID: number; slot: number; price?: number; count?: number }[]
   }[]
   events: { Events: { EventID: number; EventName: string; EventTime: number; KillerName?: string; DragonType?: string }[] }
 }

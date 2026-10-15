@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('rp', {
     toggle: () => ipcRenderer.invoke('overlay:toggle'),
     setBenchmarks: (b) => ipcRenderer.send('overlay:benchmarks', b),
     onBenchmarks: on('overlay:benchmarks'),
+    edit: (on) => ipcRenderer.invoke('overlay:edit', on),
+    onEdit: on('overlay:edit'),
+    onScout: on('overlay:scout'),
+    onSettings: on('overlay:settings'),
   },
   stats: {
     status: () => ipcRenderer.invoke('stats:status'),

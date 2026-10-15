@@ -1,33 +1,12 @@
-import { Component, StrictMode, useEffect, useState, type ReactNode } from 'react'
+import { Component, StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MotionConfig } from 'motion/react'
 import App from './App'
-import { OverlayTimers } from './components/OverlayTimers'
-import { OverlayBench } from './components/OverlayBench'
 import { AugmentOverlay } from './components/AugmentOverlay'
-import type { LiveData } from './types'
-import type { Benchmarks } from './lib/statsTypes'
+import { OverlayApp } from './components/OverlayWidgets'
 import { t } from './lib/i18n'
 import './fonts.css'
 import './styles.css'
-
-/** Content of the transparent in-game overlay window (desktop only). */
-function OverlayApp() {
-  const [live, setLive] = useState<LiveData | null>(null)
-  const [bench, setBench] = useState<Benchmarks>({})
-  const [showBench, setShowBench] = useState(true)
-  useEffect(() => window.rp?.live.on(setLive), [])
-  useEffect(() => window.rp?.overlay.onBenchmarks(setBench), [])
-  useEffect(() => {
-    window.rp?.settings.get().then((s) => setShowBench(s.overlayBenchmark))
-  }, [live === null])
-  return (
-    <div className="ov-stack">
-      <OverlayTimers live={live} />
-      {showBench && <OverlayBench live={live} bench={bench} />}
-    </div>
-  )
-}
 
 /** Shows the error instead of a blank window if something in the interface crashes. */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
