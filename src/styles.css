@@ -6582,3 +6582,163 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   color: var(--muted);
   cursor: pointer;
 }
+
+/* ================= leaderboards like DPM: cutoffs, podium, best champions ================= */
+.lb-board {
+  padding: 16px;
+}
+.lb-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.lb-cutoffs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.lb-cutoff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+}
+.lb-cutoff b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+}
+.lb-cutoff em,
+.lb-podium-lp em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+.lb-podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.lb-podium-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  text-align: left;
+  transition: border-color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.lb-podium-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.lb-podium-card.p1 {
+  background: linear-gradient(160deg, rgba(246, 201, 78, 0.12), var(--panel-2) 55%);
+}
+.lb-podium-card.p2 {
+  background: linear-gradient(160deg, rgba(200, 210, 230, 0.1), var(--panel-2) 55%);
+}
+.lb-podium-card.p3 {
+  background: linear-gradient(160deg, rgba(205, 127, 50, 0.13), var(--panel-2) 55%);
+}
+.lb-podium-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lb-place {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.p1 .lb-place {
+  color: var(--gold);
+}
+.p3 .lb-place {
+  color: #e39a5a;
+}
+.lb-podium-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lb-podium-name b {
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-podium-lp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 34px;
+  font-weight: 800;
+  color: #8fd3ff;
+}
+.lb-podium-wl {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.lb-podium-wl .good {
+  color: var(--win);
+}
+.lb-podium-wl .bad {
+  color: var(--loss);
+}
+.lb-podium-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+.lb-podium-foot b {
+  color: var(--text);
+  font-size: 14px;
+}
+.lb-champs {
+  display: flex;
+  gap: 4px;
+}
+.ladder-row.lb-row {
+  grid-template-columns: 50px minmax(0, 2fr) 140px 150px 90px 140px;
+}
+.lb-row .ladder-lp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lb-wr-chip {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+  background: rgba(127, 130, 246, 0.25);
+}
+.lb-wr-chip.mid {
+  background: rgba(143, 220, 122, 0.25);
+}
+.lb-wr-chip.hi {
+  background: rgba(246, 201, 78, 0.3);
+}
+@media (max-width: 1300px) {
+  .lb-podium {
+    grid-template-columns: 1fr;
+  }
+}

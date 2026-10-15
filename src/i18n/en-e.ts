@@ -38,6 +38,13 @@ export const EN_E: Record<string, string> = {
   // tier list
   'Показывать редкие роли: чемпион играет на этой позиции реже чем в 10% игр': 'Show rare roles: the champion is played in this position in under 10% of games',
   'Тир-листы по играм Master+: следите за метой и лучшими чемпионами для своей роли.': 'Tier lists from Master+ games: keep up with the meta and the best champions for your role.',
+  // leaderboards
+  'Лучшие игроки региона. Нажмите на игрока, чтобы открыть его профиль.': 'The best players of the region. Click a player to open their profile.',
+  'Лучшие чемпионы': 'Best champions',
+  'Порог Challenger': 'Challenger cut-off',
+  'Порог Grandmaster': 'Grandmaster cut-off',
+  'Пример данных: для настоящей таблицы добавьте ключ Riot API в настройках десктоп-версии.': 'Example data: add a Riot API key in the desktop app settings for the real ladder.',
+  'Ранг': 'Rank',
   // dashboard hub tiles
   '{n} моментов': '{n} moments',
   'Вся игра или только лучшие моменты': 'The whole game or just the best moments',

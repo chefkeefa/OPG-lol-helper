@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CustomBoards } from './CustomBoards'
 import { AnimatePresence, motion } from 'motion/react'
 import { PLATFORMS, RiotError } from '../api/riot'
-import { cachedName, loadLadder, resolveName, type ApexTier, type LadderEntry } from '../api/leaderboard'
-import { rankEmblem } from '../lib/ddragon'
-import { Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
+import { bestChamps, cachedName, demoApex, loadApex, resolveName, type Apex, type ApexTier, type LadderQueue } from '../api/leaderboard'
+import { championMap, rankEmblem } from '../lib/ddragon'
+import { Champ, Counter, Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
 import type { Page } from '../types'
 import { fmtNum, t } from '../lib/i18n'
 
@@ -47,6 +47,22 @@ export function Leaderboards(props: { defaultPlatform: string; onOpenPlayer: (ri
   )
 }
 
+type TierPick = 'all' | ApexTier
+const TIER_PICKS: { id: TierPick; label: string }[] = [{ id: 'all', label: t('Все') }, ...TIERS]
+const QUEUES: { id: LadderQueue; label: string }[] = [
+  { id: 'RANKED_SOLO_5x5', label: 'SoloQ' },
+  { id: 'RANKED_FLEX_SR', label: 'Flex' },
+]
+
+function BestChamps({ ids, map, size = 26 }: { ids?: number[]; map: Record<number, string>; size?: number }) {
+  if (!ids) return <span className="lb-champs" />
+  return (
+    <span className="lb-champs">
+      {ids.map((id) => (map[id] ? <Champ key={id} name={map[id]} size={size} radius={7} /> : null))}
+    </span>
+  )
+}
+
 function Ladder({
   defaultPlatform,
   onOpenPlayer,
@@ -59,32 +75,48 @@ function Ladder({
   switcher: ReactNode
 }) {
   const [platform, setPlatform] = useState(defaultPlatform)
-  const [tier, setTier] = useState<ApexTier>('challenger')
-  const [rows, setRows] = useState<LadderEntry[] | null>(null)
+  const [tier, setTier] = useState<TierPick>('all')
+  const [queue, setQueue] = useState<LadderQueue>('RANKED_SOLO_5x5')
+  const [apex, setApex] = useState<Apex | null>(null)
+  const [demo, setDemo] = useState(false)
   const [error, setError] = useState<{ text: string; key: boolean } | null>(null)
   const [limit, setLimit] = useState(50)
   const [names, setNames] = useState<Record<string, { gameName: string; tagLine: string }>>({})
+  const [best, setBest] = useState<Record<string, number[]>>({})
+  const [champs, setChamps] = useState<Record<number, string>>({})
   const job = useRef(0)
 
   useEffect(() => {
+    championMap().then(setChamps)
+  }, [])
+  useEffect(() => {
     const id = ++job.current
-    setRows(null)
+    setApex(null)
     setError(null)
     setLimit(50)
-    loadLadder(platform, tier)
-      .then((r) => id === job.current && setRows(r))
+    loadApex(platform, queue)
+      .then((r) => id === job.current && (setApex(r), setDemo(false)))
       .catch((e) => {
         if (id !== job.current) return
         const status = e instanceof RiotError ? e.status : 0
+        // the web preview has no key: show what the page looks like with made-up players
+        if (!window.rp && (status === 401 || status === 403 || !status)) {
+          setApex(demoApex())
+          setDemo(true)
+          return
+        }
         setError(
           status === 401 || status === 403
             ? { text: t('Для таблицы лидеров нужен действующий ключ Riot API.'), key: true }
             : { text: e instanceof RiotError ? t('Ошибка Riot API ({status}): {message}', { status: e.status, message: e.message }) : t('Не удалось загрузить таблицу.'), key: false },
         )
       })
-  }, [platform, tier])
+  }, [platform, queue])
 
-  // Look up Riot IDs for the visible rows, two at a time, keeping within the dev-key rate limit.
+  const rows = useMemo(() => (apex ? (tier === 'all' ? apex.all : apex.all.filter((e) => e.tier === tier)) : null), [apex, tier])
+
+  // Look up Riot IDs for the visible rows (and the best champions of the top 20), two at a time,
+  // keeping within the dev-key rate limit.
   useEffect(() => {
     if (!rows) return
     const id = job.current
@@ -95,14 +127,15 @@ function Ladder({
       if (c) cached[r.puuid] = c
     }
     if (Object.keys(cached).length) setNames((n) => ({ ...n, ...cached }))
-    const queue = todo.filter((r) => !cached[r.puuid])
+    // the best champions of the top 20 first, then the names of every visible row
+    const queueJobs: (() => Promise<void>)[] = []
+    for (const r of rows.slice(0, 20)) if (!best[r.puuid]) queueJobs.push(() => bestChamps(platform, r.puuid).then((b) => setBest((x) => ({ ...x, [r.puuid]: b }))))
+    for (const r of todo) if (!cached[r.puuid]) queueJobs.push(() => resolveName(platform, r.puuid).then((a) => setNames((n) => ({ ...n, [r.puuid]: a }))))
     let stop = false
     const worker = async () => {
-      while (!stop && queue.length && id === job.current) {
-        const r = queue.shift()!
+      while (!stop && queueJobs.length && id === job.current) {
         try {
-          const a = await resolveName(platform, r.puuid)
-          if (!stop) setNames((n) => ({ ...n, [r.puuid]: a }))
+          await queueJobs.shift()!()
         } catch (e) {
           if (e instanceof RiotError && (e.status === 401 || e.status === 403)) return
         }
@@ -116,24 +149,26 @@ function Ladder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, limit, platform])
 
+  const podium = rows?.slice(0, 3) ?? []
+  const nameOf = (puuid: string) => names[puuid]
+  const open = (puuid: string) => {
+    const n = nameOf(puuid)
+    if (n && !demo) onOpenPlayer(`${n.gameName}#${n.tagLine}`, platform)
+  }
+
   return (
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
           <Icon name="trophy" size={30} /> {t('Лидеры')}
         </h1>
-        <p className="page-sub">{t('Лучшие игроки ранговой очереди Solo/Duo по региону. Нажмите на игрока, чтобы открыть его профиль.')}</p>
+        <p className="page-sub">{t('Лучшие игроки региона. Нажмите на игрока, чтобы открыть его профиль.')}</p>
         <div className="push" />
         {switcher}
-        <Segmented id="ladder-tier" options={TIERS} value={tier} onChange={setTier} />
-        <select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label={t('Регион')}>
-          {Object.entries(PLATFORMS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
+        <Segmented id="ladder-queue" options={QUEUES} value={queue} onChange={setQueue} />
       </motion.div>
+
+      {demo && <div className="banner">{t('Пример данных: для настоящей таблицы добавьте ключ Riot API в настройках десктоп-версии.')}</div>}
 
       {error ? (
         <motion.div className="card ladder-error" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -145,40 +180,110 @@ function Ladder({
           )}
         </motion.div>
       ) : (
-        <motion.section className="card ladder" key={`${platform}-${tier}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease }}>
-          <div className="ladder-row head">
+        <motion.section className="card lb-board" key={`${platform}-${queue}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease }}>
+          <div className="lb-tools">
+            <Segmented id="ladder-tier" options={TIER_PICKS} value={tier} onChange={setTier} />
+            <div className="push" />
+            <select value={platform} onChange={(e) => setPlatform(e.target.value)} aria-label={t('Регион')}>
+              {Object.entries(PLATFORMS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="lb-cutoffs">
+            {(['challenger', 'grandmaster'] as const).map((tr) => (
+              <div key={tr} className="lb-cutoff">
+                <span>{tr === 'challenger' ? t('Порог Challenger') : t('Порог Grandmaster')}</span>
+                <b>
+                  <Img src={rankEmblem(tr)} alt="" size={28} radius={0} />
+                  {apex?.cutoff[tr] != null ? <Counter value={apex.cutoff[tr]!} format={(v) => fmtNum(Math.round(v))} /> : '—'} <em>LP</em>
+                </b>
+              </div>
+            ))}
+          </div>
+
+          <div className="lb-podium">
+            {podium.map((r, i) => {
+              const n = nameOf(r.puuid)
+              const g = r.wins + r.losses
+              return (
+                <motion.button
+                  key={r.puuid}
+                  className={`lb-podium-card p${i + 1}`}
+                  onClick={() => open(r.puuid)}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 * i, duration: 0.5, ease }}
+                >
+                  <div className="lb-podium-top">
+                    <span className="lb-place">{i + 1}</span>
+                    <span className="lb-podium-name">
+                      {n ? (
+                        <>
+                          <b>{n.gameName}</b>
+                          <span className="muted">#{n.tagLine}</span>
+                        </>
+                      ) : (
+                        <Skeleton h={14} w={120} />
+                      )}
+                    </span>
+                  </div>
+                  <div className="lb-podium-lp">
+                    <Img src={rankEmblem(r.tier ?? 'challenger')} alt="" size={44} radius={0} />
+                    <Counter value={r.leaguePoints} format={(v) => fmtNum(Math.round(v))} /> <em>LP</em>
+                  </div>
+                  <div className="lb-podium-wl">
+                    {r.wins}W · {r.losses}L <span className={r.wins / Math.max(1, g) >= 0.5 ? 'good' : 'bad'}>({Math.round((r.wins / Math.max(1, g)) * 100)}%)</span>
+                  </div>
+                  <div className="lb-podium-foot">
+                    <span>
+                      <b>{fmtNum(g)}</b> {t('игр')}
+                    </span>
+                    <BestChamps ids={best[r.puuid]} map={champs} size={28} />
+                  </div>
+                </motion.button>
+              )
+            })}
+          </div>
+
+          <div className="ladder-row lb-row head">
             <span>#</span>
             <span>{t('Игрок')}</span>
-            <span>LP</span>
+            <span>{t('Ранг')}</span>
             <span>{t('Победы / поражения')}</span>
             <span>{t('Винрейт')}</span>
+            <span>{t('Лучшие чемпионы')}</span>
           </div>
           {!rows &&
             Array.from({ length: 10 }, (_, i) => (
-              <div key={i} className="ladder-row">
+              <div key={i} className="ladder-row lb-row">
                 <Skeleton h={14} w={24} />
                 <Skeleton h={14} w="60%" />
                 <Skeleton h={14} w={50} />
                 <Skeleton h={14} w={90} />
                 <Skeleton h={14} w={70} />
+                <Skeleton h={14} w={90} />
               </div>
             ))}
           <AnimatePresence initial={false}>
-            {rows?.slice(0, limit).map((r, i) => {
-              const n = names[r.puuid]
+            {rows?.slice(3, limit).map((r, j) => {
+              const i = j + 3
+              const n = nameOf(r.puuid)
               const wr = r.wins / Math.max(1, r.wins + r.losses)
               return (
                 <motion.div
                   key={r.puuid}
-                  className={`ladder-row ${i < 3 ? `top top${i + 1}` : ''}`}
+                  className="ladder-row lb-row"
                   initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i % 50, 20) * 0.02, duration: 0.35, ease } }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: Math.min(j % 50, 20) * 0.02, duration: 0.35, ease } }}
                 >
                   <span className="ladder-pos">{i + 1}</span>
                   <span className="ladder-player">
-                    <Img src={rankEmblem(tier)} alt="" size={30} radius={0} />
                     {n ? (
-                      <button onClick={() => onOpenPlayer(`${n.gameName}#${n.tagLine}`, platform)}>
+                      <button onClick={() => open(r.puuid)}>
                         <b>{n.gameName}</b> <span className="muted">#{n.tagLine}</span>
                       </button>
                     ) : (
@@ -190,16 +295,17 @@ function Ladder({
                       </span>
                     )}
                   </span>
-                  <span className="ladder-lp">{fmtNum(r.leaguePoints)} LP</span>
-                  <span>
-                    <span className="win-text">{r.wins}W</span> <span className="loss-text">{r.losses}L</span>
+                  <span className="ladder-lp">
+                    <Img src={rankEmblem(r.tier ?? 'challenger')} alt="" size={26} radius={0} />
+                    {fmtNum(r.leaguePoints)} LP
+                  </span>
+                  <span className="lb-wl">
+                    <span className="win-text">{r.wins}W</span> – <span className="loss-text">{r.losses}L</span>
                   </span>
                   <span className="ladder-wr">
-                    <span>{Math.round(wr * 100)}%</span>
-                    <span className="wr-bar">
-                      <motion.span initial={{ width: 0 }} animate={{ width: `${wr * 100}%` }} transition={{ duration: 0.8, ease }} />
-                    </span>
+                    <span className={`lb-wr-chip ${wr >= 0.6 ? 'hi' : wr >= 0.55 ? 'mid' : ''}`}>{Math.round(wr * 100)}%</span>
                   </span>
+                  <BestChamps ids={best[r.puuid]} map={champs} />
                 </motion.div>
               )
             })}
