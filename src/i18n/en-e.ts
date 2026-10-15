@@ -50,4 +50,14 @@ export const EN_E: Record<string, string> = {
   'Вся игра или только лучшие моменты': 'The whole game or just the best moments',
   'Записывайте свои игры': 'Record your games',
   'Запись включена: видео появится после матча': 'Recording is on: the video appears after the game',
+  // spectate
+  '{n} известных игроков': '{n} known players',
+  'Больше известных игроков': 'Most known players',
+  'Живые ранговые игры лучших игроков региона.': 'Live ranked games of the best players in the region.',
+  'Игрок или чемпион (Имя#Тег — найти любую игру)': 'Player or champion (Name#Tag finds any game)',
+  'Ищу игры… {pct}%': 'Looking for games… {pct}%',
+  'Недавно начались': 'Recently started',
+  'Самые сильные': 'Strongest',
+  'Сейчас никто из топа региона не играет.': 'Nobody from the top of the region is playing right now.',
+  'в среднем': 'average',
 }
