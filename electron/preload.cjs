@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('rp', {
     detail: (champ, role, patches) => ipcRenderer.invoke('stats:detail', champ, role, patches),
     draft: (patches) => ipcRenderer.invoke('stats:draft', patches),
     mayhem: (patches) => ipcRenderer.invoke('stats:mayhem', patches),
+    world: (patches) => ipcRenderer.invoke('stats:world', patches),
     onUpdate: on('stats:update'),
   },
   aug: { tiers: (champ) => ipcRenderer.invoke('aug:tiers', champ), onState: on('aug:state') },

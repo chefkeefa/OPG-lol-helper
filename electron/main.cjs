@@ -459,6 +459,7 @@ ipcMain.handle('stats:status', () => collector.status())
 ipcMain.handle('stats:summary', (_e, patches) => collector.summary(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('stats:detail', (_e, champ, role, patches) => collector.detail(champ, role, patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('stats:mayhem', (_e, patches) => collector.mayhem(patches))
+ipcMain.handle('stats:world', (_e, patches) => collector.world(patches))
 ipcMain.handle('aug:tiers', (_e, champ) => augments.tiers(champ || ''))
 ipcMain.handle('stats:draft', (_e, patches) => collector.draft(patches?.length ? patches : collector.recentPatches()))
 ipcMain.handle('build:import', async (_e, what, b) => {

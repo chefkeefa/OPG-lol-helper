@@ -191,3 +191,64 @@ export interface AugOverlayState {
   panel: AugTiers | null
   champion: string
 }
+
+/** Per champion or role totals for the Data Studio catalogue (divide by g or min). */
+export interface WorldSums {
+  g: number
+  w: number
+  /** game minutes played */
+  min: number
+  k: number
+  d: number
+  a: number
+  solo: number
+  /** seconds spent dead */
+  dead: number
+  fb: number
+  penta: number
+  quadra: number
+  cs: number
+  plates: number
+  dodged: number
+  casts: number
+  /** jungle CS before 10 minutes */
+  jcs: number
+  vision: number
+  cw: number
+  pings: number
+  /** wins and losses by surrender */
+  sw: number
+  sl: number
+  /** games and wins under 22 minutes / over 35 minutes */
+  eg: number
+  ew: number
+  lg: number
+  lw: number
+}
+
+export interface WorldData {
+  games: number
+  /** all games of the patches, for ban rates */
+  matches: number
+  patches: string[]
+  durSum: number
+  /** minute → games */
+  dur: Record<string, number>
+  early: number
+  late: number
+  surr: number
+  /** surrendered before 21 minutes */
+  earlySurr: number
+  hour: Record<string, number>
+  day: Record<string, number>
+  icons: PairMap
+  /** level bucket of 50 → players */
+  level: Record<string, number>
+  pings: Record<string, number>
+  flash: { D: Pair; F: Pair; role: Record<string, { D: number; F: number }> }
+  pairs: PairMap
+  first: PairMap
+  champs: Record<string, WorldSums>
+  roles: Record<string, WorldSums>
+  bans: Record<string, number>
+}

@@ -22,6 +22,24 @@ const shuffle = (a) => {
   return a
 }
 
+// Whole-game numbers for the Data Studio catalogue: how games go, not how one champion builds.
+const PINGS = ['allInPings', 'assistMePings', 'basicPings', 'commandPings', 'dangerPings', 'enemyMissingPings', 'enemyVisionPings', 'getBackPings', 'holdPings', 'needVisionPings', 'onMyWayPings', 'pushPings', 'retreatPings', 'visionClearedPings']
+const FIRSTS = { champion: 'blood', tower: 'tower', dragon: 'dragon', horde: 'grubs', riftHerald: 'herald', baron: 'baron', inhibitor: 'inhib', atakhan: 'atakhan' }
+const newWorld = () => ({ games: 0, durSum: 0, dur: {}, early: 0, late: 0, surr: 0, earlySurr: 0, hour: {}, day: {}, icons: {}, level: {}, pings: {}, flash: { D: [0, 0], F: [0, 0], role: {} }, pairs: {}, first: {}, champs: {}, roles: {} })
+const newSums = () => ({ g: 0, w: 0, min: 0, k: 0, d: 0, a: 0, solo: 0, dead: 0, fb: 0, penta: 0, quadra: 0, cs: 0, plates: 0, dodged: 0, casts: 0, jcs: 0, vision: 0, cw: 0, pings: 0, sw: 0, sl: 0, eg: 0, ew: 0, lg: 0, lw: 0 })
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+/** Adds every number (and [n, n] pair) of `from` into `to`, keeping the shape. */
+function addDeep(to, from) {
+  for (const [k, v] of Object.entries(from || {})) {
+    if (typeof v === 'number') to[k] = (to[k] || 0) + v
+    else if (Array.isArray(v)) {
+      const e = (to[k] ||= v.map(() => 0))
+      v.forEach((x, i) => (e[i] += x))
+    } else if (v && typeof v === 'object') addDeep((to[k] ||= {}), v)
+  }
+  return to
+}
+
 const newAgg = () => ({ g: 0, w: 0, core: {}, boots: {}, start: {}, runes: {}, ks: {}, spells: {}, skills: {}, vs: {}, late: {}, first: {}, with: {}, foe: {} })
 const bump = (map, key, win) => {
   if (key === undefined || key === null || key === '') return
@@ -346,6 +364,86 @@ class Collector {
 
       if (a.g % 50 === 0) for (const k of ['core', 'runes', 'start', 'skills', 'spells']) prune(a[k])
     }
+    this.ingestWorld((P.world ||= newWorld()), info)
+  }
+
+  ingestWorld(W, info) {
+    const mins = info.gameDuration / 60
+    const start = new Date(info.gameStartTimestamp || info.gameCreation)
+    W.games++
+    W.durSum += info.gameDuration
+    const m = Math.min(50, Math.floor(mins))
+    W.dur[m] = (W.dur[m] || 0) + 1
+    const early = mins < 22
+    const late = mins > 35
+    if (early) W.early++
+    if (late) W.late++
+    const p0 = info.participants[0] || {}
+    if (p0.gameEndedInSurrender) W.surr++
+    // surrendered at the first votes (15 and 20 minutes)
+    if (p0.gameEndedInSurrender && mins < 21) W.earlySurr++
+    W.hour[start.getHours()] = (W.hour[start.getHours()] || 0) + 1
+    W.day[start.getDay()] = (W.day[start.getDay()] || 0) + 1
+    for (const t of info.teams || [])
+      for (const [k, id] of Object.entries(FIRSTS)) if (t.objectives?.[k]?.first) bump(W.first, id, t.win)
+
+    for (const p of info.participants) {
+      const win = p.win
+      const role = ROLES.includes(p.teamPosition) ? p.teamPosition : ''
+      const champ = FIX[p.championName] ?? p.championName
+      bump(W.icons, p.profileIcon, false)
+      const lvl = Math.min(1000, Math.floor(num(p.summonerLevel) / 50) * 50)
+      W.level[lvl] = (W.level[lvl] || 0) + 1
+      let pings = 0
+      for (const k of PINGS) {
+        const v = num(p[k])
+        pings += v
+        W.pings[k] = (W.pings[k] || 0) + v
+      }
+      if (p.summoner1Id === 4 || p.summoner2Id === 4) {
+        const key = p.summoner1Id === 4 ? 'D' : 'F'
+        bump(W.flash, key, win)
+        if (role) {
+          const r = (W.flash.role[role] ||= { D: 0, F: 0 })
+          r[key]++
+        }
+      }
+      bump(W.pairs, [p.summoner1Id, p.summoner2Id].sort((x, y) => x - y).join('.'), win)
+      const c = p.challenges || {}
+      const add = (S) => {
+        S.g++
+        if (win) S.w++
+        S.min += mins
+        S.k += num(p.kills)
+        S.d += num(p.deaths)
+        S.a += num(p.assists)
+        S.solo += num(c.soloKills)
+        S.dead += num(p.totalTimeSpentDead)
+        S.fb += p.firstBloodKill ? 1 : 0
+        S.penta += num(p.pentaKills)
+        S.quadra += num(p.quadraKills)
+        S.cs += num(p.totalMinionsKilled) + num(p.neutralMinionsKilled)
+        S.plates += num(c.turretPlatesTaken)
+        S.dodged += num(c.skillshotsDodged)
+        S.casts += num(p.spell1Casts) + num(p.spell2Casts) + num(p.spell3Casts) + num(p.spell4Casts)
+        S.jcs += num(c.jungleCsBefore10Minutes)
+        S.vision += num(p.visionScore)
+        S.cw += num(c.controlWardsPlaced ?? p.visionWardsBoughtInGame)
+        S.pings += pings
+        if (p.gameEndedInSurrender) win ? S.sw++ : S.sl++
+        if (early) {
+          S.eg++
+          if (win) S.ew++
+        }
+        if (late) {
+          S.lg++
+          if (win) S.lw++
+        }
+      }
+      add((W.champs[champ] ||= newSums()))
+      if (role) add((W.roles[role] ||= newSums()))
+    }
+    if (W.games % 100 === 0) prune(W.icons, 150)
   }
 
   // ---------------------------------------------------------------- queries
@@ -423,6 +521,27 @@ class Collector {
     const pick = role && roles[role] ? role : Object.entries(roleGames).sort((a, b) => b[1] - a[1])[0]?.[0]
     const agg = pick ? roles[pick] : null
     return { matches: m.matches, bans: m.bans[champ]?.[0] ?? 0, role: pick || null, roleGames, agg, rec: recommend(agg) }
+  }
+
+  /** Data Studio catalogue: whole-game numbers merged over the given patches. */
+  world(patches) {
+    this.load(this.status().platform)
+    const out = newWorld()
+    const list = patches?.length ? patches : Object.keys(this.state?.patches || {})
+    const used = []
+    for (const p of list) {
+      const W = this.state?.patches[p]?.world
+      if (!W) continue
+      addDeep(out, W)
+      used.push(p)
+    }
+    const bans = {}
+    let matches = 0
+    for (const p of used) {
+      matches += this.state.patches[p].matches
+      for (const [k, [g]] of Object.entries(this.state.patches[p].bans || {})) bans[k] = (bans[k] || 0) + g
+    }
+    return { ...out, bans, matches, patches: used.sort(cmpPatch).reverse() }
   }
 
   /** Just what the draft assistant needs: per champion and role the record, lane, ally and enemy pairs. */

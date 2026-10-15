@@ -1,5 +1,5 @@
 // Statistics source: the desktop collector, or demo data in the web preview / example mode.
-import type { AugTiers, DraftData, MayhemData, StatsDetail, StatsStatus, StatsSummary } from './statsTypes'
+import type { AugTiers, DraftData, MayhemData, StatsDetail, StatsStatus, StatsSummary, WorldData } from './statsTypes'
 import { mockAugTiers, mockMayhem } from '../data/mockMayhem'
 import { mockDetail, mockDraft, mockStatus, mockSummary } from '../data/mockStats'
 import { t } from './i18n'
@@ -80,3 +80,9 @@ export function tierRows(s: StatsSummary): TierRow[] {
 }
 
 export const TIER_COLOR: Record<string, string> = { 'S+': '#ff9f43', S: '#f6c945', A: '#7b9cff', B: '#6f5ef6', C: '#8a8fb0', D: '#5d617c' }
+
+export async function statsWorld(demo: boolean, patches: string[] = []): Promise<WorldData> {
+  if (window.rp?.stats && !demo) return window.rp.stats.world(patches)
+  const { mockWorld } = await import('../data/mockWorld')
+  return mockWorld()
+}

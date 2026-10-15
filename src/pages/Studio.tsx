@@ -4,7 +4,8 @@ import type { MatchSummary } from '../types'
 import { champName } from '../lib/ddragon'
 import { ROLE_LABEL } from '../lib/statsApi'
 import { queueLabel } from '../lib/stats'
-import { Icon, ease } from '../components/ui'
+import { Icon, Segmented, ease } from '../components/ui'
+import { StudioCatalog } from './StudioCatalog'
 import { fmtNum, locale, t } from '../lib/i18n'
 
 interface Metric {
@@ -73,7 +74,45 @@ const metric = (id: string) => METRICS.find((m) => m.id === id) ?? METRICS[0]
 const title = (c: ChartDef) =>
   c.kind === 'line' ? t('{metric} по играм', { metric: metric(c.y).label }) : c.kind === 'bar' ? `${metric(c.y).label}: ${GROUPS.find((g) => g.id === c.group)?.label.toLowerCase()}` : t('{y} и {x}', { y: metric(c.y).label, x: metric(c.x).label })
 
+const TAB_KEY = 'riftpulse.studio.tab'
 export function Studio({ matches }: { matches: MatchSummary[] }) {
+  const [tab, setTab] = useState<'world' | 'mine'>(() => {
+    try {
+      return localStorage.getItem(TAB_KEY) === 'mine' ? 'mine' : 'world'
+    } catch {
+      return 'world'
+    }
+  })
+  const pick = (v: 'world' | 'mine') => {
+    setTab(v)
+    try {
+      localStorage.setItem(TAB_KEY, v)
+    } catch {}
+  }
+  return (
+    <div className="page">
+      <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
+        <h1>
+          <Icon name="pie" size={28} /> Data Studio
+        </h1>
+        <p className="page-sub">{t('Статистика League of Legends: как идут игры на высоком ранге и как играете вы.')}</p>
+        <div className="push" />
+        <Segmented
+          id="studio-tab"
+          value={tab}
+          onChange={pick}
+          options={[
+            { id: 'world', label: t('Каталог') },
+            { id: 'mine', label: t('Мои графики') },
+          ]}
+        />
+      </motion.div>
+      {tab === 'world' ? <StudioCatalog /> : <MyCharts matches={matches} />}
+    </div>
+  )
+}
+
+function MyCharts({ matches }: { matches: MatchSummary[] }) {
   const [board, setBoard] = useState<ChartDef[]>(readBoard)
   const [draft, setDraft] = useState<ChartDef>({ id: 'draft', kind: 'bar', y: 'kda', x: 'cs', group: 'champ' })
   const save = (b: ChartDef[]) => {
@@ -85,14 +124,8 @@ export function Studio({ matches }: { matches: MatchSummary[] }) {
   const set = (k: keyof ChartDef, v: string) => setDraft((d) => ({ ...d, [k]: v }))
 
   return (
-    <div className="page">
-      <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
-        <h1>
-          <Icon name="pie" size={28} /> Data Studio
-        </h1>
-        <span className="muted small">{t('{n} игр в выборке', { n: matches.length })}</span>
-      </motion.div>
-
+    <>
+      <p className="muted small studio-count">{t('{n} игр в выборке', { n: matches.length })}</p>
       <div className="card studio-builder">
         <div className="studio-controls">
           <label>
@@ -176,7 +209,7 @@ export function Studio({ matches }: { matches: MatchSummary[] }) {
           ))}
         </AnimatePresence>
       </motion.div>
-    </div>
+    </>
   )
 }
 

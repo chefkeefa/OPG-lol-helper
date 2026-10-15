@@ -2,8 +2,8 @@
 // shaped exactly like what the desktop collector produces.
 import type { Agg, DraftData, PairMap, Rec, StatsDetail, StatsStatus, StatsSummary } from '../lib/statsTypes'
 
-type Arch = 'adc' | 'mage' | 'assassin' | 'fighter' | 'tank' | 'jungle' | 'jtank' | 'ench' | 'engage'
-const CHAMPS: [string, string, Arch, number][] = [
+export type Arch = 'adc' | 'mage' | 'assassin' | 'fighter' | 'tank' | 'jungle' | 'jtank' | 'ench' | 'engage'
+export const CHAMPS: [string, string, Arch, number][] = [
   // champion, role, archetype, popularity
   ['Aatrox', 'TOP', 'fighter', 9], ['Darius', 'TOP', 'fighter', 8], ['Garen', 'TOP', 'fighter', 6], ['Fiora', 'TOP', 'fighter', 6],
   ['Jax', 'TOP', 'fighter', 8], ['Malphite', 'TOP', 'tank', 6], ['Ornn', 'TOP', 'tank', 5], ['Sett', 'TOP', 'fighter', 6],
