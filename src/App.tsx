@@ -64,6 +64,15 @@ const readMe = (): { riotId: string; platform: string } | null => {
     return null
   }
 }
+// the own profile as last shown, so the next start opens on it at once instead of on demo data
+const SNAP = 'riftpulse.snapshot'
+const readSnapshot = (): PlayerData | null => {
+  try {
+    return JSON.parse(localStorage.getItem(SNAP) ?? 'null')
+  } catch {
+    return null
+  }
+}
 const readLast = (): { riotId: string; platform: string } | null => {
   try {
     return JSON.parse(localStorage.getItem(LAST) ?? 'null')
@@ -133,13 +142,16 @@ export default function App() {
     const id = setTimeout(prefetchPages, 1200)
     return () => clearTimeout(id)
   }, [])
-  const [data, setData] = useState<PlayerData>(() => mockPlayer())
+  const [data, setData] = useState<PlayerData>(() => (window.rp && readSnapshot()) || mockPlayer())
   // every loaded profile leaves an LP snapshot, which is how LP history builds up
   useEffect(() => {
     recordRanks(data)
     const v = viewing.current
     if (data.source === 'client' || (v?.kind === 'riot' && v.self)) {
       noteAccount(data)
+      try {
+        localStorage.setItem(SNAP, JSON.stringify({ ...data, matches: data.matches.slice(0, 50) }))
+      } catch {}
       const st = settingsRef.current
       if (st?.discordGameAlerts && st.discordWebhook) gameAlert(data, st.discordWebhook).catch(() => {})
     }
@@ -287,8 +299,9 @@ export default function App() {
     if (v?.kind === 'riot') return run((p, part) => loadPlayer(v.riotId, v.platform, count, p, part))
     if (client?.connected) return loadSelf()
     if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
+    if (data.source !== 'demo') return showToast(t('Показаны данные с прошлого запуска. Запустите клиент LoL или добавьте ключ Riot API, чтобы обновить их.'), 'info')
     showToast(t('Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.'), 'info')
-  }, [loadSelf, loadSelfOffline, myAccount, run, count, client, settings])
+  }, [loadSelf, loadSelfOffline, myAccount, run, count, client, settings, data.source])
 
   // first load
   useEffect(() => {
