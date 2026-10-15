@@ -4592,7 +4592,8 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
 }
 .brand-pulse {
   stroke-dasharray: 30;
-  animation: brand-pulse 3.2s var(--ease) infinite;
+  /* drawn once: looping it under the drop-shadow repainted the sidebar every frame */
+  animation: brand-pulse 3.2s var(--ease) both;
 }
 @keyframes brand-pulse {
   0% { stroke-dashoffset: 30; }

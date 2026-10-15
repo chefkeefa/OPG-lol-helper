@@ -2,13 +2,26 @@ import { useEffect, useState } from 'react'
 import { ddLocale, locale } from './i18n'
 
 const CDN = 'https://ddragon.leagueoflegends.com'
-let version = '15.24.1'
+// start from the last known patch, so icons are not fetched twice (old, then new URLs) on every start
+const VER = 'riftpulse.ddver'
+let version = (() => {
+  try {
+    return localStorage.getItem(VER) || '15.24.1'
+  } catch {
+    return '15.24.1'
+  }
+})()
 let loaded: Promise<string> | null = null
 
 function loadVersion() {
   loaded ??= fetch(`${CDN}/api/versions.json`)
     .then((r) => r.json())
-    .then((v: string[]) => (version = v[0]))
+    .then((v: string[]) => {
+      try {
+        localStorage.setItem(VER, v[0])
+      } catch {}
+      return (version = v[0])
+    })
     .catch(() => version)
   return loaded
 }

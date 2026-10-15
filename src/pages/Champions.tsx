@@ -94,7 +94,7 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
                 ))}
               </div>
               {rows.map((r, i) => (
-                <motion.div key={r.champion} layout className="ctr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.025, layout: { duration: 0.45, ease } }}>
+                <motion.div key={r.champion} layout className="ctr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 12) * 0.025, layout: { duration: 0.45, ease } }}>
                   <span className="ct-champ">
                     <Champ name={r.champion} size={32} radius={8} /> {r.champion}
                   </span>
