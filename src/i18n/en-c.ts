@@ -88,6 +88,7 @@ export const EN_C: Record<string, string> = {
   "Саппорт": "Support",
   "Свернуть": "Minimize",
   "Своя игра": "Custom",
+  "Показаны данные с прошлого запуска. Запустите клиент LoL или добавьте ключ Riot API, чтобы обновить их.": "Showing data from the last session. Start the LoL client or add a Riot API key to update it.",
   "Сейчас показаны демо-данные. Запустите клиент LoL или найдите игрока через поиск.": "Showing demo data. Start the LoL client or search for a player.",
   "Скачиваю обновление v{version}…": "Downloading update v{version}…",
   "Смотреть": "Watch",
