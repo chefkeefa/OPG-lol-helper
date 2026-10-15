@@ -4321,6 +4321,7 @@ button.mu-trow:hover,
 .draft-me { font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent-2); }
 .draft-picks-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .draft-picks-head .card-title { margin: 0; }
+.draft-switches { display: flex; gap: 16px; flex-wrap: wrap; }
 .draft-picks { display: grid; gap: 6px; }
 .draft-pick {
   display: grid;

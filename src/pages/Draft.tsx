@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { DraftData, DraftSession, StatsStatus } from '../lib/statsTypes'
 import type { PlayerData } from '../types'
 import { statsDetail, statsDraft, ROLE_LABEL, pct } from '../lib/statsApi'
-import { ROLES, banSuggestions, draftOdds, inferRoles, rankPicks, type Pick, type Score } from '../lib/draft'
+import { ROLES, banSuggestions, draftOdds, inferRoles, inPool, rankPicks, type Mine, type Pick, type Score } from '../lib/draft'
 import { championList, championMap, champName } from '../lib/ddragon'
 import { Champ, Icon, Switch, ease, fadeUp, stagger } from '../components/ui'
 import { RoleIcon } from '../components/RoleIcon'
@@ -43,6 +43,7 @@ export function Draft({
   const [myIdx, setMyIdx] = useState(2)
   const [role, setRole] = useState('')
   const [ownedOnly, setOwnedOnly] = useState(true)
+  const [poolOnly, setPoolOnly] = useState(false)
   const [owned, setOwned] = useState<Set<string> | null>(null)
   const [busy, setBusy] = useState('')
 
@@ -78,16 +79,35 @@ export function Draft({
   }, [live, session, ids, allies, enemies, bans, myIdx])
 
   const myPick = view.allies[view.mine]
-  const myRole = role || myPick?.role || 'MIDDLE'
+  // blind pick has no assigned lane: assume the one you play most
+  const mainRole = useMemo(() => {
+    const n: Record<string, number> = {}
+    for (const m of player.matches) if (m.role && !m.remake) n[m.role] = (n[m.role] ?? 0) + 1
+    return Object.entries(n).sort((x, y) => y[1] - x[1])[0]?.[0]
+  }, [player.matches])
+  const myRole = role || myPick?.role || mainRole || 'MIDDLE'
   const rolesA = useMemo(() => (stats ? inferRoles(stats, view.allies) : view.allies), [stats, view.allies])
   const rolesE = useMemo(() => (stats ? inferRoles(stats, view.enemies) : view.enemies), [stats, view.enemies])
   const others = rolesA.filter((_, i) => i !== view.mine)
   const taken = useMemo(() => new Set([...view.bans, ...rolesA.filter((_, i) => i !== view.mine).map((p) => p.champ), ...rolesE.map((p) => p.champ)].filter(Boolean)), [view.bans, rolesA, rolesE, view.mine])
-  const mastery = useMemo(() => Object.fromEntries((player.mastery ?? []).map((m) => [m.champion, m.points])), [player.mastery])
+  // your own record on each champion in this role, and mastery
+  const mine = useMemo(() => {
+    const out: Record<string, Mine> = {}
+    const get = (c: string) => (out[c] ??= { g: 0, w: 0, mastery: 0 })
+    for (const m of player.mastery ?? []) get(m.champion).mastery = m.points
+    for (const m of player.matches) {
+      if (m.role !== myRole || m.remake) continue
+      const x = get(m.champion)
+      x.g++
+      if (m.win) x.w++
+    }
+    return out
+  }, [player.mastery, player.matches, myRole])
+  const hasPool = useMemo(() => Object.values(mine).filter(inPool).length >= 3, [mine])
 
   const picks = useMemo(
-    () => (stats ? rankPicks(stats, myRole, others, rolesE, { taken, owned: live && ownedOnly ? owned : null, mastery }).slice(0, 12) : []),
-    [stats, myRole, others, rolesE, taken, live, ownedOnly, owned, mastery],
+    () => (stats ? rankPicks(stats, myRole, others, rolesE, { taken, owned: live && ownedOnly ? owned : null, mine, poolOnly: hasPool && poolOnly }).slice(0, 12) : []),
+    [stats, myRole, others, rolesE, taken, live, ownedOnly, owned, mine, hasPool, poolOnly],
   )
   const odds = useMemo(() => (stats ? draftOdds(stats, rolesA, rolesE) : null), [stats, rolesA, rolesE])
   const banList = useMemo(() => (stats ? banSuggestions(stats, taken, myPick?.champ ? { champ: myPick.champ, role: myRole } : null) : []), [stats, taken, myPick, myRole])
@@ -182,7 +202,10 @@ export function Draft({
                     }}
                   />
                 </div>
-                {live && owned && <Switch on={ownedOnly} onChange={setOwnedOnly} label={t('Только мои чемпионы')} />}
+                <div className="draft-switches">
+                  {live && owned && <Switch on={ownedOnly} onChange={setOwnedOnly} label={t('Только мои чемпионы')} />}
+                  {hasPool && <Switch on={poolOnly} onChange={setPoolOnly} label={t('Только мой пул')} />}
+                </div>
                 <motion.div className="draft-picks" variants={stagger} initial="hidden" animate="show" key={myRole + picks.length}>
                   {picks.map((s, i) => (
                     <motion.div key={s.champ} variants={fadeUp} className="draft-pick">
@@ -195,7 +218,11 @@ export function Draft({
                           {s.laneOpp && <em className={s.lane >= 0 ? 'good' : 'bad'}>{t('Линия против {name}', { name: champName(s.laneOpp) })} {sign(s.lane)}</em>}
                           {s.counter !== 0 && <em className={s.counter >= 0 ? 'good' : 'bad'}>{t('Против врагов')} {sign(s.counter)}</em>}
                           {s.synergy !== 0 && <em className={s.synergy >= 0 ? 'good' : 'bad'}>{t('Синергия')} {sign(s.synergy)}</em>}
-                          {s.comfort > 0 && <em className="good">{t('Ваш чемпион')} {sign(s.comfort)}</em>}
+                          {s.comfort !== 0 && (
+                            <em className={s.comfort >= 0 ? 'good' : 'bad'} title={t('Ваши игры на нём в этой роли и мастерство')}>
+                              {s.you ? t('Вы {w}–{l}', { w: s.you.w, l: s.you.g - s.you.w }) : t('Ваш чемпион')} {sign(s.comfort)}
+                            </em>
+                          )}
                         </span>
                       </div>
                       <div className="draft-wr">

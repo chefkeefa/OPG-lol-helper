@@ -25,11 +25,22 @@ export interface Score {
   synergy: number
   comfort: number
   laneOpp: string | null
+  /** your own recent games on this champion in this role */
+  you: Mine | null
+}
+
+/** what you have put into a champion: recent games in this role and mastery points */
+export interface Mine {
+  g: number
+  w: number
+  mastery: number
 }
 
 const K_BASE = 150
 const K_PAIR = 60
 const K_LANE = 40
+// your own games: 10 wins out of 12 is a real signal, 2 out of 2 is not
+const K_YOU = 25
 
 const logit = (p: number) => Math.log(p / (1 - p))
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
@@ -92,7 +103,7 @@ export function inferRoles(data: DraftData, picks: Pick[]): Pick[] {
 }
 
 /** How good a champion is in this role, with these teammates, against these enemies. */
-export function scoreChamp(data: DraftData, champ: string, role: string, allies: Pick[], enemies: Pick[], masteryPoints = 0): Score {
+export function scoreChamp(data: DraftData, champ: string, role: string, allies: Pick[], enemies: Pick[], you?: Mine): Score {
   const { p, a } = base(data, champ, role)
   let counter = 0
   let lane = 0
@@ -106,8 +117,10 @@ export function scoreChamp(data: DraftData, champ: string, role: string, allies:
   }
   let synergy = 0
   for (const t of allies) if (t.champ && t.champ !== champ) synergy += pairEffect(a?.with, t.champ, p)
-  // a champion you have put many games into is worth a little: up to about 2.5 points
-  const comfort = masteryPoints > 0 ? Math.min(0.1, 0.03 * Math.log10(1 + masteryPoints / 1000)) : 0
+  // a champion you have put many games into is worth a little (up to about 2.5 points), and
+  // how you actually do on it in this role moves the estimate towards your own win rate
+  const mastery = you?.mastery ? Math.min(0.1, 0.03 * Math.log10(1 + you.mastery / 1000)) : 0
+  const comfort = mastery + (you?.g ? pairEffect({ me: [you.g, you.w] }, 'me', p, K_YOU) : 0)
   const total = logit(p) + counter + lane + synergy + comfort
   return {
     champ,
@@ -120,6 +133,7 @@ export function scoreChamp(data: DraftData, champ: string, role: string, allies:
     synergy: pp(synergy),
     comfort: pp(comfort),
     laneOpp,
+    you: you?.g ? you : null,
   }
 }
 
@@ -129,7 +143,7 @@ export function rankPicks(
   role: string,
   allies: Pick[],
   enemies: Pick[],
-  opts: { taken: Set<string>; owned?: Set<string> | null; mastery?: Record<string, number> },
+  opts: { taken: Set<string>; owned?: Set<string> | null; mine?: Record<string, Mine>; poolOnly?: boolean },
 ): Score[] {
   const roleGames = Object.values(data.champs).reduce((n, r) => n + (r[role]?.g ?? 0), 0)
   const minGames = Math.max(20, roleGames * 0.002)
@@ -138,10 +152,15 @@ export function rankPicks(
     const a = roles[role]
     if (!a || a.g < minGames || opts.taken.has(champ)) continue
     if (opts.owned && opts.owned.size && !opts.owned.has(champ)) continue
-    out.push(scoreChamp(data, champ, role, allies, enemies, opts.mastery?.[champ] ?? 0))
+    const you = opts.mine?.[champ]
+    if (opts.poolOnly && !inPool(you)) continue
+    out.push(scoreChamp(data, champ, role, allies, enemies, you))
   }
   return out.sort((x, y) => y.wr - x.wr)
 }
+
+/** your pool: champions you played in this role lately or have a lot of mastery on */
+export const inPool = (you?: Mine) => Boolean(you && (you.g >= 2 || you.mastery >= 50000))
 
 /** Chance that the allied team wins, from the champions picked so far. */
 export function draftOdds(data: DraftData, allies: Pick[], enemies: Pick[]) {
