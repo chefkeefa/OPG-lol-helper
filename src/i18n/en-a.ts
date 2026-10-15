@@ -129,7 +129,6 @@ export const EN_A: Record<string, string> = {
   'Собрано {n} игр': '{n} games collected',
   ', сейчас {n} в час': ', currently {n} per hour',
   'Выбор чемпиона': 'Champ select',
-  'Открывать билд выбранного чемпиона': 'Open the build for the picked champion',
   'Импортировать руны': 'Import runes',
   'после того как вы зафиксировали выбор': 'after you lock in',
   'Импортировать набор предметов': 'Import item set',

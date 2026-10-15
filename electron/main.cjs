@@ -24,7 +24,6 @@ const DEFAULTS = {
   platform: 'euw1',
   overlayEnabled: true,
   overlayCorner: 'top-right',
-  overlayScale: 1,
   overlayBenchmark: true,
   overlayWidgets: { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true },
   overlayLayout: {},

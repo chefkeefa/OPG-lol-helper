@@ -54,8 +54,6 @@ export const championMap = () =>
 
 export const rankEmblem = (tier: string) =>
   `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${tier.toLowerCase()}.png`
-export const positionIcon = (role: string) =>
-  `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-clash/global/default/assets/images/position-selector/positions/icon-position-${role.toLowerCase()}.png`
 
 let names: Record<string, string> = {}
 championList().then((l) => (names = Object.fromEntries(l.map((c) => [c.id, c.name]))))

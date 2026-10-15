@@ -16,7 +16,6 @@ export interface DesktopSettings {
   platform: string
   overlayEnabled: boolean
   overlayCorner: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
-  overlayScale: number
   overlayBenchmark: boolean
   /** which in-game widgets are on */
   overlayWidgets: Record<OverlayWidget, boolean>
