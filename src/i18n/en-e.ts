@@ -23,4 +23,16 @@ export const EN_E: Record<string, string> = {
   'Показать/скрыть': 'Show/hide',
   'Ранг, LP и винрейт всех десяти игроков в начале матча. Нужен ключ Riot API.': 'Rank, LP and winrate of all ten players at the start of a game. Needs a Riot API key.',
   'Тиры аугментов прямо на карточках выбора.': 'Augment tiers right on the pick cards.',
+  // replay buffer
+  'Момент сохранён': 'Moment saved',
+  'Буфер': 'Buffer',
+  'Длина буфера': 'Buffer length',
+  'Игра пишется в фоне, а Ctrl+Shift+S сохраняет последние секунды. После матча остаются только сохранённые моменты.':
+    'The game is recorded in the background and Ctrl+Shift+S keeps the last seconds. Only the saved moments stay after the game.',
+  'Сохранённые': 'Saved',
+  'выключен': 'off',
+  'последние {n} с · Ctrl+Shift+S': 'last {n} s · Ctrl+Shift+S',
+  'с': 's',
+  'Сохранить момент': 'Save moment',
+  'Запись ещё не началась': 'Recording has not started yet',
 }

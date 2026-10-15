@@ -9,6 +9,7 @@ const EN = {
   'Четверное убийство': 'Quadra kill',
   'ПЕНТАКИЛЛ': 'PENTAKILL',
   'Мультикилл': 'Multikill',
+  'Сохранённый момент': 'Saved moment',
   'Убийство: {name}': 'Kill: {name}',
   'Смерть от {name}': 'Killed by {name}',
   'Помощь: {name}': 'Assist: {name}',

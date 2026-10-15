@@ -331,7 +331,17 @@ export function OverlayApp() {
   const [edit, setEdit] = useState(false)
   const [scout, setScout] = useState(false)
   const [tick, setTick] = useState(1185)
+  const [marked, setMarked] = useState(0)
   useEffect(() => window.rp?.live.on(setLive), [])
+  useEffect(
+    () =>
+      window.rp?.rec.onMark((ok) => {
+        if (!ok) return
+        setMarked(Date.now())
+        setTimeout(() => setMarked(0), 2500)
+      }),
+    [],
+  )
   useEffect(() => window.rp?.overlay.onBenchmarks(setBench), [])
   useEffect(() => window.rp?.overlay.onEdit(setEdit), [])
   useEffect(() => window.rp?.overlay.onScout(setScout), [])
@@ -389,6 +399,13 @@ export function OverlayApp() {
           </button>
         </motion.div>
       )}
+      <AnimatePresence>
+        {marked > 0 && (
+          <motion.div key={marked} className="ov-marked" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <i /> {t('Момент сохранён')}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {WIDGETS.filter((w) => on[w]).map((w) => (
         <Placed key={w} id={w} pos={layout[w]} edit={edit} onMove={move}>
           {content[w]}

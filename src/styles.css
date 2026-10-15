@@ -6382,3 +6382,36 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
 .ovw.dragging {
   z-index: 3;
 }
+.ov-marked {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(10, 11, 22, 0.88);
+  border: 1px solid rgba(240, 84, 92, 0.6);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ov-marked i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--loss);
+  box-shadow: 0 0 10px var(--loss);
+}
+.rec-buffer > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.rec-buffer em {
+  font-style: normal;
+}
+.rec-buffer-len {
+  width: auto;
+}

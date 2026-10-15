@@ -16,6 +16,7 @@ const KIND: Record<Moment['kind'], { label: string; color: string }> = {
   steal: { label: t('Кражи'), color: '#ff9f43' },
   ace: { label: t('Эйс'), color: '#ff5d8f' },
   fight: { label: t('Жаркие бои'), color: '#ffd166' },
+  mark: { label: t('Сохранённые'), color: '#ff6b6b' },
 }
 
 const media = (file: string) => `rpmedia://media/${encodeURIComponent(file)}`
@@ -103,6 +104,17 @@ export function Recordings({
                 <i /> {t('Идёт запись')}
               </motion.span>
             )}
+            {recording && settings?.recordingBuffer && (
+              <motion.button
+                className="btn"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => window.rp?.rec.mark().then((ok) => toast(ok ? t('Момент сохранён') : t('Запись ещё не началась'), 'info'))}
+              >
+                <Icon name="download" size={15} /> {t('Сохранить момент')}
+              </motion.button>
+            )}
           </AnimatePresence>
           <label className="switch-row">
             <span>{t('Записывать игры')}</span>
@@ -113,6 +125,29 @@ export function Recordings({
               <motion.i layout transition={{ type: 'spring', stiffness: 500, damping: 32 }} />
             </button>
           </label>
+          <label className="switch-row rec-buffer" title={t('Игра пишется в фоне, а Ctrl+Shift+S сохраняет последние секунды. После матча остаются только сохранённые моменты.')}>
+            <span>
+              {t('Буфер')}
+              <em className="muted small">
+                {settings?.recordingBuffer ? t('последние {n} с · Ctrl+Shift+S', { n: settings.bufferSeconds ?? 30 }) : t('выключен')}
+              </em>
+            </span>
+            <button
+              className={`switch ${settings?.recordingBuffer ? 'on' : ''}`}
+              onClick={() => (desktop ? update('recordingBuffer', !settings?.recordingBuffer) : toast(t('Запись работает в десктоп-версии.'), 'info'))}
+            >
+              <motion.i layout transition={{ type: 'spring', stiffness: 500, damping: 32 }} />
+            </button>
+          </label>
+          {settings?.recordingBuffer && (
+            <select className="rec-buffer-len" value={settings.bufferSeconds ?? 30} onChange={(e) => update('bufferSeconds', Number(e.target.value))} aria-label={t('Длина буфера')}>
+              {[15, 30, 60, 120].map((n) => (
+                <option key={n} value={n}>
+                  {n} {t('с')}
+                </option>
+              ))}
+            </select>
+          )}
           {desktop && (
             <button className="btn" onClick={() => window.rp?.rec.open()}>
               <Icon name="folder" size={16} /> {t('Папка')}

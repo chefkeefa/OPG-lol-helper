@@ -120,6 +120,8 @@ const WEB_SETTINGS: DesktopSettings = {
   hlBefore: 12,
   hlAfter: 6,
   hlKeepFull: false,
+  recordingBuffer: false,
+  bufferSeconds: 30,
   collectMayhem: true,
   augmentsEnabled: true,
   discordWebhook: '',

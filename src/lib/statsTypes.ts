@@ -87,7 +87,7 @@ export interface BuildPayload {
 
 export interface Moment {
   t: number
-  kind: 'kill' | 'death' | 'assist' | 'multikill' | 'objective' | 'steal' | 'ace' | 'fight'
+  kind: 'kill' | 'death' | 'assist' | 'multikill' | 'objective' | 'steal' | 'ace' | 'fight' | 'mark'
   label: string
 }
 

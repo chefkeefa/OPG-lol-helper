@@ -78,5 +78,7 @@ contextBridge.exposeInMainWorld('rp', {
     open: (file) => ipcRenderer.invoke('rec:open', file),
     toggle: () => ipcRenderer.invoke('rec:toggle'),
     onState: on('rec:state'),
+    mark: () => ipcRenderer.invoke('rec:mark'),
+    onMark: on('rec:mark'),
   },
 })

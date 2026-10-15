@@ -62,6 +62,9 @@ const DEFAULTS = {
   hlBefore: 12,
   hlAfter: 6,
   hlKeepFull: false,
+  // replay buffer: Ctrl+Shift+S keeps the last bufferSeconds of the game
+  recordingBuffer: false,
+  bufferSeconds: 30,
 }
 let settings = { ...DEFAULTS }
 try {
@@ -173,9 +176,15 @@ function syncOverlayKeys() {
   if (!want) {
     globalShortcut.unregister('Alt+B')
     globalShortcut.unregister('Alt+X')
+    globalShortcut.unregister('CommandOrControl+Shift+S')
     return
   }
   globalShortcut.register('Alt+B', () => setOverlayEdit(!overlayEdit))
+  globalShortcut.register('CommandOrControl+Shift+S', () => {
+    const ok = recorder.mark()
+    overlay?.webContents.send('rec:mark', ok)
+    send('rec:mark', ok)
+  })
   globalShortcut.register('Alt+X', () => {
     overlayScout = !overlayScout
     overlay?.webContents.send('overlay:scout', overlayScout)
@@ -372,7 +381,7 @@ async function pollLive() {
     overlay?.webContents.send('live:data', data)
     if (!was) syncOverlayKeys()
     if (!was && store.get('overlayEnabled')) showOverlay()
-    if (!was && store.get('recordingEnabled') && !recorder.recording) {
+    if (!was && (store.get('recordingEnabled') || store.get('recordingBuffer')) && !recorder.recording) {
       const me = data.activePlayer
       const mine = data.allPlayers?.find((p) => [p.riotIdGameName, p.riotId, p.summonerName].includes(me?.riotIdGameName || me?.summonerName))
       recorder.start({ champion: mine?.championName, gameMode: data.gameData.gameMode, gameTime: data.gameData.gameTime }).catch(() => {})
@@ -519,6 +528,11 @@ ipcMain.handle('rec:open', (_e, file) => {
   const full = file ? recorder.resolve(file) : null
   if (full) shell.showItemInFolder(full)
   else shell.openPath(recorder.folder())
+})
+ipcMain.handle('rec:mark', () => {
+  const ok = recorder.mark()
+  overlay?.webContents.send('rec:mark', ok)
+  return ok
 })
 ipcMain.handle('rec:toggle', () => {
   if (recorder.recording) {

@@ -48,6 +48,9 @@ export interface DesktopSettings {
   hlBefore: number
   hlAfter: number
   hlKeepFull: boolean
+  /** replay buffer: Ctrl+Shift+S keeps the last bufferSeconds */
+  recordingBuffer: boolean
+  bufferSeconds: number
   collectMayhem: boolean
   augmentsEnabled: boolean
   discordWebhook: string
@@ -125,6 +128,10 @@ declare global {
         open(file?: string): Promise<void>
         toggle(): Promise<boolean>
         onState(cb: (s: 'recording' | 'idle') => void): Off
+        /** keep the last bufferSeconds of the recording in progress */
+        mark(): Promise<boolean>
+        /** the buffer hotkey was pressed: true when a moment was saved */
+        onMark(cb: (ok: boolean) => void): Off
       }
     }
   }

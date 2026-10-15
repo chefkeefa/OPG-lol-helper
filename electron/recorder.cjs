@@ -119,6 +119,22 @@ class Recorder {
     setTimeout(() => this.cur && this.finish(), 8000)
   }
 
+  /** Replay buffer: the hotkey marks "keep the last N seconds"; the marks are cut out after the game. */
+  mark() {
+    const c = this.cur
+    if (!c || c.startedAt === undefined) return false
+    const at = (Date.now() - c.startedAt) / 1000
+    const keep = Math.max(10, Number(this.getSettings().bufferSeconds) || 30)
+    c.moments.push({ t: at, kind: 'mark', label: t('Сохранённый момент'), from: Math.max(0, at - keep) })
+    return true
+  }
+
+  /** Buffer only: the game is recorded just to keep the marked moments, the full video is not kept. */
+  bufferOnly() {
+    const s = this.getSettings()
+    return Boolean(s.recordingBuffer) && !s.recordingEnabled
+  }
+
   /** Called with every live data sample while a game is running. */
   onLive(data) {
     const c = this.cur
@@ -183,17 +199,18 @@ class Recorder {
     }
     let segments = null
     let moments = c.moments
-    if (this.getSettings().recordingMode === 'highlights') {
-      const reel = await this.highlightReel(c, folder, file, duration).catch(() => null)
-      if (reel === 'empty') {
+    const buffer = this.bufferOnly()
+    if (buffer || this.getSettings().recordingMode === 'highlights') {
+      const reel = await this.highlightReel(c, folder, file, duration, buffer).catch(() => null)
+      if (reel === 'empty' || (buffer && !reel)) {
         // nothing worth keeping in this game
-        if (!this.getSettings().hlKeepFull) {
+        if (buffer || !this.getSettings().hlKeepFull) {
           fs.rmSync(path.join(folder, file), { force: true })
           this.onChange?.('idle')
           return
         }
       } else if (reel) {
-        if (this.getSettings().hlKeepFull) {
+        if (!buffer && this.getSettings().hlKeepFull) {
           // the full game stays as its own recording next to the reel
           fs.writeFileSync(path.join(folder, `${c.id}-full.json`), JSON.stringify(this.metaFor(c, `${c.id}-full`, file, duration, c.moments)))
         } else fs.rmSync(path.join(folder, file), { force: true })
@@ -229,18 +246,21 @@ class Recorder {
   }
 
   /** Which moments the settings ask to keep, as [time, label] pairs on the recording timeline. */
-  pickHighlights(c) {
+  pickHighlights(c, buffer = false) {
     const s = this.getSettings()
     const out = []
     for (const m of c.moments) {
-      if (m.kind === 'multikill' && s.hlMultikill > 0 && (m.streak || 2) >= s.hlMultikill) out.push(m)
+      // moments saved with the buffer hotkey are always kept
+      if (m.kind === 'mark') out.push(m)
+      else if (buffer) continue
+      else if (m.kind === 'multikill' && s.hlMultikill > 0 && (m.streak || 2) >= s.hlMultikill) out.push(m)
       else if (m.kind === 'steal' && s.hlSteal) out.push(m)
       else if (m.kind === 'ace' && s.hlAce) out.push(m)
       else if (m.kind === 'objective' && s.hlObjective && m.ours !== false) out.push(m)
       else if (m.kind === 'kill' && s.hlKill) out.push(m)
       else if (m.kind === 'death' && s.hlDeath) out.push(m)
     }
-    if (s.hlFight) {
+    if (s.hlFight && !buffer) {
       // a fight: you take part in three or more champion kills (kill, assist or death) within 20 s
       const f = [...c.fight].sort((a, b) => a - b)
       for (let i = 0; i + 2 < f.length; i++) {
@@ -255,16 +275,16 @@ class Recorder {
   }
 
   /** Cuts the chosen moments out of the game and joins them into one highlight video. */
-  async highlightReel(c, folder, file, duration) {
+  async highlightReel(c, folder, file, duration, buffer = false) {
     const s = this.getSettings()
     const before = Math.max(3, Number(s.hlBefore) || 12)
-    const after = Math.max(2, Number(s.hlAfter) || 6)
-    const picks = this.pickHighlights(c)
+    const after = buffer ? 2 : Math.max(2, Number(s.hlAfter) || 6)
+    const picks = this.pickHighlights(c, buffer)
     if (!picks.length) return 'empty'
     // windows around each moment, merged where they overlap
     const wins = []
     for (const m of picks) {
-      const start = Math.max(0, (m.from ?? m.t) - before)
+      const start = Math.max(0, m.kind === 'mark' ? m.from : (m.from ?? m.t) - before)
       const end = Math.min(duration, m.t + after)
       const last = wins[wins.length - 1]
       if (last && start <= last.end + 1) {
