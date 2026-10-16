@@ -8883,3 +8883,70 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* other players' names open their profile */
+.plink {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+.plink:hover,
+.plink:focus-visible {
+  color: var(--accent-2, #b9b2ff);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  outline: none;
+}
+.plink:hover b,
+.plink:hover .muted {
+  color: inherit;
+}
+.hrow-teams.named {
+  flex-direction: row;
+  gap: 10px;
+}
+.hrow-teams.named > div {
+  flex-direction: column;
+  gap: 1px;
+  width: 104px;
+}
+.hrow-p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.hrow-p > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hrow-p.me {
+  color: var(--text);
+  font-weight: 700;
+}
+.hrow-p .plink:hover {
+  color: var(--text);
+}
+@media (max-width: 1500px) {
+  /* names fit next to the items down to a small window; only the bare icon strip is dropped */
+  .hrow-head:has(.hrow-teams.named) {
+    grid-template-columns: 110px auto 100px 1fr auto auto auto 24px;
+    gap: 16px;
+  }
+  .hrow-teams.named {
+    display: flex !important;
+  }
+}
+@media (max-width: 1250px) {
+  .hrow-head:has(.hrow-teams.named) {
+    grid-template-columns: 110px auto 110px 1fr auto auto 24px;
+  }
+  .hrow-teams.named {
+    display: none !important;
+  }
+}

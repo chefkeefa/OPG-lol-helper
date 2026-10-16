@@ -267,4 +267,5 @@ export const EN_E: Record<string, string> = {
   'Регионы': 'Regions',
   'Все регионы': 'All regions',
   'У ключа Riot свой лимит запросов на Азию (KR, JP), Европу и Америку, поэтому KR + EUW + NA собирают примерно втрое больше игр, чем один регион. Серверов Китая в Riot API нет.': 'A Riot key has a separate request limit for Asia (KR, JP), Europe and the Americas, so KR + EUW + NA collect about three times as many games as one region. Chinese servers are not in the Riot API.',
+  'Открыть профиль': 'Open profile',
 }

@@ -7,6 +7,7 @@ import { champSplash } from '../lib/ddragon'
 import { matchSplash, useSkins } from '../lib/skins'
 import { Champ, Icon, Item, Ring, Segmented, Splash, ease, fadeUp, stagger } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
+import { PlayerLink } from '../components/PlayerLink'
 import { t } from '../lib/i18n'
 
 export function Matches({
@@ -90,18 +91,38 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
             <Item key={i} id={id} size={26} />
           ))}
         </div>
-        <div className="hrow-teams">
-          <div>
-            {[m.champion, ...m.allies].map((c, i) => (
-              <Champ key={i} name={c} size={20} radius={5} />
-            ))}
+        {(m.players?.length ?? 0) >= 10 ? (
+          <div className="hrow-teams named">
+            {[true, false].map((ours) => {
+              const myTeam = m.players!.find((p) => p.me)?.teamId
+              return (
+                <div key={String(ours)}>
+                  {m.players!
+                    .filter((p) => (p.teamId === myTeam) === ours)
+                    .map((p, i) => (
+                      <span key={i} className={`hrow-p ${p.me ? 'me' : ''}`}>
+                        <Champ name={p.champion} size={16} radius={4} />
+                        {p.me ? <span>{p.name}</span> : <PlayerLink name={p.name} tag={p.tag} puuid={p.puuid} />}
+                      </span>
+                    ))}
+                </div>
+              )
+            })}
           </div>
-          <div>
-            {m.enemies.map((c, i) => (
-              <Champ key={i} name={c} size={20} radius={5} />
-            ))}
+        ) : (
+          <div className="hrow-teams">
+            <div>
+              {[m.champion, ...m.allies].map((c, i) => (
+                <Champ key={i} name={c} size={20} radius={5} />
+              ))}
+            </div>
+            <div>
+              {m.enemies.map((c, i) => (
+                <Champ key={i} name={c} size={20} radius={5} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         <Ring value={m.score} size={48} color={m.placement === 1 ? 'var(--gold)' : m.win ? 'var(--text)' : 'var(--loss)'}>
           <b>{m.score}</b>
           <span className={`badge ${b.tone}`}>{b.text}</span>
@@ -230,7 +251,7 @@ function Scoreboard({ m }: { m: MatchSummary }) {
               >
                 <div className="sb-player">
                   <Champ name={p.champion} size={30} radius={7} />
-                  <span>{p.name}</span>
+                  {p.me ? <span>{p.name}</span> : <PlayerLink name={p.name} tag={p.tag} puuid={p.puuid} />}
                 </div>
                 <span className="sb-kda">
                   {p.kills}/{p.deaths}/{p.assists}

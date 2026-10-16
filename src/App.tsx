@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { PlayerLinkContext } from './components/PlayerLink'
 import type { LiveData, Page, PlayerData, QueueFilter } from './types'
 import type { ClientStatus, DesktopSettings, UpdateState } from './env'
 import { RiotError, clearCache, getStoredKey, loadPlayer, proxyConfig } from './api/riot'
@@ -303,6 +304,12 @@ export default function App() {
     [run, count, openProfile],
   )
 
+  // names of other players anywhere open their profile, on the server of the profile on screen
+  const playerLinks = useMemo(
+    () => ({ open: search, platform: data.profile.platform || settings?.platform || 'euw1', home: settings?.platform || data.profile.platform || 'euw1' }),
+    [search, data.profile.platform, settings?.platform],
+  )
+
   const refresh = useCallback(() => {
     const v = viewing.current
     if (v?.kind === 'client') return loadSelf()
@@ -482,6 +489,7 @@ export default function App() {
   }
 
   return (
+    <PlayerLinkContext.Provider value={playerLinks}>
     <div className="app">
       <Sidebar page={page} onNavigate={navigate} data={data} inGame={Boolean(live)} recording={recording} version={version} update={upd} onSwitchAccount={switchAccount} />
       <div className="main-wrap">
@@ -644,5 +652,6 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+    </PlayerLinkContext.Provider>
   )
 }
