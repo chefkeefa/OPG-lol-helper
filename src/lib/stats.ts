@@ -1,5 +1,5 @@
 import type { MatchSummary, QueueFilter, Role } from '../types'
-import { t } from './i18n'
+import { lang, t } from './i18n'
 
 export const QUEUE_LABEL: Record<number, string> = {
   420: 'Solo/Duo',
@@ -135,11 +135,26 @@ export function roleAggs(ms: MatchSummary[]) {
   })
 }
 
-export function badge(m: MatchSummary): { text: string; tone: 'mvp' | 'ace' | 'plain' } {
-  if (m.placement === 1) return { text: 'MVP', tone: 'mvp' }
-  if (!m.win && m.score >= 80) return { text: 'ACE', tone: 'ace' }
+/** Score colours as in DPM: red under 30, orange 30–49, blue 50–69, lavender 70–99, gold for the best score of the game. */
+export function scoreColor(score: number) {
+  if (score >= 100) return '#ffe8a3'
+  if (score >= 70) return '#deccfb'
+  if (score >= 50) return '#a1e4f9'
+  if (score >= 30) return '#ffa552'
+  return '#f03a38'
+}
+
+/** MVP is the best score of the winning team, ACE the best of the losing one; everyone else shows their place among all ten. */
+export function badge(m: MatchSummary): { text: string; tone: 'mvp' | 'ace' | 'top' | 'plain' } {
+  const mine = m.players?.find((p) => p.me)
+  const best =
+    m.players?.length === 10 && mine
+      ? m.players.every((p) => p.teamId !== mine.teamId || p.score <= mine.score)
+      : m.placement === 1 || (!m.win && m.score >= 80)
+  if (best) return m.win ? { text: 'MVP', tone: 'mvp' } : { text: 'ACE', tone: 'ace' }
   const n = m.placement
-  return { text: `#${n}`, tone: 'plain' }
+  const text = lang === 'en' ? `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}` : `${n}-й`
+  return { text, tone: n <= 3 ? 'top' : 'plain' }
 }
 
 export function ago(ts: number) {

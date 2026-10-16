@@ -116,7 +116,8 @@ export function mockPlayer(): PlayerData {
           damage: Math.round(min * (300 + r() * 700)),
           gold: Math.round(min * (280 + r() * 160)),
           vision: Math.round(min * (0.4 + r() * 1.6)),
-          score: me ? score : Math.round(20 + r() * 80),
+          // nobody beats a top-placed player, and a strong game usually tops its own team
+          score: me ? score : Math.min(score >= 95 || (j < 5 && score >= 80) ? score - 1 - Math.round(r() * 20) : 100, Math.round(20 + r() * 80)),
           items: Array.from({ length: 6 }, () => pick(ITEMS)).concat(3340),
         }
       }),
