@@ -6,6 +6,7 @@ import { statsDetail, statsDraft, ROLE_LABEL, pct } from '../lib/statsApi'
 import { ROLES, banSuggestions, draftOdds, inferRoles, inPool, rankPicks, type Mine, type Pick, type Score } from '../lib/draft'
 import { championList, championMap, champName } from '../lib/ddragon'
 import { Champ, Icon, Switch, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { RoleIcon } from '../components/RoleIcon'
 import { ChampPicker, CollectorPill, RoleTabs, StatsGate, hasData } from '../components/StatsBits'
 import { t } from '../lib/i18n'
@@ -148,7 +149,7 @@ export function Draft({
     <div className="page draft-page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="target" size={28} /> {t('Помощник драфта')}
+          <NavIcon name="target" size={26} /> {t('Помощник драфта')}
         </h1>
         <span className={`draft-mode ${live ? 'live' : ''}`}>{live ? t('Выбор чемпионов идёт') : t('Песочница: соберите драфт сами')}</span>
         <CollectorPill status={status} demo={demo} />

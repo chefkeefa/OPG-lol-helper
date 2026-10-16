@@ -6,6 +6,7 @@ import { championMap, champName, champTile, rankEmblem } from '../lib/ddragon'
 import { queueLabel } from '../lib/stats'
 import { fmtNum, t } from '../lib/i18n'
 import { Icon, Img, Skeleton, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 
 interface SpecPlayer {
   puuid: string
@@ -166,7 +167,7 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="tv" size={28} /> {t('Наблюдение')}
+          <NavIcon name="tv" size={26} /> {t('Наблюдение')}
         </h1>
         <p className="page-sub">{t('Живые ранговые игры лучших игроков региона.')}</p>
         <div className="push" />

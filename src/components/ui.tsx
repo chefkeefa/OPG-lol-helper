@@ -148,6 +148,7 @@ export function Sparkline({
   dot = true,
   labels,
   format,
+  area = true,
 }: {
   data: number[]
   width?: number
@@ -158,6 +159,8 @@ export function Sparkline({
   /** one per point, e.g. "16 авг · Ahri"; enables the hover tooltip */
   labels?: string[]
   format?: (v: number) => string
+  /** soft fill under the line; DPM's stat tiles draw the bare line */
+  area?: boolean
 }) {
   const id = useId()
   const ref = useRef<SVGSVGElement>(null)
@@ -205,13 +208,13 @@ export function Sparkline({
             <stop offset="1" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <motion.path
+        {area && <motion.path
           d={`${line} L${width - 2},${height} L2,${height} Z`}
           fill={`url(#${id})`}
           initial={{ opacity: 0 }}
           animate={{ opacity: inView ? 1 : 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-        />
+        />}
         <motion.path
           d={line}
           fill="none"

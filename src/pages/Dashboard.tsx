@@ -8,6 +8,7 @@ import { champName, champSplash, champTile, championMap, profileIcon, rankEmblem
 import { ROLES, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCards, QUEUE_FILTERS, type StatCard } from '../lib/stats'
 import { clock } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Item, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger, type IconName } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { champSkinSplash, liveChamp, liveSplash, matchSplash, skinFor, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
 import { fmtNum, lang, locale, t } from '../lib/i18n'
@@ -61,7 +62,7 @@ export function Dashboard({
       <motion.div className="dash-grid" variants={stagger} initial="hidden" animate="show">
         <Hero data={data} matches={shown} role={role} setRole={setRole} />
         <div className="dash-list">
-          <MatchList matches={shown} gd={gd} onOpen={openMatch} onAll={() => navigate('matches')} />
+          <MatchList data={data} matches={shown} gd={gd} onOpen={openMatch} onAll={() => navigate('matches')} />
         </div>
         <div className="dash-mid">
           <Records matches={shown} onOpen={openMatch} />
@@ -118,7 +119,7 @@ function PageHead({
   return (
     <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
       <h1>
-        <Icon name="home" size={30} /> {t('Профиль')}
+        <NavIcon name="home" size={26} /> {t('Профиль')}
       </h1>
       <p className="page-sub">{t('Личный хаб Rift Pulse: ваши последние игры, форма и статистика по чемпионам в одном месте.')}</p>
       <div className="push" />
@@ -169,7 +170,7 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
       <div className="hero-top">
         <motion.div className="avatar-wrap big" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...spring, delay: 0.1 }}>
           <span className="region-tag">{(PLATFORMS[data.profile.platform] ?? data.profile.platform).replace(/\d+$/, '').toUpperCase()}</span>
-          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={92} radius={10} />
+          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={76} radius={4} />
           <span className="lvl">{data.profile.level}</span>
         </motion.div>
         <div className="hero-id">
@@ -219,7 +220,7 @@ const StatTile = memo(function StatTile({ c, empty }: { c: StatCard; empty: bool
           {c.fmtDelta(c.delta)}
         </div>
       </div>
-      <Sparkline data={c.series.slice(-20)} labels={pointLabels(c).slice(-20)} format={c.fmt} width={96} height={44} color={up ? 'var(--up)' : 'var(--loss)'} dot={false} />
+      <Sparkline data={c.series.slice(-20)} labels={pointLabels(c).slice(-20)} format={c.fmt} width={120} height={44} color={up ? 'var(--spark-up)' : 'var(--spark-down)'} dot={false} area={false} />
     </motion.div>
   )
 })
@@ -255,7 +256,7 @@ function shortAgo(ts: number) {
   return t('{n} д', { n: Math.round(s / 86400) })
 }
 
-const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary; i: number; gd: GameData | null; onOpen: (id: string) => void }) {
+const MatchRow = memo(function MatchRow({ m, i, gd, lp, onOpen }: { m: MatchSummary; i: number; gd: GameData | null; lp?: number; onOpen: (id: string) => void }) {
   const color = ringColor(m)
   const items = m.items.slice(0, 6)
   return (
@@ -268,13 +269,20 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
       <Splash src={champTile(m.champion, skinFor(m.champion, m.endedAt, m.durationSec))} fallback={champTile(m.champion)} className="match-art" position="center 30%" />
       <div className="match-meta">
         <div>
-          <b>{duration(m.durationSec)}</b> <span className="muted">{shortAgo(m.endedAt)}</span>
+          {lp !== undefined ? (
+            <b className={`match-lp ${lp >= 0 ? 'up' : 'down'}`}>
+              {lp >= 0 ? '+' : '−'} {Math.abs(lp)} <small>LP</small>
+            </b>
+          ) : (
+            <b>{duration(m.durationSec)}</b>
+          )}{' '}
+          <span className="muted">{shortAgo(m.endedAt)}</span>
         </div>
         <div className="match-queue">{queueLabel(m.queueId, m.mode)}</div>
       </div>
       <div className="match-champ">
         <span className="match-portrait">
-          <Champ name={m.champion} size={40} radius={8} />
+          <Champ name={m.champion} size={36} radius={6} />
           <span className="champ-lvl">{m.champLevel}</span>
           {m.keystone && gd?.runes[m.keystone] && (
             <span className="match-keystone">
@@ -285,7 +293,7 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
         {m.spells && (
           <span className="match-spells">
             {m.spells.map((s, j) => (
-              <SpellIcon key={j} id={s} gd={gd} size={19} />
+              <SpellIcon key={j} id={s} gd={gd} size={17} />
             ))}
           </span>
         )}
@@ -300,31 +308,58 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
       </div>
       <div className="match-build">
         {[0, 1, 2].map((j) => (
-          <Item key={j} id={items[j] ?? 0} size={21} />
+          <Item key={j} id={items[j] ?? 0} size={19} />
         ))}
-        <Item id={m.items[6] ?? 0} size={21} />
+        <Item id={m.items[6] ?? 0} size={19} />
         {[3, 4, 5].map((j) => (
-          <Item key={j} id={items[j] ?? 0} size={21} />
+          <Item key={j} id={items[j] ?? 0} size={19} />
         ))}
-        <RuneIcon id={m.subStyle} gd={gd} size={17} tree />
+        <RuneIcon id={m.subStyle} gd={gd} size={15} tree />
       </div>
-      <span className="match-ring" style={{ ['--rc' as string]: color }}>
-        <Ring value={m.score} color={color} size={46} stroke={3.5}>
+      <span className="match-score" style={{ ['--rc' as string]: color }}>
+        <span className="ms-text">
           <b>{m.score}</b>
-          <span className="badge">{placeText(m)}</span>
-        </Ring>
+          <em>{placeText(m)}</em>
+        </span>
+        <Ring value={m.score} color={color} size={30} stroke={4.5} />
       </span>
     </motion.button>
   )
 })
 
-function MatchList({ matches, gd, onOpen, onAll }: { matches: MatchSummary[]; gd: GameData | null; onOpen: (id: string) => void; onAll: () => void }) {
+/** LP won or lost in each ranked game, matched to the rank snapshot taken right after it ended. */
+function useMatchLp(data: PlayerData, matches: MatchSummary[]) {
+  return useMemo(() => {
+    const out = new Map<string, number>()
+    for (const [queue, id] of [['RANKED_SOLO_5x5', 420], ['RANKED_FLEX_SR', 440]] as const) {
+      const changes = lpChanges(lpHistory(data, queue))
+      const used = new Set<number>()
+      for (const m of matches) {
+        if (m.queueId !== id) continue
+        let best = -1
+        for (let k = 0; k < changes.length; k++) {
+          const gap = changes[k].at - m.endedAt
+          if (used.has(k) || gap < 0 || gap > 6 * 3600_000 || changes[k].win !== m.win) continue
+          if (best < 0 || gap < changes[best].at - m.endedAt) best = k
+        }
+        if (best >= 0) {
+          used.add(best)
+          out.set(m.id, changes[best].delta)
+        }
+      }
+    }
+    return out
+  }, [data, matches])
+}
+
+function MatchList({ data, matches, gd, onOpen, onAll }: { data: PlayerData; matches: MatchSummary[]; gd: GameData | null; onOpen: (id: string) => void; onAll: () => void }) {
   const [limit, setLimit] = useState(12)
+  const lp = useMatchLp(data, matches)
   if (!matches.length) return <Card className="empty">{t('Нет игр в этом режиме')}</Card>
   return (
     <motion.section className="match-list" variants={fadeUp}>
       {matches.slice(0, limit).map((m, i) => (
-        <MatchRow key={m.id} m={m} i={i} gd={gd} onOpen={onOpen} />
+        <MatchRow key={m.id} m={m} i={i} gd={gd} lp={lp.get(m.id)} onOpen={onOpen} />
       ))}
       <div className="match-more">
         {limit < matches.length && (

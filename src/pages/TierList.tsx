@@ -5,6 +5,7 @@ import { ROLE_LABEL, pct, statsSummary, tierRows, type TierRow } from '../lib/st
 import { championList } from '../lib/ddragon'
 import { locale, t } from '../lib/i18n'
 import { Champ, Icon, Segmented, Skeleton, ease } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { RoleIcon } from '../components/RoleIcon'
 import { CollectorPill, PatchSelect, RoleTabs, StatsGate, TierBadge, hasData, patchList } from '../components/StatsBits'
 
@@ -106,7 +107,7 @@ export function TierList({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="list" size={28} /> {t('Тир-лист')}
+          <NavIcon name="list" size={26} /> {t('Тир-лист')}
         </h1>
         <p className="page-sub">{t('Тир-листы по играм Master+: следите за метой и лучшими чемпионами для своей роли.')}</p>
         <div className="push" />

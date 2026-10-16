@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { PlayerData } from '../types'
 import { TIERS, loadCollection, type CollectionData, type SkinItem, type Tier, type WardItem } from '../api/collection'
 import { Counter, Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { locale, t } from '../lib/i18n'
 
 type Tab = 'skins' | 'wards' | 'champs'
@@ -158,7 +159,7 @@ export function Collections({ data, connected }: { data: PlayerData; connected: 
     <div className="page coll-page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="box" size={28} /> {t('Коллекция')}
+          <NavIcon name="box" size={26} /> {t('Коллекция')}
         </h1>
         <span className="coll-sub muted small">{t('Все ваши образы, тотемы и чемпионы в одном месте')}</span>
         {col?.source === 'demo' && <span className="collector-pill demo">{t('Пример: запустите клиент LoL')}</span>}

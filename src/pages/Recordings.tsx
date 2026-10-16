@@ -5,6 +5,7 @@ import type { Moment, Recording } from '../lib/statsTypes'
 import { champName } from '../lib/ddragon'
 import { duration } from '../lib/stats'
 import { Champ, Icon, ease, stagger, fadeUp } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { locale, t } from '../lib/i18n'
 
 const KIND: Record<Moment['kind'], { label: string; color: string }> = {
@@ -95,7 +96,7 @@ export function Recordings({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="video" size={28} /> {t('Записи игр')}
+          <NavIcon name="film" size={26} /> {t('Записи игр')}
         </h1>
         <div className="rec-head-tools">
           <AnimatePresence>

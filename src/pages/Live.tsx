@@ -3,6 +3,7 @@ import type { LiveData } from '../types'
 import { champSplash } from '../lib/ddragon'
 import { clock, objectiveTimers } from '../lib/objectives'
 import { Card, Champ, Icon, Item, Ring, Splash, ease, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { liveChamp, liveSplash } from '../lib/skins'
 import { ObjectiveGlyph } from '../components/ObjectiveGlyph'
 import { t } from '../lib/i18n'
@@ -111,7 +112,7 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
 const PageHead = ({ extra }: { extra?: React.ReactNode }) => (
   <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
     <h1>
-      <Icon name="eye" size={30} /> {t('Текущая игра')} {extra}
+      <NavIcon name="eye" size={26} /> {t('Текущая игра')} {extra}
     </h1>
   </motion.div>
 )

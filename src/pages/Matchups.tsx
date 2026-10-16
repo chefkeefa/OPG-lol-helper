@@ -4,6 +4,7 @@ import type { StatsDetail, StatsStatus } from '../lib/statsTypes'
 import { ROLE_LABEL, pct, statsDetail } from '../lib/statsApi'
 import { champName, champTile } from '../lib/ddragon'
 import { Champ, Icon, Ring, Skeleton, Splash, ease } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { ChampPicker, CollectorPill, PatchSelect, RoleTabs, StatsGate, hasData, patchList } from '../components/StatsBits'
 import { locale, t } from '../lib/i18n'
 
@@ -82,7 +83,7 @@ export function Matchups({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="swords" size={28} /> {t('Матчапы')}
+          <NavIcon name="swords" size={26} /> {t('Матчапы')}
         </h1>
         <CollectorPill status={status} demo={demo} />
       </motion.div>

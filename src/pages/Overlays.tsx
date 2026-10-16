@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { DesktopSettings, OverlayWidget } from '../env'
 import { Card, Icon, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { OverlayTimers } from '../components/OverlayTimers'
 import { OverlayBench } from '../components/OverlayBench'
 import { DEFAULT_WIDGETS, OverlayGold, OverlayRespawn, OverlayScout, OverlaySkills, demoOverlayLive } from '../components/OverlayWidgets'
@@ -84,7 +85,7 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="layers" size={30} /> {t('Оверлеи')}
+          <NavIcon name="layers" size={26} /> {t('Оверлеи')}
         </h1>
         <p className="page-sub">{t('Виджеты поверх игры, которые помогают быть на шаг впереди. Работают в режиме «Без рамки».')}</p>
         <div className="push" />

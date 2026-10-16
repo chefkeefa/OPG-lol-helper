@@ -2,14 +2,15 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { Page, PlayerData } from '../types'
 import type { UpdateState } from '../env'
 import { profileIcon, rankEmblem } from '../lib/ddragon'
-import { Icon, Img, spring, type IconName } from './ui'
+import { Icon, Img, spring } from './ui'
+import { NavIcon, type NavIconName } from './NavIcons'
 import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { useAccounts, type Account } from '../lib/accounts'
 
-export const NAV_GROUPS: { title: string; items: { page: Page; icon: IconName; label: string }[] }[] = [
+export const NAV_GROUPS: { title: string; tone: string; items: { page: Page; icon: NavIconName; label: string }[] }[] = [
   {
-    title: t('Rift Core'),
+    title: t('Rift Core'), tone: 'core',
     items: [
       { page: 'dashboard', icon: 'home', label: t('Дашборд') },
       { page: 'tierlist', icon: 'chart', label: t('Тир-лист и билды') },
@@ -17,7 +18,7 @@ export const NAV_GROUPS: { title: string; items: { page: Page; icon: IconName; l
     ],
   },
   {
-    title: t('Приложение'),
+    title: t('Приложение'), tone: 'app',
     items: [
       { page: 'recordings', icon: 'film', label: t('Записи') },
       { page: 'overlays', icon: 'layers', label: t('Оверлеи') },
@@ -26,7 +27,7 @@ export const NAV_GROUPS: { title: string; items: { page: Page; icon: IconName; l
     ],
   },
   {
-    title: t('Аналитика'),
+    title: t('Аналитика'), tone: 'insights',
     items: [
       { page: 'studio', icon: 'file', label: 'Data Studio' },
       { page: 'matchups', icon: 'swords', label: t('Матчапы') },
@@ -35,7 +36,7 @@ export const NAV_GROUPS: { title: string; items: { page: Page; icon: IconName; l
     ],
   },
   {
-    title: t('В игре'),
+    title: t('В игре'), tone: 'game',
     items: [
       { page: 'draft', icon: 'target', label: t('Драфт') },
       { page: 'live', icon: 'eye', label: t('Текущая игра') },
@@ -131,7 +132,7 @@ export function Sidebar({
       </AnimatePresence>
       <nav>
         {NAV_GROUPS.map((g) => (
-          <div key={g.title} className="nav-group">
+          <div key={g.title} className={`nav-group tone-${g.tone}`}>
             <div className="nav-title">{g.title}</div>
             {g.items.map((it) => {
               const active = it.page === page
@@ -139,7 +140,7 @@ export function Sidebar({
                 <div key={it.page}>
                   <button className={`nav-item ${active ? 'active' : ''}`} onClick={() => onNavigate(it.page)}>
                     {active && <motion.span layoutId="nav-active" className="nav-active" transition={spring} />}
-                    <Icon name={it.icon} />
+                    <NavIcon name={it.icon} />
                     <span>{it.label}</span>
                     {it.page === 'live' && inGame && <span className="live-dot" title={t('Идёт игра')} />}
                     {it.page === 'recordings' && recording && <span className="live-dot rec" title={t('Идёт запись')} />}
@@ -197,7 +198,7 @@ export function Sidebar({
       <motion.button className="side-profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} onClick={() => setMenu((v) => !v)} title={t('Сменить аккаунт')}>
         <div className="avatar-wrap">
           <span className="region-tag">{data.profile.platform.replace(/\d+$/, '').toUpperCase()}</span>
-          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={60} radius={10} />
+          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={50} radius={6} />
           <span className="lvl">{data.profile.level}</span>
         </div>
         <div className="side-profile-text">

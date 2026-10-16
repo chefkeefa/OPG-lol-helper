@@ -5,6 +5,7 @@ import { PLATFORMS, RiotError } from '../api/riot'
 import { bestChamps, cachedName, demoApex, loadApex, resolveName, type Apex, type ApexTier, type LadderQueue } from '../api/leaderboard'
 import { championMap, rankEmblem } from '../lib/ddragon'
 import { Champ, Counter, Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import type { Page } from '../types'
 import { fmtNum, t } from '../lib/i18n'
 
@@ -37,7 +38,7 @@ export function Leaderboards(props: { defaultPlatform: string; onOpenPlayer: (ri
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="trophy" size={30} /> {t('Лидеры')}
+          <NavIcon name="trophy" size={26} /> {t('Лидеры')}
         </h1>
         <div className="push" />
         {switcher}
@@ -160,7 +161,7 @@ function Ladder({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="trophy" size={30} /> {t('Лидеры')}
+          <NavIcon name="trophy" size={26} /> {t('Лидеры')}
         </h1>
         <p className="page-sub">{t('Лучшие игроки региона. Нажмите на игрока, чтобы открыть его профиль.')}</p>
         <div className="push" />
