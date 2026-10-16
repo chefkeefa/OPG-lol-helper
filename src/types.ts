@@ -141,7 +141,19 @@ export interface LiveData {
     scores: { kills: number; deaths: number; assists: number; creepScore: number; wardScore: number }
     items: { itemID: number; slot: number; price?: number; count?: number }[]
   }[]
-  events: { Events: { EventID: number; EventName: string; EventTime: number; KillerName?: string; DragonType?: string }[] }
+  events: {
+    Events: {
+      EventID: number
+      EventName: string
+      EventTime: number
+      KillerName?: string
+      DragonType?: string
+      VictimName?: string
+      /** structure ids like Turret_T2_C_05_A: T1 belongs to ORDER, T2 to CHAOS */
+      TurretKilled?: string
+      InhibKilled?: string
+    }[]
+  }
 }
 
 export type QueueFilter = 'all' | 'solo' | 'flex' | 'aram' | 'normal'

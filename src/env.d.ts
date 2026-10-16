@@ -7,7 +7,7 @@ interface RiotResult {
   retryAfter?: number
 }
 
-export type OverlayWidget = 'timers' | 'bench' | 'gold' | 'respawn' | 'skills' | 'scout'
+export type OverlayWidget = 'timers' | 'bench' | 'gold' | 'respawn' | 'skills' | 'scout' | 'buffs' | 'winprob' | 'nextitem'
 
 export interface DesktopSettings {
   riotApiKey: string

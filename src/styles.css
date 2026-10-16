@@ -8441,3 +8441,194 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   font-size: 12px;
   border-radius: 7px;
 }
+
+/* ---------- overlay: objective buffs, win chance, next item ---------- */
+.ov-buffs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.ov-buff,
+.ov-win,
+.ov-next {
+  background: rgba(10, 11, 22, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+}
+.ov-buff {
+  --bc: #b98cff;
+  display: grid;
+  grid-template-columns: 22px auto 64px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 5px;
+  border-left: 3px solid var(--bc);
+}
+.ov-buff.elder {
+  --bc: #9fe3ff;
+}
+.ov-buff.enemy {
+  border-left-color: #ff8f8f;
+}
+.ov-buff-ico {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--bc);
+}
+.ov-buff-ico svg {
+  width: 18px;
+  height: 18px;
+}
+.ov-buff > b {
+  font-size: 14px;
+  font-weight: 800;
+  min-width: 34px;
+}
+.ov-buff-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.ov-buff-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--bc);
+  transition: width 1s linear;
+}
+.ov-buff-team {
+  display: flex;
+  gap: 2px;
+}
+.ov-buff-team img {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: filter 0.3s, opacity 0.3s;
+}
+.ov-buff-team img.lost {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.ov-win {
+  width: 168px;
+  padding: 7px 10px 9px;
+  font-variant-numeric: tabular-nums;
+}
+.ov-win-title {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.ov-win-nums {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0 6px;
+}
+.ov-win-nums b {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.ov-win-nums em {
+  font-style: normal;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 1px;
+}
+.ov-win-nums .ally {
+  color: #8fb6ff;
+}
+.ov-win-nums .enemy {
+  color: #ff8f8f;
+}
+.ov-win-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: #ff8f8f;
+  overflow: hidden;
+}
+.ov-win-bar > i {
+  display: block;
+  height: 100%;
+  background: #8fb6ff;
+  box-shadow: 2px 0 0 rgba(10, 11, 22, 0.9);
+}
+
+.ov-next {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 238px;
+  padding: 6px 10px 6px 6px;
+}
+.ov-next > img {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.ov-next > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ov-next em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.ov-next span b {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-next-bar {
+  display: block;
+  height: 3px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.ov-next-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.6s;
+}
+.ov-next > strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ov-next.ready {
+  border-color: rgba(246, 201, 78, 0.55);
+}
+.ov-next.ready > strong {
+  color: var(--gold);
+}
+.ovc-grid + .ovc-section {
+  margin-top: 30px;
+}
+.ov-next em {
+  white-space: nowrap;
+}
