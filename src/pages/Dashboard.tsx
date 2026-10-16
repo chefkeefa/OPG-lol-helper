@@ -5,7 +5,7 @@ import type { Recording } from '../lib/statsTypes'
 import { PLATFORMS, riot } from '../api/riot'
 import { loadCollection } from '../api/collection'
 import { champName, champSplash, champTile, championMap, profileIcon, rankEmblem } from '../lib/ddragon'
-import { ROLES, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCards, QUEUE_FILTERS, type StatCard } from '../lib/stats'
+import { ROLES, badge, championAggs, duration, kdaRatio, queueLabel, roleAggs, scoreColor, statCards, QUEUE_FILTERS, type StatCard } from '../lib/stats'
 import { clock } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Item, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger, type IconName } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
@@ -14,7 +14,7 @@ import { champSkinSplash, liveChamp, liveSplash, matchSplash, skinFor, useSkins 
 import { RoleIcon } from '../components/RoleIcon'
 import { ProfileChampions, ProfileLens } from './ProfileTabs'
 import { lens, lensColor } from '../lib/lens'
-import { fmtNum, lang, locale, t } from '../lib/i18n'
+import { fmtNum, locale, t } from '../lib/i18n'
 import { lpChanges, lpHistory } from '../lib/lp'
 import { runeIcon, spellIcon, SPELL_FALLBACK, useGameData, type GameData } from '../lib/gameData'
 
@@ -299,19 +299,6 @@ const StatTile = memo(function StatTile({ c, empty }: { c: StatCard; empty: bool
 })
 
 // ---------------------------------------------------------------- match list
-function ringColor(m: MatchSummary) {
-  if (m.placement === 1) return 'var(--gold)'
-  if (!m.win && m.score >= 80) return 'var(--ace)'
-  return m.win ? 'var(--lav)' : m.score < 40 ? 'var(--loss)' : 'var(--lav)'
-}
-function placeText(m: MatchSummary) {
-  if (m.placement === 1) return 'MVP'
-  if (!m.win && m.score >= 80) return 'ACE'
-  const n = m.placement
-  if (lang !== 'en') return `${n}-й`
-  return `${n}${n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`
-}
-
 function SpellIcon({ id, gd, size }: { id: number; gd: GameData | null; size: number }) {
   const sp = gd?.spells[id]
   return <Img src={spellIcon(sp?.id ?? SPELL_FALLBACK[id] ?? 'SummonerFlash', gd?.version ?? '')} alt={sp?.name ?? ''} size={size} radius={4} />
@@ -330,7 +317,8 @@ function shortAgo(ts: number) {
 }
 
 const MatchRow = memo(function MatchRow({ m, i, gd, lp, onOpen }: { m: MatchSummary; i: number; gd: GameData | null; lp?: number; onOpen: (id: string) => void }) {
-  const color = ringColor(m)
+  const color = scoreColor(m.score)
+  const b = badge(m)
   const items = m.items.slice(0, 6)
   return (
     <motion.button
@@ -392,7 +380,7 @@ const MatchRow = memo(function MatchRow({ m, i, gd, lp, onOpen }: { m: MatchSumm
       <span className="match-score" style={{ ['--rc' as string]: color }}>
         <span className="ms-text">
           <b>{m.score}</b>
-          <em>{placeText(m)}</em>
+          <em className={b.tone}>{b.text}</em>
         </span>
         <Ring value={m.score} color={color} size={30} stroke={4.5} />
       </span>
@@ -831,7 +819,7 @@ function Showcase({
                   {champName(m.champion)} · {m.win ? t('Победа') : t('Поражение')}
                 </span>
               </div>
-              <span className={`show-score ${m.placement === 1 ? 'mvp' : ''}`}>{m.score}</span>
+              <span className="show-score" style={{ color: scoreColor(m.score) }}>{m.score}</span>
             </button>
           ))}
         </motion.div>

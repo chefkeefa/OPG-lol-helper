@@ -1205,10 +1205,13 @@ select {
   margin-top: 2px;
 }
 .badge.mvp {
-  color: var(--gold);
+  color: #fdda74;
 }
 .badge.ace {
-  color: #b9a8ff;
+  color: #b795f0;
+}
+.badge.top {
+  color: #9da7e5;
 }
 .more {
   align-self: center;
@@ -7646,6 +7649,15 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   font-size: 8.5px;
   font-weight: 700;
   color: #c9cbd5;
+}
+.ms-text em.mvp {
+  color: #fdda74;
+}
+.ms-text em.ace {
+  color: #b795f0;
+}
+.ms-text em.top {
+  color: #9da7e5;
 }
 
 /* ---------- head: queue pills, sliding tabs ---------- */

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MatchBreakdown } from '../components/MatchBreakdown'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MatchSummary, QueueFilter } from '../types'
-import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel } from '../lib/stats'
+import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel, scoreColor } from '../lib/stats'
 import { champSplash } from '../lib/ddragon'
 import { matchSplash, useSkins } from '../lib/skins'
 import { Champ, Icon, Item, Ring, Segmented, Splash, ease, fadeUp, stagger } from '../components/ui'
@@ -123,8 +123,8 @@ function MatchRow({ m, open, onToggle }: { m: MatchSummary; open: boolean; onTog
             </div>
           </div>
         )}
-        <Ring value={m.score} size={48} color={m.placement === 1 ? 'var(--gold)' : m.win ? 'var(--text)' : 'var(--loss)'}>
-          <b>{m.score}</b>
+        <Ring value={m.score} size={48} color={scoreColor(m.score)}>
+          <b style={{ color: scoreColor(m.score) }}>{m.score}</b>
           <span className={`badge ${b.tone}`}>{b.text}</span>
         </Ring>
         <motion.span className="hrow-chev" animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.3, ease }}>
@@ -269,7 +269,7 @@ function Scoreboard({ m }: { m: MatchSummary }) {
                     <Item key={j} id={id} size={20} />
                   ))}
                 </span>
-                <span className="sb-score">{p.score}</span>
+                <span className="sb-score" style={{ color: scoreColor(p.score) }}>{p.score}</span>
               </motion.div>
             ))}
           </div>
