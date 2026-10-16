@@ -38,6 +38,8 @@ export function useDDragon() {
 export const champIcon = (name: string, v = version) => `${CDN}/cdn/${v}/img/champion/${name}.png`
 export const champSplash = (name: string, skin = 0) => `${CDN}/cdn/img/champion/splash/${name}_${skin}.jpg`
 export const champTile = (name: string, skin = 0) => `${CDN}/cdn/img/champion/tiles/${name}_${skin}.jpg`
+/** tall loading-screen art (308x560) */
+export const champLoading = (name: string, skin = 0) => `${CDN}/cdn/img/champion/loading/${name}_${skin}.jpg`
 export const itemIcon = (id: number, v = version) => `${CDN}/cdn/${v}/img/item/${id}.png`
 export const profileIcon = (id: number, v = version) => `${CDN}/cdn/${v}/img/profileicon/${id}.png`
 

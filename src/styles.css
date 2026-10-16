@@ -8632,3 +8632,215 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
 .ov-next em {
   white-space: nowrap;
 }
+
+/* spectate: tall slanted loading-screen art, unknown players dimmed */
+.spec-row.t-challenger {
+  --tier: #5cc8ee;
+}
+.spec-row {
+  padding: 10px 18px;
+}
+.spec-row-teams {
+  align-items: center;
+  gap: 14px;
+}
+.spec-side {
+  gap: 3px;
+}
+.spec-tile {
+  position: relative;
+  max-width: 78px;
+  gap: 0;
+}
+.spec-face {
+  aspect-ratio: 0.64;
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(9% 0, 100% 0, 91% 100%, 0 100%);
+  box-shadow: none !important;
+  transition: filter 0.25s, transform 0.2s var(--ease);
+}
+.spec-face img {
+  object-position: center 18%;
+}
+.spec-face::after {
+  content: '';
+  position: absolute;
+  inset: 55% 0 0;
+  background: linear-gradient(transparent, rgba(6, 7, 14, 0.92));
+  pointer-events: none;
+}
+.spec-face {
+  position: relative;
+}
+.spec-tile:not(.known) .spec-face {
+  filter: grayscale(1) brightness(0.5);
+}
+.spec-tile:not(.known):hover .spec-face {
+  filter: grayscale(0.4) brightness(0.8);
+}
+.spec-tile b {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 6px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 1;
+}
+.spec-tile.known b {
+  color: #fff;
+}
+.spec-side.blue .spec-tile.known .spec-face {
+  box-shadow: none;
+}
+.spec-vs {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* leaderboards: region badge, avatars, W-L box */
+.ladder-row.lb-row {
+  grid-template-columns: 44px minmax(0, 2fr) 130px 190px 150px;
+  padding: 6px 14px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+}
+.ladder-row.lb-row:not(.head) {
+  background: rgba(255, 255, 255, 0.025);
+}
+.ladder-row.lb-row:not(.head):hover {
+  background: var(--panel-2);
+}
+.ladder-row.lb-row.head {
+  margin-bottom: 2px;
+}
+.lb-row .ladder-pos {
+  text-align: center;
+  font-size: 15px;
+  color: var(--text);
+}
+.lb-region {
+  flex: none;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #dfe4ff;
+  background: #2f3fb0;
+}
+.lb-ava {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel-3);
+  border: 1px solid var(--line-2);
+}
+.lb-ava img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.lb-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: left;
+}
+.lb-name b,
+.lb-name span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-name span {
+  font-size: 11.5px;
+}
+.lb-row .ladder-lp {
+  color: #8fd3ff;
+  font-size: 15px;
+}
+.lb-wrbox {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.lb-wrbox > span {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.lb-wrbox em,
+.lb-podium-wl em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 1px;
+}
+.lb-wrbox > b {
+  min-width: 44px;
+  padding: 4px 8px;
+  text-align: center;
+  background: #4f8fa8;
+  color: #fff;
+}
+.lb-wrbox > b.mid {
+  background: #8a63c9;
+}
+.lb-wrbox > b.hi {
+  background: #b08d3c;
+}
+.lb-podium-top .lb-ava {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+.lb-podium-wl span {
+  color: var(--muted);
+}
+
+/* recordings: empty library */
+.rec-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 440px;
+  margin: 12vh auto 0;
+  text-align: center;
+}
+.rec-empty-tiles {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.rec-empty-tiles span {
+  display: grid;
+  place-items: center;
+  width: 100px;
+  height: 56px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+}
+.rec-empty h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.rec-empty p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+}

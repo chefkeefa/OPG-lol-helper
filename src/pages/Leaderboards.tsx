@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CustomBoards } from './CustomBoards'
 import { AnimatePresence, motion } from 'motion/react'
 import { PLATFORMS, RiotError } from '../api/riot'
-import { bestChamps, cachedName, demoApex, loadApex, resolveName, type Apex, type ApexTier, type LadderQueue } from '../api/leaderboard'
-import { championMap, rankEmblem } from '../lib/ddragon'
+import { bestChamps, cachedIcon, cachedName, demoApex, loadApex, profileIconOf, resolveName, type Apex, type ApexTier, type LadderQueue } from '../api/leaderboard'
+import { championMap, profileIcon, rankEmblem } from '../lib/ddragon'
 import { Champ, Counter, Icon, Img, Segmented, Skeleton, ease } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
 import type { Page } from '../types'
@@ -64,6 +64,24 @@ function BestChamps({ ids, map, size = 26 }: { ids?: number[]; map: Record<numbe
   )
 }
 
+function Avatar({ icon }: { icon?: number }) {
+  return <span className="lb-ava">{icon != null && <img src={profileIcon(icon)} alt="" loading="lazy" />}</span>
+}
+
+function WinBox({ wins, losses }: { wins: number; losses: number }) {
+  const wr = wins / Math.max(1, wins + losses)
+  return (
+    <span className="lb-wrbox">
+      <span>
+        {wins}
+        <em>W</em> – {losses}
+        <em>L</em>
+      </span>
+      <b className={wr >= 0.6 ? 'hi' : wr >= 0.57 ? 'mid' : ''}>{Math.round(wr * 100)}%</b>
+    </span>
+  )
+}
+
 function Ladder({
   defaultPlatform,
   onOpenPlayer,
@@ -84,6 +102,7 @@ function Ladder({
   const [limit, setLimit] = useState(50)
   const [names, setNames] = useState<Record<string, { gameName: string; tagLine: string }>>({})
   const [best, setBest] = useState<Record<string, number[]>>({})
+  const [icons, setIcons] = useState<Record<string, number>>({})
   const [champs, setChamps] = useState<Record<number, string>>({})
   const job = useRef(0)
 
@@ -132,6 +151,15 @@ function Ladder({
     const queueJobs: (() => Promise<void>)[] = []
     for (const r of rows.slice(0, 20)) if (!best[r.puuid]) queueJobs.push(() => bestChamps(platform, r.puuid).then((b) => setBest((x) => ({ ...x, [r.puuid]: b }))))
     for (const r of todo) if (!cached[r.puuid]) queueJobs.push(() => resolveName(platform, r.puuid).then((a) => setNames((n) => ({ ...n, [r.puuid]: a }))))
+    // profile icons last: they are the least important part of a row
+    const knownIcons: Record<string, number> = {}
+    for (const r of rows.slice(0, limit)) {
+      if (icons[r.puuid] != null) continue
+      const c = cachedIcon(r.puuid)
+      if (c != null) knownIcons[r.puuid] = c
+      else queueJobs.push(() => profileIconOf(platform, r.puuid).then((i) => setIcons((x) => ({ ...x, [r.puuid]: i }))))
+    }
+    if (Object.keys(knownIcons).length) setIcons((x) => ({ ...x, ...knownIcons }))
     let stop = false
     const worker = async () => {
       while (!stop && queueJobs.length && id === job.current) {
@@ -151,6 +179,7 @@ function Ladder({
   }, [rows, limit, platform])
 
   const podium = rows?.slice(0, 3) ?? []
+  const region = PLATFORMS[platform] ?? platform.toUpperCase()
   const nameOf = (puuid: string) => names[puuid]
   const open = (puuid: string) => {
     const n = nameOf(puuid)
@@ -221,6 +250,8 @@ function Ladder({
                 >
                   <div className="lb-podium-top">
                     <span className="lb-place">{i + 1}</span>
+                    <span className="lb-region">{region}</span>
+                    <Avatar icon={icons[r.puuid]} />
                     <span className="lb-podium-name">
                       {n ? (
                         <>
@@ -237,7 +268,9 @@ function Ladder({
                     <Counter value={r.leaguePoints} format={(v) => fmtNum(Math.round(v))} /> <em>LP</em>
                   </div>
                   <div className="lb-podium-wl">
-                    {r.wins}W · {r.losses}L <span className={r.wins / Math.max(1, g) >= 0.5 ? 'good' : 'bad'}>({Math.round((r.wins / Math.max(1, g)) * 100)}%)</span>
+                    {r.wins}
+                    <em>W</em> – {r.losses}
+                    <em>L</em> <span>({Math.round((r.wins / Math.max(1, g)) * 100)}%)</span>
                   </div>
                   <div className="lb-podium-foot">
                     <span>
@@ -254,7 +287,6 @@ function Ladder({
             <span>#</span>
             <span>{t('Игрок')}</span>
             <span>{t('Ранг')}</span>
-            <span>{t('Победы / поражения')}</span>
             <span>{t('Винрейт')}</span>
             <span>{t('Лучшие чемпионы')}</span>
           </div>
@@ -263,9 +295,8 @@ function Ladder({
               <div key={i} className="ladder-row lb-row">
                 <Skeleton h={14} w={24} />
                 <Skeleton h={14} w="60%" />
-                <Skeleton h={14} w={50} />
-                <Skeleton h={14} w={90} />
                 <Skeleton h={14} w={70} />
+                <Skeleton h={14} w={130} />
                 <Skeleton h={14} w={90} />
               </div>
             ))}
@@ -273,7 +304,6 @@ function Ladder({
             {rows?.slice(3, limit).map((r, j) => {
               const i = j + 3
               const n = nameOf(r.puuid)
-              const wr = r.wins / Math.max(1, r.wins + r.losses)
               return (
                 <motion.div
                   key={r.puuid}
@@ -283,9 +313,12 @@ function Ladder({
                 >
                   <span className="ladder-pos">{i + 1}</span>
                   <span className="ladder-player">
+                    <span className="lb-region">{region}</span>
+                    <Avatar icon={icons[r.puuid]} />
                     {n ? (
-                      <button onClick={() => open(r.puuid)}>
-                        <b>{n.gameName}</b> <span className="muted">#{n.tagLine}</span>
+                      <button className="lb-name" onClick={() => open(r.puuid)}>
+                        <b>{n.gameName}</b>
+                        <span className="muted">#{n.tagLine}</span>
                       </button>
                     ) : (
                       <Skeleton h={13} w={140} />
@@ -300,12 +333,7 @@ function Ladder({
                     <Img src={rankEmblem(r.tier ?? 'challenger')} alt="" size={26} radius={0} />
                     {fmtNum(r.leaguePoints)} LP
                   </span>
-                  <span className="lb-wl">
-                    <span className="win-text">{r.wins}W</span> – <span className="loss-text">{r.losses}L</span>
-                  </span>
-                  <span className="ladder-wr">
-                    <span className={`lb-wr-chip ${wr >= 0.6 ? 'hi' : wr >= 0.55 ? 'mid' : ''}`}>{Math.round(wr * 100)}%</span>
-                  </span>
+                  <WinBox wins={r.wins} losses={r.losses} />
                   <BestChamps ids={best[r.puuid]} map={champs} />
                 </motion.div>
               )
