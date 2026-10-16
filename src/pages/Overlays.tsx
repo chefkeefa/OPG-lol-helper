@@ -2,9 +2,11 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { DesktopSettings, OverlayWidget } from '../env'
 import { Card, Icon, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { OverlayTimers } from '../components/OverlayTimers'
 import { OverlayBench } from '../components/OverlayBench'
 import { DEFAULT_WIDGETS, OverlayGold, OverlayRespawn, OverlayScout, OverlaySkills, demoOverlayLive } from '../components/OverlayWidgets'
+import { OverlayBuffs, OverlayNextItem, OverlayWinProb, withDemoBuffs } from '../components/OverlayExtra'
 import { t } from '../lib/i18n'
 
 type Update = <K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]) => void
@@ -73,6 +75,7 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
   useEffect(() => window.rp?.overlay.onEdit(setEditing), [])
   const desktop = Boolean(window.rp)
   const live = demoOverlayLive(tick)
+  const buffLive = withDemoBuffs(live)
   const w = { ...DEFAULT_WIDGETS, ...settings?.overlayWidgets }
   const set = (id: OverlayWidget) => (v: boolean) => {
     update('overlayWidgets', { ...w, [id]: v })
@@ -84,7 +87,7 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="layers" size={30} /> {t('Оверлеи')}
+          <NavIcon name="layers" size={26} /> {t('Оверлеи')}
         </h1>
         <p className="page-sub">{t('Виджеты поверх игры, которые помогают быть на шаг впереди. Работают в режиме «Без рамки».')}</p>
         <div className="push" />
@@ -150,6 +153,14 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
           keys={['Ctrl', 'Shift', 'O']}
         />
         <WidgetCard
+          title={t('Баффы объектов')}
+          desc={t('Сколько осталось Барона и Старейшего дракона и у кого из команды бафф уже сгорел.')}
+          preview={<OverlayBuffs live={buffLive} />}
+          on={w.buffs}
+          disabled={!desktop}
+          onChange={set('buffs')}
+        />
+        <WidgetCard
           title={t('Таймеры возрождения')}
           desc={t('Кто мёртв и через сколько вернётся: время для барона или пуша.')}
           preview={<OverlayRespawn live={live} />}
@@ -181,6 +192,27 @@ export function Overlays({ settings, update }: { settings: DesktopSettings | nul
           disabled={!desktop}
           onChange={(v) => update('augmentsEnabled', v)}
           keys={['Ctrl', 'Shift', 'A']}
+        />
+      </motion.div>
+
+      <h2 className="ovc-section">{t('Уведомления')}</h2>
+      <p className="muted ovc-section-sub">{t('Небольшие подсказки, которые появляются по ходу матча.')}</p>
+      <motion.div className="ovc-grid" variants={stagger} initial="hidden" animate="show">
+        <WidgetCard
+          title={t('Следующий предмет')}
+          desc={t('Следующий предмет сборки Master+ на вашем чемпионе и сколько золота до него осталось.')}
+          preview={<OverlayNextItem live={live} demo />}
+          on={w.nextitem}
+          disabled={!desktop}
+          onChange={set('nextitem')}
+        />
+        <WidgetCard
+          title={t('Шанс победы')}
+          desc={t('Оценка по золоту, убийствам, башням, драконам и баффам. Обновляется каждую секунду.')}
+          preview={<OverlayWinProb live={buffLive} />}
+          on={w.winprob}
+          disabled={!desktop}
+          onChange={set('winprob')}
         />
       </motion.div>
     </div>

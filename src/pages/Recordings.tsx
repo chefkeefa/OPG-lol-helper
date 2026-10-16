@@ -5,6 +5,7 @@ import type { Moment, Recording } from '../lib/statsTypes'
 import { champName } from '../lib/ddragon'
 import { duration } from '../lib/stats'
 import { Champ, Icon, ease, stagger, fadeUp } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { locale, t } from '../lib/i18n'
 
 const KIND: Record<Moment['kind'], { label: string; color: string }> = {
@@ -95,7 +96,7 @@ export function Recordings({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="video" size={28} /> {t('Записи игр')}
+          <NavIcon name="film" size={26} /> {t('Записи игр')}
         </h1>
         <div className="rec-head-tools">
           <AnimatePresence>
@@ -159,11 +160,15 @@ export function Recordings({
       {!desktop && <div className="banner">{t('Пример библиотеки. Запись экрана и звука работает только в десктоп-версии.')}</div>}
 
       {list && list.length === 0 ? (
-        <motion.div className="card gate" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="gate-icon">
-            <Icon name="video" size={28} />
+        <motion.div className="rec-empty" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease }}>
+          <div className="rec-empty-tiles">
+            {[0, 1, 2].map((i) => (
+              <motion.span key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 * i, duration: 0.4, ease }}>
+                <Icon name="play" size={14} />
+              </motion.span>
+            ))}
           </div>
-          <h2>{t('Записей пока нет')}</h2>
+          <h2>{settings?.recordingEnabled ? t('Записей пока нет') : t('Записывайте свои игры')}</h2>
           <p className="muted">
             {t('Включите «Записывать игры», и программа сама начнёт запись, когда загрузится матч, и остановит её в конце. Убийства, смерти, мультикиллы и объекты отмечаются на шкале видео, из любого момента можно вырезать клип.')}
           </p>

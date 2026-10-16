@@ -48,14 +48,14 @@ export function demoApex(): Apex {
     const w = Math.round(g * (0.52 + ((i * 13) % 9) / 100))
     return { puuid: `demo-${i}`, leaguePoints: lp, wins: w, losses: g - w, hotStreak: i % 5 === 1, tier: lp >= 1085 ? 'challenger' : lp >= 671 ? 'grandmaster' : 'master' }
   })
-  for (const [i, e] of all.entries()) names[e.puuid] = { n: nick[i % nick.length] + (i >= nick.length ? ` ${i}` : ''), t: 'EUW', at: Date.now() }
+  for (const [i, e] of all.entries()) names[e.puuid] = { n: nick[i % nick.length] + (i >= nick.length ? ` ${i}` : ''), t: 'EUW', at: Date.now(), i: [4568, 6271, 5367, 588, 29, 4834, 6600, 1640][i % 8] }
   for (const [i, e] of all.entries()) bestCache[e.puuid] = [[103, 157, 238, 84], [24, 39, 114, 266], [17, 51, 99, 222], [11, 64, 141, 77]][i % 4]
   return { all, cutoff: { challenger: 1085, grandmaster: 671 } }
 }
 
 // Riot IDs are looked up one by one, so they are cached for a week.
 const NAMES_KEY = 'riftpulse.names.v1'
-type NameCache = Record<string, { n: string; t: string; at: number }>
+type NameCache = Record<string, { n: string; t: string; at: number; i?: number }>
 function readNames(): NameCache {
   try {
     return JSON.parse(localStorage.getItem(NAMES_KEY) ?? '{}')
@@ -79,12 +79,25 @@ export function cachedName(puuid: string) {
   return c && Date.now() - c.at < 7 * 86_400_000 ? { gameName: c.n, tagLine: c.t } : null
 }
 
+/** Profile icon id, cached with the name. */
+export const cachedIcon = (puuid: string) => names[puuid]?.i
+export async function profileIconOf(platform: string, puuid: string): Promise<number> {
+  const hit = names[puuid]?.i
+  if (hit != null) return hit
+  const s = await riot<{ profileIconId: number }>(platform, `/lol/summoner/v4/summoners/by-puuid/${puuid}`)
+  if (names[puuid]) {
+    names[puuid].i = s.profileIconId
+    saveNames()
+  }
+  return s.profileIconId
+}
+
 export async function resolveName(platform: string, puuid: string) {
   const hit = cachedName(puuid)
   if (hit) return hit
   const regional = regionalOf(platform)
   const a = await riot<{ gameName: string; tagLine: string }>(regional === 'sea' ? 'asia' : regional, `/riot/account/v1/accounts/by-puuid/${puuid}`)
-  names[puuid] = { n: a.gameName, t: a.tagLine, at: Date.now() }
+  names[puuid] = { n: a.gameName, t: a.tagLine, at: Date.now(), i: names[puuid]?.i }
   saveNames()
   return a
 }

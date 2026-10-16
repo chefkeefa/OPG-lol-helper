@@ -5,6 +5,7 @@ import { augTiers, pct, statsMayhem, TIER_COLOR } from '../lib/statsApi'
 import { championList, champName } from '../lib/ddragon'
 import { useGameData } from '../lib/gameData'
 import { Champ, Card, Icon, Img, Segmented, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { ChampPicker, TierBadge } from '../components/StatsBits'
 import { RARITY_COLOR, RARITY_LABEL } from '../components/AugmentOverlay'
 import { ItemTip, RuneTree, SkillOrder, SpellImg, parsePage } from './Champion'
@@ -104,7 +105,7 @@ export function Mayhem({
     <div className="page mayhem-page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="bolt" size={28} /> ARAM Mayhem
+          <NavIcon name="bolt" size={26} /> ARAM Mayhem
         </h1>
         {data && <span className="muted small">{t('{n} игр Mayhem', { n: data.matches.toLocaleString() })}</span>}
         <div className="grow" />

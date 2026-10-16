@@ -5,8 +5,9 @@ import type { Page } from '../types'
 import { PLATFORMS } from '../api/riot'
 import { championList, profileIcon, type ChampionInfo } from '../lib/ddragon'
 import { getAccounts } from '../lib/accounts'
-import { Champ, Icon, Img, ease, type IconName } from './ui'
+import { Champ, Icon, Img, ease } from './ui'
 import { NAV_GROUPS } from './Sidebar'
+import { NavIcon, type NavIconName } from './NavIcons'
 import { lang, setLang, t } from '../lib/i18n'
 
 // players opened from the search, newest first
@@ -29,7 +30,7 @@ function noteRecent(r: Recent) {
 type Hit =
   | { kind: 'player'; riotId: string; platform: string; iconId?: number; note: string }
   | { kind: 'champ'; champ: ChampionInfo }
-  | { kind: 'page'; page: Page; icon: IconName; label: string }
+  | { kind: 'page'; page: Page; icon: NavIconName; label: string }
 const norm = (s: string) => s.toLowerCase().replace(/[\s'.&]/g, '')
 
 const PHASE: Record<string, string> = {
@@ -244,7 +245,7 @@ export function TitleBar({
                         ) : (
                           <>
                             <span className="sd-ico">
-                              <Icon name={h.icon} size={16} />
+                              <NavIcon name={h.icon} size={15} />
                             </span>
                             <span className="sd-text">
                               <b>{h.label}</b>

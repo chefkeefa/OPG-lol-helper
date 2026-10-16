@@ -25,7 +25,7 @@ const DEFAULTS = {
   overlayEnabled: true,
   overlayCorner: 'top-right',
   overlayBenchmark: true,
-  overlayWidgets: { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true },
+  overlayWidgets: { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true, buffs: true, winprob: true, nextitem: true },
   overlayLayout: {},
   // statistics collector (tier list, builds, matchups)
   collectorEnabled: true,

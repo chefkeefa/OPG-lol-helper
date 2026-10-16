@@ -4,6 +4,7 @@ import type { DesktopSettings } from '../env'
 import type { StatsStatus } from '../lib/statsTypes'
 import { PLATFORMS, getStoredKey, setStoredKey } from '../api/riot'
 import { Card, Icon, Img, Switch, ease, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { lang, locale, setLang, t } from '../lib/i18n'
 import { addAccount, removeAccount, useAccounts } from '../lib/accounts'
 import { isWebhook, postDiscord } from '../lib/boards'
@@ -55,7 +56,7 @@ export function Settings({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="gear" size={30} /> {t('Настройки')}
+          <NavIcon name="gear" size={26} /> {t('Настройки')}
         </h1>
       </motion.div>
       <motion.div className="settings-grid" variants={stagger} initial="hidden" animate="show">

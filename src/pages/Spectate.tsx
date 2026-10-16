@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { PLATFORMS, RiotError, regionalOf, riot } from '../api/riot'
 import { loadApex, type Apex, type LadderEntry } from '../api/leaderboard'
-import { championMap, champName, champTile, rankEmblem } from '../lib/ddragon'
+import { championMap, champLoading, champName, champTile, rankEmblem } from '../lib/ddragon'
 import { queueLabel } from '../lib/stats'
 import { fmtNum, t } from '../lib/i18n'
 import { Icon, Img, Skeleton, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 
 interface SpecPlayer {
   puuid: string
@@ -48,7 +49,7 @@ function demoGames(): { games: SpecGame[]; known: Known; champs: Record<number, 
       const id = 1000 + gi * 10 + i
       champs[id] = c
       const puuid = `demo-${gi}-${i}`
-      if ((i + gi) % 3 !== 1) known[puuid] = { puuid, leaguePoints: 2300 - gi * 260 - i * 13, wins: 200, losses: 170, tier: gi < 1 ? 'challenger' : 'grandmaster' }
+      if ((i + gi) % 3 !== 1) known[puuid] = { puuid, leaguePoints: 2300 - gi * 520 - i * 13, wins: 200, losses: 170, tier: gi < 1 ? 'challenger' : 'grandmaster' }
       return { puuid, championId: id, teamId: i < 5 ? 100 : 200, riotId: `${DEMO_NAMES[(i + gi * 3) % 10]}#${gi}` }
     }),
   }))
@@ -166,7 +167,7 @@ export function Spectate({ defaultPlatform, toast }: { defaultPlatform: string; 
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="tv" size={28} /> {t('Наблюдение')}
+          <NavIcon name="tv" size={26} /> {t('Наблюдение')}
         </h1>
         <p className="page-sub">{t('Живые ранговые игры лучших игроков региона.')}</p>
         <div className="push" />
@@ -294,7 +295,21 @@ function GameRow({
               const isKnown = Boolean(known[p.puuid])
               return (
                 <span key={p.puuid || i} className={`spec-tile ${isKnown ? 'known' : ''}`} title={`${p.riotId ?? ''}${isKnown ? ` · ${fmtNum(known[p.puuid].leaguePoints)} LP` : ''}`}>
-                  <span className="spec-face">{c && <img src={champTile(c)} alt="" loading="lazy" />}</span>
+                  <span className="spec-face">
+                    {c && (
+                      <img
+                        src={champLoading(c)}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => {
+                          const img = e.currentTarget
+                          if (img.dataset.tile) return
+                          img.dataset.tile = '1'
+                          img.src = champTile(c)
+                        }}
+                      />
+                    )}
+                  </span>
                   <b>{p.riotId?.split('#')[0] || champName(c)}</b>
                 </span>
               )

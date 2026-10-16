@@ -107,3 +107,7 @@ src/pages/             Dashboard, Matches, Champions, Studio, TierList, Champion
 ```
 
 Rift Pulse не связан с Riot Games и DPM.LOL. League of Legends © Riot Games, Inc.
+
+## Credits
+
+Menu icons: [Font Awesome Free](https://fontawesome.com) 6 (solid), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Game art comes from Riot Data Dragon / CommunityDragon.

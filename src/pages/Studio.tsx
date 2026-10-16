@@ -5,6 +5,7 @@ import { champName } from '../lib/ddragon'
 import { ROLE_LABEL } from '../lib/statsApi'
 import { queueLabel } from '../lib/stats'
 import { Icon, Segmented, ease } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { StudioCatalog } from './StudioCatalog'
 import { fmtNum, locale, t } from '../lib/i18n'
 
@@ -93,7 +94,7 @@ export function Studio({ matches }: { matches: MatchSummary[] }) {
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="pie" size={28} /> Data Studio
+          <NavIcon name="pie" size={26} /> Data Studio
         </h1>
         <p className="page-sub">{t('Статистика League of Legends: как идут игры на высоком ранге и как играете вы.')}</p>
         <div className="push" />

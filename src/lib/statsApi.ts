@@ -79,7 +79,7 @@ export function tierRows(s: StatsSummary): TierRow[] {
   return rows
 }
 
-export const TIER_COLOR: Record<string, string> = { 'S+': '#ff9f43', S: '#f6c945', A: '#7b9cff', B: '#6f5ef6', C: '#8a8fb0', D: '#5d617c' }
+export const TIER_COLOR: Record<string, string> = { 'S+': '#f7c948', S: '#b69cff', A: '#73a7ff', B: '#5fcfb4', C: '#8a8fb0', D: '#6a6e88' }
 
 export async function statsWorld(demo: boolean, patches: string[] = []): Promise<WorldData> {
   if (window.rp?.stats && !demo) return window.rp.stats.world(patches)

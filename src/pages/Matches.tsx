@@ -6,6 +6,7 @@ import { QUEUE_FILTERS, ago, badge, duration, kdaRatio, queueLabel } from '../li
 import { champSplash } from '../lib/ddragon'
 import { matchSplash, useSkins } from '../lib/skins'
 import { Champ, Icon, Item, Ring, Segmented, Splash, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { t } from '../lib/i18n'
 
 export function Matches({
@@ -27,7 +28,7 @@ export function Matches({
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="film" size={30} /> {t('История матчей')}
+          <NavIcon name="film" size={26} /> {t('История матчей')}
         </h1>
         <p className="page-sub">
           {t('{n} игр · {w}W {l}L · нажмите на игру, чтобы раскрыть составы и статистику всех десяти игроков.', { n: matches.length, w: wins, l: matches.length - wins })}

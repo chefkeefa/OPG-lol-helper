@@ -5,6 +5,7 @@ import type { DesktopSettings, OverlayWidget } from '../env'
 import type { Benchmarks, StatsDetail } from '../lib/statsTypes'
 import { OverlayTimers } from './OverlayTimers'
 import { OverlayBench } from './OverlayBench'
+import { OverlayBuffs, OverlayNextItem, OverlayWinProb, withDemoBuffs } from './OverlayExtra'
 import { demoLive } from '../lib/objectives'
 import { gameData, type GameData } from '../lib/gameData'
 import { champIcon, rankEmblem } from '../lib/ddragon'
@@ -15,8 +16,8 @@ import { t } from '../lib/i18n'
 type Live = LiveData
 type Player = Live['allPlayers'][number]
 
-export const WIDGETS: OverlayWidget[] = ['timers', 'bench', 'gold', 'respawn', 'skills', 'scout']
-export const DEFAULT_WIDGETS: Record<OverlayWidget, boolean> = { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true }
+export const WIDGETS: OverlayWidget[] = ['timers', 'bench', 'gold', 'respawn', 'skills', 'scout', 'buffs', 'winprob', 'nextitem']
+export const DEFAULT_WIDGETS: Record<OverlayWidget, boolean> = { timers: true, bench: true, gold: true, respawn: true, skills: true, scout: true, buffs: true, winprob: true, nextitem: true }
 
 /** Positions are fractions 0..1: 0 hugs the left/top edge, 1 the right/bottom one, so a widget never leaves the screen. */
 export function defaultLayout(corner: DesktopSettings['overlayCorner'] = 'top-right'): Record<OverlayWidget, { x: number; y: number }> {
@@ -30,6 +31,9 @@ export function defaultLayout(corner: DesktopSettings['overlayCorner'] = 'top-ri
     respawn: { x: right ? 0.01 : 0.99, y: 0.32 },
     skills: { x: 0.5, y: 0.78 },
     scout: { x: 0.5, y: 0.32 },
+    buffs: { x: 0.5, y: 0.16 },
+    winprob: { x: right ? 0.01 : 0.99, y: 0.12 },
+    nextitem: { x: side, y: top ? 0.7 : 0.3 },
   }
 }
 
@@ -40,6 +44,9 @@ export const WIDGET_LABEL: Record<OverlayWidget, string> = {
   respawn: t('Таймеры возрождения'),
   skills: t('Порядок умений'),
   scout: t('Экран загрузки'),
+  buffs: t('Баффы объектов'),
+  winprob: t('Шанс победы'),
+  nextitem: t('Следующий предмет'),
 }
 
 const playerNames = (live: Live) => [live.activePlayer?.riotIdGameName, live.activePlayer?.riotId, live.activePlayer?.summonerName].filter(Boolean)
@@ -378,6 +385,9 @@ export function OverlayApp() {
     respawn: <OverlayRespawn live={shown} />,
     skills: <OverlaySkills live={shown} demo={demo} />,
     scout: edit || scout || early ? <OverlayScout live={shown} platform={s.platform} demo={demo} /> : null,
+    buffs: <OverlayBuffs live={demo && shown ? withDemoBuffs(shown) : shown} />,
+    winprob: <OverlayWinProb live={demo && shown ? withDemoBuffs(shown) : shown} />,
+    nextitem: <OverlayNextItem live={shown} demo={demo} />,
   }
   return (
     <div className={`ov-screen ${edit ? 'editing' : ''}`}>

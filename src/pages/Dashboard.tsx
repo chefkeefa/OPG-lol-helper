@@ -8,27 +8,20 @@ import { champName, champSplash, champTile, championMap, profileIcon, rankEmblem
 import { ROLES, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCards, QUEUE_FILTERS, type StatCard } from '../lib/stats'
 import { clock } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Item, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger, type IconName } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 import { champSkinSplash, liveChamp, liveSplash, matchSplash, skinFor, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
+import { ProfileChampions, ProfileLens } from './ProfileTabs'
+import { lens, lensColor } from '../lib/lens'
 import { fmtNum, lang, locale, t } from '../lib/i18n'
 import { lpChanges, lpHistory } from '../lib/lp'
 import { runeIcon, spellIcon, SPELL_FALLBACK, useGameData, type GameData } from '../lib/gameData'
 
 type RoleFilter = 'ALL' | Exclude<Role, ''>
 
-export function Dashboard({
-  data,
-  matches,
-  filter,
-  setFilter,
-  count,
-  setCount,
-  live,
-  onRefresh,
-  refreshing,
-  openMatch,
-  navigate,
-}: {
+export type ProfileTab = 'overview' | 'champions' | 'lens'
+
+interface PageProps {
   data: PlayerData
   matches: MatchSummary[]
   filter: QueueFilter
@@ -40,7 +33,56 @@ export function Dashboard({
   refreshing: boolean
   openMatch: (id: string) => void
   navigate: (p: Page) => void
-}) {
+  openProfile: (tab: ProfileTab) => void
+}
+
+/** DPM's Dashboard: the hub with your form, the live game, app tiles and a short match list. */
+export function Dashboard({ data, matches, filter, setFilter, count, setCount, live, onRefresh, refreshing, openMatch, navigate, openProfile }: PageProps) {
+  useSkins()
+  const gd = useGameData()
+  const [role, setRole] = useState<RoleFilter>('ALL')
+  const shown = useMemo(() => (role === 'ALL' ? matches : matches.filter((m) => m.role === role)), [matches, role])
+
+  return (
+    <div className="page dash hub">
+      <PageHead
+        title={t('Дашборд')}
+        sub={t('Ваш хаб Rift Pulse: форма, живые игры, записи и оверлеи на одном экране.')}
+        pills
+        filter={filter}
+        setFilter={setFilter}
+        count={count}
+        setCount={setCount}
+        onRefresh={data.source !== 'demo' ? onRefresh : undefined}
+        refreshing={refreshing}
+      />
+
+      <motion.div className="hub-grid" variants={stagger} initial="hidden" animate="show">
+        <div className="hub-main">
+          <Hero data={data} matches={shown} role={role} setRole={setRole} />
+          <div className="hub-row2">
+            <Showcase matches={shown} live={live} platform={data.profile.platform} demo={data.source === 'demo'} onOpen={openMatch} onLive={() => navigate('live')} onSpectate={() => navigate('spectate')} />
+            <RecordTile onOpen={() => navigate('recordings')} />
+          </div>
+          <div className="hub-row3">
+            <OverlayTile onOpen={() => navigate('overlays')} />
+            <CollectionTile data={data} onOpen={() => navigate('collections')} onMastery={() => navigate('champions')} />
+            <LensTile matches={shown} onOpen={() => openProfile('lens')} />
+          </div>
+        </div>
+        <div className="hub-side">
+          <RankCard data={data} />
+          <MatchList data={data} matches={shown} gd={gd} onOpen={openMatch} onAll={() => openProfile('overview')} compact />
+          <ChampionPerformance matches={shown} onAll={() => openProfile('champions')} />
+          <RoleStrip matches={matches} role={role} setRole={setRole} />
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+/** DPM's Profile: overview with records and the right column, plus the Champions and Lens tabs. */
+export function Profile({ data, matches, filter, setFilter, count, setCount, live: _live, onRefresh, refreshing, openMatch, navigate, tab, setTab }: Omit<PageProps, 'openProfile'> & { tab: ProfileTab; setTab: (t: ProfileTab) => void }) {
   useSkins()
   const gd = useGameData()
   const [role, setRole] = useState<RoleFilter>('ALL')
@@ -49,62 +91,73 @@ export function Dashboard({
   return (
     <div className="page dash">
       <PageHead
+        title={t('Профиль')}
+        sub={t('Ваши последние игры, форма и статистика по чемпионам в одном месте.')}
+        tab={tab}
+        setTab={setTab}
         filter={filter}
         setFilter={setFilter}
         count={count}
         setCount={setCount}
         onRefresh={data.source !== 'demo' ? onRefresh : undefined}
         refreshing={refreshing}
-        navigate={navigate}
       />
-
-      <motion.div className="dash-grid" variants={stagger} initial="hidden" animate="show">
-        <Hero data={data} matches={shown} role={role} setRole={setRole} />
-        <div className="dash-list">
-          <MatchList matches={shown} gd={gd} onOpen={openMatch} onAll={() => navigate('matches')} />
-        </div>
-        <div className="dash-mid">
-          <Records matches={shown} onOpen={openMatch} />
-          <div className="dash-pair">
-            <Behaviour matches={shown} />
-            <Lens matches={shown} />
+      {tab === 'champions' ? (
+        <ProfileChampions matches={matches} filter={filter} setFilter={setFilter} />
+      ) : tab === 'lens' ? (
+        <ProfileLens matches={matches} />
+      ) : (
+        <motion.div className="dash-grid" variants={stagger} initial="hidden" animate="show">
+          <Hero data={data} matches={shown} role={role} setRole={setRole} />
+          <div className="dash-list">
+            <MatchList data={data} matches={shown} gd={gd} onOpen={openMatch} onAll={() => navigate('matches')} />
           </div>
-          <Showcase matches={shown} live={live} platform={data.profile.platform} demo={data.source === 'demo'} onOpen={openMatch} onLive={() => navigate('live')} onSpectate={() => navigate('spectate')} />
-          <div className="dash-pair">
-            <RecordTile onOpen={() => navigate('recordings')} />
-            <OverlayTile onOpen={() => navigate('overlays')} />
+          <div className="dash-mid">
+            <Records matches={shown} onOpen={openMatch} />
+            <div className="dash-pair">
+              <Behaviour matches={shown} />
+              <Lens matches={shown} onOpen={() => setTab('lens')} />
+            </div>
           </div>
-          <CollectionTile data={data} onOpen={() => navigate('collections')} onMastery={() => navigate('champions')} />
-        </div>
-        <div className="dash-side">
-          <RankCard data={data} />
-          <ChampionPerformance matches={shown} onAll={() => navigate('champions')} />
-          <Pings matches={shown} />
-          <PlayedWith matches={shown} />
-          <RoleStrip matches={matches} role={role} setRole={setRole} />
-        </div>
-      </motion.div>
+          <div className="dash-side">
+            <RankCard data={data} />
+            <ChampionPerformance matches={shown} onAll={() => setTab('champions')} />
+            <Pings matches={shown} />
+            <PlayedWith matches={shown} />
+            <RoleStrip matches={matches} role={role} setRole={setRole} />
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
 
 // ---------------------------------------------------------------- page head
 function PageHead({
+  title,
+  sub,
+  pills,
+  tab,
+  setTab,
   filter,
   setFilter,
   count,
   setCount,
   onRefresh,
   refreshing,
-  navigate,
 }: {
+  title: string
+  sub: string
+  /** queue filter as pills in the head (hub); otherwise it sits in the filter popover */
+  pills?: boolean
+  tab?: ProfileTab
+  setTab?: (t: ProfileTab) => void
   filter: QueueFilter
   setFilter: (f: QueueFilter) => void
   count: number
   setCount: (n: number) => void
   onRefresh?: () => void
   refreshing: boolean
-  navigate: (p: Page) => void
 }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
@@ -115,32 +168,52 @@ function PageHead({
     return () => window.removeEventListener('mousedown', close)
   }, [open])
   const queue = QUEUE_FILTERS.find((q) => q.id === filter)
+  const tabs: [ProfileTab, string][] = [
+    ['overview', t('Сводка')],
+    ['champions', t('Чемпионы')],
+    ['lens', t('Линза')],
+  ]
   return (
-    <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
+    <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease }}>
       <h1>
-        <Icon name="home" size={30} /> {t('Профиль')}
+        <NavIcon name="home" size={26} /> {title}
       </h1>
-      <p className="page-sub">{t('Личный хаб Rift Pulse: ваши последние игры, форма и статистика по чемпионам в одном месте.')}</p>
+      <p className="page-sub">{sub}</p>
       <div className="push" />
       {onRefresh && (
         <motion.button className="update" onClick={onRefresh} disabled={refreshing} whileTap={{ scale: 0.96 }}>
           <span className={`dot ${refreshing ? 'spin' : ''}`} /> {refreshing ? t('Обновляю…') : t('Обновить')}
         </motion.button>
       )}
-      <div className="head-tabs">
-        <button className="on">{t('Сводка')}</button>
-        <button onClick={() => navigate('champions')}>{t('Чемпионы')}</button>
-        <button onClick={() => navigate('studio')}>{t('Линза')}</button>
-      </div>
+      {pills && (
+        <>
+          <Segmented id="hub-queue" className="small head-queue" options={QUEUE_FILTERS} value={filter} onChange={setFilter} />
+          <span className="head-count">{t('Последние {n} игр', { n: count })}</span>
+        </>
+      )}
+      {tab && setTab && (
+        <div className="head-tabs">
+          {tabs.map(([id, label]) => (
+            <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
+              {tab === id && <motion.span layoutId="head-tab" className="head-tab-bg" transition={spring} />}
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="head-filter" ref={box}>
-        <button className={`head-filter-btn ${open ? 'on' : ''} ${filter !== 'all' ? 'set' : ''}`} onClick={() => setOpen((v) => !v)} title={t('Фильтры')}>
-          <Icon name="sliders" size={18} />
+        <button className={`head-filter-btn ${open ? 'on' : ''} ${filter !== 'all' && !pills ? 'set' : ''}`} onClick={() => setOpen((v) => !v)} title={t('Фильтры')}>
+          <Icon name="sliders" size={16} />
         </button>
         <AnimatePresence>
           {open && (
             <motion.div className="head-pop" initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.18, ease }}>
-              <div className="muted small">{t('Режим')}</div>
-              <Segmented id="queue" options={QUEUE_FILTERS} value={filter} onChange={setFilter} />
+              {!pills && (
+                <>
+                  <div className="muted small">{t('Режим')}</div>
+                  <Segmented id="queue" options={QUEUE_FILTERS} value={filter} onChange={setFilter} />
+                </>
+              )}
               <div className="muted small">{t('Сколько игр загружать')}</div>
               <div className="head-counts">
                 {[20, 50, 100, 200].map((n) => (
@@ -153,7 +226,7 @@ function PageHead({
           )}
         </AnimatePresence>
       </div>
-      {filter !== 'all' && queue && <span className="head-chip">{queue.label}</span>}
+      {!pills && filter !== 'all' && queue && <span className="head-chip">{queue.label}</span>}
     </motion.div>
   )
 }
@@ -169,7 +242,7 @@ function Hero({ data, matches, role, setRole }: { data: PlayerData; matches: Mat
       <div className="hero-top">
         <motion.div className="avatar-wrap big" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...spring, delay: 0.1 }}>
           <span className="region-tag">{(PLATFORMS[data.profile.platform] ?? data.profile.platform).replace(/\d+$/, '').toUpperCase()}</span>
-          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={92} radius={10} />
+          <Img src={profileIcon(data.profile.iconId)} alt={data.profile.gameName} size={76} radius={4} />
           <span className="lvl">{data.profile.level}</span>
         </motion.div>
         <div className="hero-id">
@@ -219,7 +292,7 @@ const StatTile = memo(function StatTile({ c, empty }: { c: StatCard; empty: bool
           {c.fmtDelta(c.delta)}
         </div>
       </div>
-      <Sparkline data={c.series.slice(-20)} labels={pointLabels(c).slice(-20)} format={c.fmt} width={96} height={44} color={up ? 'var(--up)' : 'var(--loss)'} dot={false} />
+      <Sparkline data={c.series.slice(-20)} labels={pointLabels(c).slice(-20)} format={c.fmt} width={120} height={44} color={up ? 'var(--spark-up)' : 'var(--spark-down)'} dot={false} area={false} />
     </motion.div>
   )
 })
@@ -255,7 +328,7 @@ function shortAgo(ts: number) {
   return t('{n} д', { n: Math.round(s / 86400) })
 }
 
-const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary; i: number; gd: GameData | null; onOpen: (id: string) => void }) {
+const MatchRow = memo(function MatchRow({ m, i, gd, lp, onOpen }: { m: MatchSummary; i: number; gd: GameData | null; lp?: number; onOpen: (id: string) => void }) {
   const color = ringColor(m)
   const items = m.items.slice(0, 6)
   return (
@@ -268,13 +341,20 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
       <Splash src={champTile(m.champion, skinFor(m.champion, m.endedAt, m.durationSec))} fallback={champTile(m.champion)} className="match-art" position="center 30%" />
       <div className="match-meta">
         <div>
-          <b>{duration(m.durationSec)}</b> <span className="muted">{shortAgo(m.endedAt)}</span>
+          {lp !== undefined ? (
+            <b className={`match-lp ${lp >= 0 ? 'up' : 'down'}`}>
+              {lp >= 0 ? '+' : '−'} {Math.abs(lp)} <small>LP</small>
+            </b>
+          ) : (
+            <b>{duration(m.durationSec)}</b>
+          )}{' '}
+          <span className="muted">{shortAgo(m.endedAt)}</span>
         </div>
         <div className="match-queue">{queueLabel(m.queueId, m.mode)}</div>
       </div>
       <div className="match-champ">
         <span className="match-portrait">
-          <Champ name={m.champion} size={40} radius={8} />
+          <Champ name={m.champion} size={36} radius={6} />
           <span className="champ-lvl">{m.champLevel}</span>
           {m.keystone && gd?.runes[m.keystone] && (
             <span className="match-keystone">
@@ -285,7 +365,7 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
         {m.spells && (
           <span className="match-spells">
             {m.spells.map((s, j) => (
-              <SpellIcon key={j} id={s} gd={gd} size={19} />
+              <SpellIcon key={j} id={s} gd={gd} size={17} />
             ))}
           </span>
         )}
@@ -300,32 +380,64 @@ const MatchRow = memo(function MatchRow({ m, i, gd, onOpen }: { m: MatchSummary;
       </div>
       <div className="match-build">
         {[0, 1, 2].map((j) => (
-          <Item key={j} id={items[j] ?? 0} size={21} />
+          <Item key={j} id={items[j] ?? 0} size={19} />
         ))}
-        <Item id={m.items[6] ?? 0} size={21} />
+        <Item id={m.items[6] ?? 0} size={19} />
         {[3, 4, 5].map((j) => (
-          <Item key={j} id={items[j] ?? 0} size={21} />
+          <Item key={j} id={items[j] ?? 0} size={19} />
         ))}
-        <RuneIcon id={m.subStyle} gd={gd} size={17} tree />
+        <RuneIcon id={m.subStyle} gd={gd} size={15} tree />
       </div>
-      <span className="match-ring" style={{ ['--rc' as string]: color }}>
-        <Ring value={m.score} color={color} size={46} stroke={3.5}>
+      <span className="match-score" style={{ ['--rc' as string]: color }}>
+        <span className="ms-text">
           <b>{m.score}</b>
-          <span className="badge">{placeText(m)}</span>
-        </Ring>
+          <em>{placeText(m)}</em>
+        </span>
+        <Ring value={m.score} color={color} size={30} stroke={4.5} />
       </span>
     </motion.button>
   )
 })
 
-function MatchList({ matches, gd, onOpen, onAll }: { matches: MatchSummary[]; gd: GameData | null; onOpen: (id: string) => void; onAll: () => void }) {
-  const [limit, setLimit] = useState(12)
+/** LP won or lost in each ranked game, matched to the rank snapshot taken right after it ended. */
+function useMatchLp(data: PlayerData, matches: MatchSummary[]) {
+  return useMemo(() => {
+    const out = new Map<string, number>()
+    for (const [queue, id] of [['RANKED_SOLO_5x5', 420], ['RANKED_FLEX_SR', 440]] as const) {
+      const changes = lpChanges(lpHistory(data, queue))
+      const used = new Set<number>()
+      for (const m of matches) {
+        if (m.queueId !== id) continue
+        let best = -1
+        for (let k = 0; k < changes.length; k++) {
+          const gap = changes[k].at - m.endedAt
+          if (used.has(k) || gap < 0 || gap > 6 * 3600_000 || changes[k].win !== m.win) continue
+          if (best < 0 || gap < changes[best].at - m.endedAt) best = k
+        }
+        if (best >= 0) {
+          used.add(best)
+          out.set(m.id, changes[best].delta)
+        }
+      }
+    }
+    return out
+  }, [data, matches])
+}
+
+function MatchList({ data, matches, gd, onOpen, onAll, compact }: { data: PlayerData; matches: MatchSummary[]; gd: GameData | null; onOpen: (id: string) => void; onAll: () => void; compact?: boolean }) {
+  const [limit, setLimit] = useState(compact ? 6 : 12)
+  const lp = useMatchLp(data, matches)
   if (!matches.length) return <Card className="empty">{t('Нет игр в этом режиме')}</Card>
   return (
-    <motion.section className="match-list" variants={fadeUp}>
+    <motion.section className={`match-list ${compact ? 'compact' : ''}`} variants={fadeUp}>
       {matches.slice(0, limit).map((m, i) => (
-        <MatchRow key={m.id} m={m} i={i} gd={gd} onOpen={onOpen} />
+        <MatchRow key={m.id} m={m} i={i} gd={gd} lp={lp.get(m.id)} onOpen={onOpen} />
       ))}
+      {compact ? (
+        <button className="match-expand" onClick={onAll} title={t('Все игры в профиле')}>
+          <Icon name="chevron" size={16} />
+        </button>
+      ) : (
       <div className="match-more">
         {limit < matches.length && (
           <button className="btn ghost" onClick={() => setLimit((l) => l + 10)}>
@@ -336,6 +448,7 @@ function MatchList({ matches, gd, onOpen, onAll }: { matches: MatchSummary[]; gd
           {t('Все игры')} <Icon name="right" size={14} />
         </button>
       </div>
+      )}
     </motion.section>
   )
 }
@@ -461,7 +574,7 @@ function Behaviour({ matches }: { matches: MatchSummary[] }) {
   )
 }
 
-function Lens({ matches }: { matches: MatchSummary[] }) {
+function Lens({ matches, onOpen }: { matches: MatchSummary[]; onOpen?: () => void }) {
   const cards = useMemo(() => statCards(matches), [matches])
   const [i, setI] = useState(1)
   useEffect(() => {
@@ -472,9 +585,9 @@ function Lens({ matches }: { matches: MatchSummary[] }) {
   return (
     <Card className="lens">
       <div className="card-head">
-        <h3 className="card-title">
-          <Icon name="eye" size={16} /> {t('Линза')}
-        </h3>
+        <button className="card-title linkish" onClick={onOpen}>
+          <Icon name="eye" size={16} /> {t('Линза')} {onOpen && <Icon name="arrow" size={13} />}
+        </button>
         <div className="lens-nav">
           <button onClick={() => setI((v) => (v - 1 + cards.length) % cards.length)} aria-label={t('Предыдущая метрика')}>
             <Icon name="left" size={14} />
@@ -491,6 +604,35 @@ function Lens({ matches }: { matches: MatchSummary[] }) {
           <div className="lens-value">{matches.length ? <Counter value={c.value} format={c.fmt} /> : '–'}</div>
         </motion.div>
       </AnimatePresence>
+    </Card>
+  )
+}
+
+/** Hub tile: the category that holds you back the most, with its trend. */
+function LensTile({ matches, onOpen }: { matches: MatchSummary[]; onOpen: () => void }) {
+  const L = useMemo(() => lens(matches, 'lobby'), [matches])
+  const weak = L.cats.length ? L.cats.reduce((a, b) => (b.score < a.score ? b : a)) : null
+  const metric = weak?.metrics.reduce((a, b) => (b.score < a.score ? b : a))
+  return (
+    <Card className="lens-tile hoverable" onClick={onOpen}>
+      <h3 className="card-title">
+        <Icon name="eye" size={15} /> {t('Линза')}
+      </h3>
+      {weak && metric ? (
+        <>
+          <Sparkline data={metric.series} width={200} height={60} color="var(--gold)" stretch dot={false} area={false} />
+          <div className="lens-tile-foot">
+            <span className="muted small">{weak.label}</span>
+            <b>{metric.label}</b>
+            <span className="lens-tile-score" style={{ color: lensColor(metric.score) }}>
+              {Math.round(metric.score)}
+              <em>/100</em>
+            </span>
+          </div>
+        </>
+      ) : (
+        <p className="muted small">{t('Нет игр в этом режиме')}</p>
+      )}
     </Card>
   )
 }

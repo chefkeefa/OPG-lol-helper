@@ -6,6 +6,7 @@ import { t } from '../lib/i18n'
 import { champSplash } from '../lib/ddragon'
 import { champSkinSplash, useSkins } from '../lib/skins'
 import { Champ, Counter, Icon, Splash, ease, fadeUp, stagger } from '../components/ui'
+import { NavIcon } from '../components/NavIcons'
 
 type SortKey = 'games' | 'wr' | 'kda' | 'score' | 'cs' | 'dmg'
 
@@ -40,7 +41,7 @@ export function Champions({ data, matches }: { data: PlayerData; matches: MatchS
     <div className="page">
       <motion.div className="page-head" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
         <h1>
-          <Icon name="chart" size={30} /> {t('Чемпионы')}
+          <NavIcon name="chart" size={26} /> {t('Чемпионы')}
         </h1>
         <p className="page-sub">{t('Статистика по чемпионам за загруженные игры. Нажмите на заголовок столбца, чтобы отсортировать.')}</p>
       </motion.div>
