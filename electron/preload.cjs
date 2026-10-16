@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('rp', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   },
-  riot: (host, path) => ipcRenderer.invoke('riot:fetch', host, path),
+  riot: (host, path, priority) => ipcRenderer.invoke('riot:fetch', host, path, priority),
   skins: { get: () => ipcRenderer.invoke('skins:get'), onUpdate: on('skins:update') },
   cache: {
     read: () => ipcRenderer.invoke('cache:read'),

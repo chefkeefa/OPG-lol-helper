@@ -229,25 +229,41 @@ export default function App() {
   }
 
   const runSeq = useRef(0)
-  const run = useCallback(async (job: (p: (d: number, t: number) => void, partial: (d: PlayerData) => void) => Promise<PlayerData>) => {
-    const seq = ++runSeq.current
-    setProgress(0.05)
-    try {
-      const d = await job(
-        (done, total) => setProgress(0.15 + (done / Math.max(1, total)) * 0.85),
-        // late updates (streamed games, timelines) only apply while this load is still the latest
-        (part) => seq === runSeq.current && setData(part),
-      )
-      setData(d)
-      setOpenId(undefined)
-      return true
-    } catch (e) {
-      showToast(errorText(e))
-      return false
-    } finally {
-      setProgress(null)
-    }
-  }, [])
+  const run = useCallback(
+    async (job: (p: (d: number, t: number) => void, partial: (d: PlayerData) => void, stale: () => boolean) => Promise<PlayerData>, onFirst?: () => void) => {
+      const seq = ++runSeq.current
+      // a load overtaken by a newer one (another name clicked) stops and never replaces what is on screen
+      const stale = () => seq !== runSeq.current
+      let shown = false
+      const show = (d: PlayerData) => {
+        if (stale()) return
+        setData(d)
+        if (!shown) {
+          shown = true
+          setOpenId(undefined)
+          onFirst?.()
+        }
+      }
+      setProgress(0.05)
+      try {
+        const d = await job(
+          (done, total) => !stale() && setProgress(0.15 + (done / Math.max(1, total)) * 0.85),
+          // late updates (streamed games, timelines) only apply while this load is still the latest
+          show,
+          stale,
+        )
+        if (stale()) return false
+        show(d)
+        return true
+      } catch (e) {
+        if (!stale()) showToast(errorText(e))
+        return false
+      } finally {
+        if (!stale()) setProgress(null)
+      }
+    },
+    [],
+  )
 
   const loadSelf = useCallback(() => {
     viewing.current = { kind: 'client' }
@@ -287,19 +303,23 @@ export default function App() {
     const me = myAccount()
     if (!me) return Promise.resolve(false)
     viewing.current = { kind: 'riot', ...me, self: true }
-    return run((p, part) => loadPlayer(me.riotId, me.platform, count, p, part))
+    return run((p, part, stale) => loadPlayer(me.riotId, me.platform, count, p, part, { stale }))
   }, [run, count])
 
   const search = useCallback(
     async (riotId: string, platform: string) => {
-      const ok = await run((p) => loadPlayer(riotId, platform, count, p))
-      if (ok) {
-        viewing.current = { kind: 'riot', riotId, platform }
-        try {
-          localStorage.setItem(LAST, JSON.stringify({ riotId, platform }))
-        } catch {}
-        openProfile('overview')
-      }
+      // the profile opens with its first games and fills in while it is on screen; the newest 10
+      // games go first, older ones in the background so the next name clicked still loads at once
+      await run(
+        (p, part, stale) => loadPlayer(riotId, platform, count, p, part, { first: 10, stale }),
+        () => {
+          viewing.current = { kind: 'riot', riotId, platform }
+          try {
+            localStorage.setItem(LAST, JSON.stringify({ riotId, platform }))
+          } catch {}
+          openProfile('overview')
+        },
+      )
     },
     [run, count, openProfile],
   )
@@ -313,7 +333,7 @@ export default function App() {
   const refresh = useCallback(() => {
     const v = viewing.current
     if (v?.kind === 'client') return loadSelf()
-    if (v?.kind === 'riot') return run((p, part) => loadPlayer(v.riotId, v.platform, count, p, part))
+    if (v?.kind === 'riot') return run((p, part, stale) => loadPlayer(v.riotId, v.platform, count, p, part, { first: v.self ? count : 10, stale }))
     if (client?.connected) return loadSelf()
     if (settings?.riotApiKey && myAccount()) return loadSelfOffline()
     if (data.source !== 'demo') return showToast(t('Показаны данные с прошлого запуска. Запустите клиент LoL или добавьте ключ Riot API, чтобы обновить их.'), 'info')

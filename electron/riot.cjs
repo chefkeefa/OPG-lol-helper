@@ -2,7 +2,13 @@
 // Development and personal keys allow 20 requests/second and 100 requests/2 minutes, counted
 // separately for every routing value (kr, euw1, europe, americas...), so each host gets its own
 // budget and a busy region never holds up another. Interface requests jump the queue and the
-// collector always leaves headroom for them.
+// collector always leaves headroom for them. Three priorities:
+//   high - what the interface is waiting for (the whole budget)
+//   bg   - interface extras nobody waits on: older games of a profile, timelines (up to 60%)
+//   low  - the stats collector (up to 50%, evenly spread, off a host while the interface uses it)
+// so a profile opened right after another one still finds room for its first games.
+
+const SHARE = { high: 1, bg: 0.6, low: 0.5 }
 
 const HOSTS = new Set([
   'americas', 'europe', 'asia', 'sea',
@@ -25,17 +31,21 @@ class RiotClient {
     this.limits = limits
   }
 
-  /** priority: 'high' for the interface, 'low' for the collector */
+  /** priority: 'high' for the interface, 'bg' for interface extras, 'low' for the collector */
   request(host, path, priority = 'high') {
+    if (!(priority in SHARE)) priority = 'high'
     if (!HOSTS.has(host) || typeof path !== 'string' || !path.startsWith('/')) return Promise.resolve({ status: 400, body: null })
     if (!this.getKey()) return Promise.resolve({ status: 401, body: { status: { message: 'No Riot API key' } } })
     return new Promise((resolve) => {
       const job = { host, path, priority, resolve }
+      if (priority !== 'low') this.host(host).lastHigh = Date.now()
       if (priority === 'high') {
-        this.host(host).lastHigh = Date.now()
         this.queue.unshift(job)
-      }
-      else this.queue.push(job)
+      } else if (priority === 'bg') {
+        // after the interface's own jobs, ahead of the collector
+        const i = this.queue.findIndex((j) => j.priority === 'low')
+        this.queue.splice(i < 0 ? this.queue.length : i, 0, job)
+      } else this.queue.push(job)
       // a pump waiting on another host's budget looks at the new job right away
       this.wake?.()
       this.pump()
@@ -43,7 +53,7 @@ class RiotClient {
   }
 
   host(name) {
-    return (this.hosts[name] ||= { stamps: [], blockedUntil: 0, lastHigh: 0 })
+    return (this.hosts[name] ||= { stamps: [], blockedUntil: 0, lastHigh: 0, lastLow: 0 })
   }
 
   pendingLow() {
@@ -59,9 +69,15 @@ class RiotClient {
     if (lastSecond.length >= this.limits.perSecond) return 1000 - (now - lastSecond[0]) + 5
     // the collector stands aside on a host while the interface is loading something from it
     if (job.priority === 'low' && now - h.lastHigh < 20_000) return 1000
-    // the collector keeps 40% of the 2-minute budget free, so pages and searches never queue behind it
-    const cap = job.priority === 'low' ? Math.floor(this.limits.perTwoMinutes * 0.6) : this.limits.perTwoMinutes
+    // background work keeps part of the 2-minute budget free, so pages and searches never queue behind it
+    const cap = Math.max(1, Math.floor(this.limits.perTwoMinutes * SHARE[job.priority]))
     if (h.stamps.length >= cap) return 120_000 - (now - h.stamps[h.stamps.length - cap]) + 5
+    // the collector spreads its share over the window instead of spending it in one burst: a burst
+    // frees nothing until two minutes later, an even pace hands budget back every couple of seconds
+    if (job.priority === 'low') {
+      const gap = 120_000 / cap
+      if (now - h.lastLow < gap) return gap - (now - h.lastLow) + 5
+    }
     return 0
   }
 
@@ -93,7 +109,9 @@ class RiotClient {
           continue
         }
         const [job] = this.queue.splice(next, 1)
-        this.host(job.host).stamps.push(Date.now())
+        const h = this.host(job.host)
+        h.stamps.push(Date.now())
+        if (job.priority === 'low') h.lastLow = Date.now()
         this.sent++
         this.run(job)
       }

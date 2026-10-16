@@ -58,13 +58,14 @@ export const setStoredKey = (k: string) => {
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export async function riot<T>(host: string, path: string, attempt = 0): Promise<T> {
+/** priority 'bg': nobody is waiting for it (older games, timelines), it leaves room for what is on screen */
+export async function riot<T>(host: string, path: string, priority: 'high' | 'bg' = 'high', attempt = 0): Promise<T> {
   let status: number
   let body: unknown
   let retryAfter = 2
   if (window.rp) {
     // desktop build: the main process calls Riot with the key from settings
-    const r = await window.rp.riot(host, path)
+    const r = await window.rp.riot(host, path, priority)
     status = r.status
     body = r.body
     retryAfter = r.retryAfter || 2
@@ -77,7 +78,7 @@ export async function riot<T>(host: string, path: string, attempt = 0): Promise<
   }
   if (status === 429 && attempt < 3) {
     await sleep(retryAfter * 1000 + 250)
-    return riot<T>(host, path, attempt + 1)
+    return riot<T>(host, path, priority, attempt + 1)
   }
   if (status >= 400) {
     const msg = (body as { status?: { message?: string } } | null)?.status?.message ?? `HTTP ${status}`
@@ -197,22 +198,30 @@ const SR_QUEUES = new Set([400, 420, 430, 440, 480, 490, 700])
  * Loads match timelines for the latest Summoner's Rift games (one extra request each, cached)
  * so the dashboard can show gold and K+A differences against the lane opponent at 15 minutes.
  */
-async function enrichTimelines(puuid: string, regional: string, matches: MatchSummary[], cache: Record<string, MatchSummary>, onUpdate: () => void) {
+async function enrichTimelines(
+  puuid: string,
+  regional: string,
+  matches: MatchSummary[],
+  cache: Record<string, MatchSummary>,
+  onUpdate: () => void,
+  stale: () => boolean,
+) {
   const todo = matches
     .filter((m) => m.d15 === undefined && m.role && SR_QUEUES.has(m.queueId) && m.durationSec > 16 * 60)
     .sort((a, b) => b.endedAt - a.endedAt)
     .slice(0, 20)
   let changed = 0
   await mapLimit(todo, 2, async (m) => {
+    if (stale()) return
     try {
       if (!m.oppPid || !m.myPid) {
         // cached before participant ids were stored: re-read the match once
-        const fresh = normalizeMatch(await riot<RawMatch>(regional, `/lol/match/v5/matches/${m.id}`), puuid)
+        const fresh = normalizeMatch(await riot<RawMatch>(regional, `/lol/match/v5/matches/${m.id}`, 'bg'), puuid)
         m.myPid = fresh?.myPid
         m.oppPid = fresh?.oppPid
       }
       if (!m.oppPid || !m.myPid) m.d15 = null
-      else m.d15 = diffAt15(await riot<Timeline>(regional, `/lol/match/v5/matches/${m.id}/timeline`), m.myPid, m.oppPid)
+      else m.d15 = diffAt15(await riot<Timeline>(regional, `/lol/match/v5/matches/${m.id}/timeline`, 'bg'), m.myPid, m.oppPid)
     } catch {
       return
     }
@@ -231,7 +240,15 @@ export async function loadPlayer(
   count: number,
   onProgress?: (done: number, total: number) => void,
   onPartial?: (d: PlayerData) => void,
+  opts: {
+    /** games read at full priority; older ones follow in the background */
+    first?: number
+    /** true once another profile was opened: stop spending the Riot budget on this one */
+    stale?: () => boolean
+  } = {},
 ): Promise<PlayerData> {
+  const stale = opts.stale ?? (() => false)
+  const first = opts.first ?? count
   const [gameName, tagLine] = riotId.split('#').map((s) => s.trim())
   if (!gameName || !tagLine) throw new RiotError(400, t('Введите Riot ID в формате Имя#ТЕГ'))
   const regional = regionalOf(platform)
@@ -290,21 +307,26 @@ export async function loadPlayer(
   if (onPartial && found.some(Boolean)) onPartial(snapshot())
   let done = ids.length - missing.length
   onProgress?.(done, ids.length)
+  let read = 0
   await mapLimit(missing, 4, async ({ id, i }) => {
+    if (stale()) return
     const old = found[i]
-    const raw = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`).catch(() => null)
+    // ids come newest first: the first games are the ones on screen
+    const raw = await riot<RawMatch>(regional, `/lol/match/v5/matches/${id}`, i < first ? 'high' : 'bg').catch(() => null)
     const m = raw ? normalizeMatch(raw, account.puuid) : null
     if (m && old?.d15 !== undefined) m.d15 = old.d15
     if (m) cache[`${account.puuid}:${id}`] = m
     found[i] = m ?? old ?? null
     onProgress?.(++done, ids.length)
-    if (done % 10 === 0) {
+    // the first few games put the profile on screen, then it fills in every ten
+    if (++read === 5 || done % 10 === 0) {
       writeCache(cache)
       onPartial?.(snapshot())
     }
   })
   writeCache(cache)
-  if (onPartial) enrichTimelines(account.puuid, regional, found.filter((m): m is MatchSummary => Boolean(m)), cache, () => onPartial({ ...snapshot(), matches: [...snapshot().matches] }))
+  if (onPartial && !stale())
+    enrichTimelines(account.puuid, regional, found.filter((m): m is MatchSummary => Boolean(m)), cache, () => onPartial({ ...snapshot(), matches: [...snapshot().matches] }), stale)
 
   return {
     profile,
