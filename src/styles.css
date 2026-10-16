@@ -8284,3 +8284,160 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- tier list like DPM: one centred card, splash crops, plain tier letters ---------- */
+.tier-card {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 12px 12px 6px;
+}
+.tier-card .tier-toolbar {
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+.tier-card .role-tabs {
+  padding: 2px;
+  border-radius: 8px;
+  background: rgba(22, 23, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+.tier-card .role-tabs button {
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.tier-card .role-tabs .seg-label > span {
+  display: none;
+}
+.tier-card .role-tabs button.on {
+  color: #0d0e18;
+}
+.tier-card .role-tabs .seg-bg {
+  border-radius: 6px;
+  background: #a9b0ff;
+  box-shadow: none;
+}
+.tier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  background: rgba(22, 23, 30, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.tier-card select {
+  height: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 7px;
+}
+.tier-card .offmeta {
+  font-size: 11px;
+  margin-left: 6px;
+}
+.tier-card .search-mini {
+  height: 30px;
+  border-radius: 7px;
+  background: rgba(22, 23, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+.tier-card .search-mini input {
+  width: 180px;
+  font-size: 12.5px;
+  padding: 0;
+}
+.tier-card .tier-table {
+  padding: 0;
+}
+.tier-card .tier-row {
+  grid-template-columns: 52px minmax(170px, 2fr) 70px 70px 90px 1fr 1fr 1fr;
+  gap: 0;
+  padding: 0 8px;
+  height: 37px;
+  border-radius: 0;
+  font-size: 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+.tier-card .tier-row > * {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.tier-card .tier-row > .tier-champ {
+  justify-content: flex-start;
+}
+.tier-card .tier-head {
+  height: 30px;
+  border-top: 0;
+  border-bottom: 0;
+  margin: 0;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+.tier-card .tier-head .th {
+  justify-content: center;
+}
+.tier-card button.tier-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+.tier-card .col-on,
+.tier-card .tier-head .th.on {
+  background: rgba(255, 255, 255, 0.035);
+}
+.tier-rank {
+  color: #b9bccb;
+}
+.tier-art {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex: none;
+  background: #22232c;
+}
+.tier-art .splash {
+  position: absolute;
+  inset: 0;
+}
+.tier-card .tier-champ {
+  gap: 10px;
+}
+.tier-lane {
+  flex-direction: column;
+  gap: 1px;
+  color: #c9cbd5;
+}
+.tier-lane em {
+  font-style: normal;
+  font-size: 9.5px;
+  color: #8f92a3;
+}
+.tier-letter {
+  font-size: 16px;
+  font-weight: 800;
+}
+.tier-card .tier-wr-num {
+  width: auto;
+  flex-direction: column;
+}
+.tier-card .tier-wr-num b {
+  width: auto;
+}
+.tier-card .tier-wr-num em {
+  font-size: 10px;
+}
+.tier-card .btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 7px;
+}
