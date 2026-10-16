@@ -132,6 +132,7 @@ export interface LiveData {
     skinID?: number
     riotId?: string
     riotIdGameName?: string
+    riotIdTagLine?: string
     summonerName?: string
     team: 'ORDER' | 'CHAOS'
     level: number

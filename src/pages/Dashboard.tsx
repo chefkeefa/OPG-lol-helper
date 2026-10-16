@@ -9,6 +9,7 @@ import { ROLES, championAggs, duration, kdaRatio, queueLabel, roleAggs, statCard
 import { clock } from '../lib/objectives'
 import { Card, Champ, Counter, Icon, Img, Item, Ring, Segmented, Sparkline, Splash, ease, fadeUp, spring, stagger, type IconName } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
+import { PlayerLink, liveRiotId } from '../components/PlayerLink'
 import { champSkinSplash, liveChamp, liveSplash, matchSplash, skinFor, useSkins } from '../lib/skins'
 import { RoleIcon } from '../components/RoleIcon'
 import { ProfileChampions, ProfileLens } from './ProfileTabs'
@@ -723,7 +724,7 @@ function Showcase({
               <Splash src={liveSplash(p)} fallback={champSplash(liveChamp(p))} position="center 18%" />
               <div className="show-shade" />
               <div className="show-who">
-                <b>{p.riotIdGameName ?? p.summonerName}</b>
+                <b>{p === me ? (p.riotIdGameName ?? p.summonerName) : <PlayerLink riotId={liveRiotId(p)} home>{p.riotIdGameName ?? p.summonerName}</PlayerLink>}</b>
                 <span>{p.championName}</span>
               </div>
             </div>
@@ -770,7 +771,11 @@ function Showcase({
         </div>
         <div className="feat-row">
           <div className="feat-side">
-            <b>{name(a)}</b>
+            <b>
+              <PlayerLink riotId={a?.riotId} platform={platform}>
+                {name(a)}
+              </PlayerLink>
+            </b>
             <span className="muted">{champName(champ(a))}</span>
             <div className="feat-team">
               {blue.map((p, i) => (
@@ -785,7 +790,11 @@ function Showcase({
             </motion.button>
           </div>
           <div className="feat-side right">
-            <b>{name(b)}</b>
+            <b>
+              <PlayerLink riotId={b?.riotId} platform={platform}>
+                {name(b)}
+              </PlayerLink>
+            </b>
             <span className="muted">{champName(champ(b))}</span>
             <div className="feat-team">
               {red.map((p, i) => (
@@ -1176,14 +1185,14 @@ function Pings({ matches }: { matches: MatchSummary[] }) {
 
 function PlayedWith({ matches }: { matches: MatchSummary[] }) {
   const mates = useMemo(() => {
-    const map = new Map<string, { name: string; tag: string; games: number; wins: number; champ: string }>()
+    const map = new Map<string, { name: string; tag: string; puuid?: string; games: number; wins: number; champ: string }>()
     for (const m of matches) {
       const me = m.players?.find((p) => p.me)
       if (!me) continue
       for (const p of m.players!) {
         if (p.me || p.teamId !== me.teamId || !p.name || p.name === '—') continue
         const key = p.puuid ?? `${p.name}#${p.tag ?? ''}`.toLowerCase()
-        const x = map.get(key) ?? { name: p.name, tag: p.tag ?? '', games: 0, wins: 0, champ: p.champion }
+        const x = map.get(key) ?? { name: p.name, tag: p.tag ?? '', puuid: p.puuid, games: 0, wins: 0, champ: p.champion }
         x.games++
         if (m.win) x.wins++
         map.set(key, x)
@@ -1211,10 +1220,10 @@ function PlayedWith({ matches }: { matches: MatchSummary[] }) {
             return (
               <motion.div key={x.name + x.tag} className="played-row" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.05, duration: 0.4, ease }}>
                 <Champ name={x.champ} size={28} radius={6} />
-                <span className="played-name">
+                <PlayerLink name={x.name} tag={x.tag} puuid={x.puuid} className="played-name">
                   <b>{x.name}</b>
                   {x.tag && <span className="muted">#{x.tag}</span>}
-                </span>
+                </PlayerLink>
                 <b className="played-games">{x.games}</b>
                 <span className="played-wr">
                   <b className={wr >= 50 ? 'good' : 'bad'}>{wr}%</b>

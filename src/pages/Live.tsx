@@ -6,6 +6,7 @@ import { Card, Champ, Icon, Item, Ring, Splash, ease, stagger } from '../compone
 import { NavIcon } from '../components/NavIcons'
 import { liveChamp, liveSplash } from '../lib/skins'
 import { ObjectiveGlyph } from '../components/ObjectiveGlyph'
+import { PlayerLink, liveRiotId } from '../components/PlayerLink'
 import { t } from '../lib/i18n'
 
 export function Live({ live, preview, onPreview }: { live: LiveData | null; preview: boolean; onPreview: () => void }) {
@@ -83,7 +84,15 @@ export function Live({ live, preview, onPreview }: { live: LiveData | null; prev
                   <span className="champ-lvl">{p.level}</span>
                 </div>
                 <div className="lp-name">
-                  <b>{p.riotIdGameName ?? p.summonerName}</b>
+                  <b>
+                    {[p.riotIdGameName, p.summonerName].includes(me) ? (
+                      (p.riotIdGameName ?? p.summonerName)
+                    ) : (
+                      <PlayerLink riotId={liveRiotId(p)} home>
+                        {p.riotIdGameName ?? p.summonerName}
+                      </PlayerLink>
+                    )}
+                  </b>
                   <span className="muted small">
                     {p.championName}
                     {p.isDead && p.respawnTimer ? ' · ' + t('воскрешение {n}с', { n: Math.ceil(p.respawnTimer) }) : ''}

@@ -7,6 +7,7 @@ import { queueLabel } from '../lib/stats'
 import { fmtNum, t } from '../lib/i18n'
 import { Icon, Img, Skeleton, ease, fadeUp, stagger } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
+import { PlayerLink, platformKey } from '../components/PlayerLink'
 
 interface SpecPlayer {
   puuid: string
@@ -310,7 +311,15 @@ function GameRow({
                       />
                     )}
                   </span>
-                  <b>{p.riotId?.split('#')[0] || champName(c)}</b>
+                  <b>
+                    {p.riotId ? (
+                      <PlayerLink riotId={p.riotId} puuid={p.puuid} platform={platformKey(g.platformId) || platform}>
+                        {p.riotId.split('#')[0]}
+                      </PlayerLink>
+                    ) : (
+                      champName(c)
+                    )}
+                  </b>
                 </span>
               )
             })}
