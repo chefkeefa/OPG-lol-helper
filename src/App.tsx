@@ -12,7 +12,7 @@ import { demoLive } from './lib/objectives'
 import { Sidebar } from './components/Sidebar'
 import { TitleBar } from './components/TitleBar'
 import { ease } from './components/ui'
-import { Dashboard } from './pages/Dashboard'
+import { Dashboard, Profile, type ProfileTab } from './pages/Dashboard'
 import { statsStatus } from './lib/statsApi'
 import { recordRanks } from './lib/lp'
 import { noteAccount, type Account } from './lib/accounts'
@@ -208,6 +208,14 @@ export default function App() {
   const navigate = useCallback((p: Page) => {
     setHist(({ stack, i }) => (stack[i] === p ? { stack, i } : { stack: [...stack.slice(0, i + 1), p], i: i + 1 }))
   }, [])
+  const [profileTab, setProfileTab] = useState<ProfileTab>('overview')
+  const openProfile = useCallback(
+    (tab: ProfileTab) => {
+      setProfileTab(tab)
+      navigate('profile')
+    },
+    [navigate],
+  )
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 })
   }, [page])
@@ -287,10 +295,10 @@ export default function App() {
         try {
           localStorage.setItem(LAST, JSON.stringify({ riotId, platform }))
         } catch {}
-        navigate('dashboard')
+        openProfile('overview')
       }
     },
-    [run, count, navigate],
+    [run, count, openProfile],
   )
 
   const refresh = useCallback(() => {
@@ -520,6 +528,24 @@ export default function App() {
                   refreshing={progress !== null}
                   openMatch={openMatch}
                   navigate={navigate}
+                  openProfile={openProfile}
+                />
+              )}
+              {page === 'profile' && (
+                <Profile
+                  data={data}
+                  matches={matches}
+                  filter={filter}
+                  setFilter={setFilter}
+                  count={count}
+                  setCount={setCount}
+                  live={live}
+                  onRefresh={refresh}
+                  refreshing={progress !== null}
+                  openMatch={openMatch}
+                  navigate={navigate}
+                  tab={profileTab}
+                  setTab={setProfileTab}
                 />
               )}
               {page === 'matches' && <Matches matches={matches} filter={filter} setFilter={setFilter} openId={openId} setOpenId={setOpenId} />}

@@ -146,7 +146,7 @@ export function Sidebar({
                     {it.page === 'recordings' && recording && <span className="live-dot rec" title={t('Идёт запись')} />}
                   </button>
                   {it.page === 'dashboard' && (
-                    <button className={`nav-sub ${active ? 'on' : ''}`} onClick={() => onNavigate('dashboard')}>
+                    <button className={`nav-sub ${page === 'profile' ? 'on' : ''}`} onClick={() => onNavigate('profile')}>
                       <Img src={profileIcon(data.profile.iconId)} alt="" size={18} radius={5} />
                       <span>
                         {data.profile.gameName} <span className="muted">#{data.profile.tagLine}</span>

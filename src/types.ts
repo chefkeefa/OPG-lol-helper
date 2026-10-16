@@ -98,6 +98,7 @@ export interface PlayerData {
 
 export type Page =
   | 'dashboard'
+  | 'profile'
   | 'matches'
   | 'champions'
   | 'studio'
