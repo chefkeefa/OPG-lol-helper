@@ -454,7 +454,7 @@ ipcMain.handle('settings:set', (_e, key, value) => {
   return true
 })
 
-ipcMain.handle('riot:fetch', (_e, host, pathname) => riot.request(host, pathname, 'high'))
+ipcMain.handle('riot:fetch', (_e, host, pathname, priority) => riot.request(host, pathname, priority === 'bg' ? 'bg' : 'high'))
 
 // statistics
 ipcMain.handle('stats:status', () => collector.status())

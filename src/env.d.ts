@@ -77,7 +77,7 @@ declare global {
       window: { minimize(): void; maximize(): void; close(): void; onState(cb: (s: { maximized: boolean }) => void): Off }
       version(): Promise<string>
       settings: { get(): Promise<DesktopSettings>; set<K extends keyof DesktopSettings>(k: K, v: DesktopSettings[K]): Promise<boolean> }
-      riot(host: string, path: string): Promise<RiotResult>
+      riot(host: string, path: string, priority?: 'high' | 'bg'): Promise<RiotResult>
       skins: { get(): Promise<SkinLog>; onUpdate(cb: (s: SkinLog) => void): Off }
       cache: { read(): Promise<Record<string, MatchSummary>>; write(d: Record<string, MatchSummary>): Promise<boolean>; clear(): Promise<boolean> }
       lcu: {
