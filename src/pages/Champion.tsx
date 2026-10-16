@@ -5,7 +5,7 @@ import { ROLE_LABEL, pct, statsDetail, statsSummary, tierRows, wrOf } from '../l
 import { champName, champSplash, championList } from '../lib/ddragon'
 import { SHARDS, SPELL_FALLBACK, runeIcon, shardIcon, spellIcon, useGameData, type GameData } from '../lib/gameData'
 import { Card, Champ, Icon, Img, Item, Skeleton, Splash, ease, spring, stagger } from '../components/ui'
-import { ChampPicker, CollectorPill, PatchSelect, RoleTabs, StatsGate, TierBadge, hasData, patchList } from '../components/StatsBits'
+import { ChampPicker, CollectorPill, PatchSelect, RegionSelect, RoleTabs, StatsGate, TierBadge, hasData, patchList } from '../components/StatsBits'
 import { locale, t } from '../lib/i18n'
 
 const top = (m: PairMap | undefined, n = 99, min = 1) =>
@@ -167,6 +167,7 @@ export function Champion({
           </div>
           <div className="ch-tools">
             <ChampPicker value={champ} onPick={setChamp} />
+            {!demo && ready && <RegionSelect status={status} />}
             {!demo && ready && <PatchSelect status={status} value={patch} onChange={setPatch} />}
             <CollectorPill status={status} demo={demo} />
           </div>

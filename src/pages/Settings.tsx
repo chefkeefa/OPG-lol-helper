@@ -5,7 +5,7 @@ import type { StatsStatus } from '../lib/statsTypes'
 import { PLATFORMS, getStoredKey, setStoredKey } from '../api/riot'
 import { Card, Icon, Img, Switch, ease, stagger } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
-import { lang, locale, setLang, t } from '../lib/i18n'
+import { fmtNum, lang, locale, setLang, t } from '../lib/i18n'
 import { addAccount, removeAccount, useAccounts } from '../lib/accounts'
 import { isWebhook, postDiscord } from '../lib/boards'
 import { profileIcon } from '../lib/ddragon'
@@ -50,7 +50,9 @@ export function Settings({
     setTimeout(() => setSaved(false), 1800)
   }
   const regions = Object.entries(PLATFORMS)
-  const total = stats?.patches.reduce((n, p) => n + p.matches, 0) ?? 0
+  const total = stats?.regions?.reduce((n, r) => n + r.matches, 0) ?? stats?.patches.reduce((n, p) => n + p.matches, 0) ?? 0
+  // regions being collected: the saved pick, else what the collector reports (KR, EUW, NA and your own)
+  const collecting = s?.collectorRegions?.length ? s.collectorRegions : (stats?.regions?.map((r) => r.platform) ?? ['kr', 'euw1', 'na1', s?.platform || 'euw1'].filter((p, i, a) => a.indexOf(p) === i))
 
   return (
     <div className="page">
@@ -165,16 +167,30 @@ export function Settings({
           </p>
           <Switch on={Boolean(s?.collectorEnabled)} onChange={(v) => update('collectorEnabled', v)} label={t('Собирать статистику')} />
           <Switch on={s?.collectMayhem ?? true} onChange={(v) => update('collectMayhem', v)} label={t('Собирать игры ARAM Mayhem')} hint={t('тиры аугментов и билды; забирает треть запросов сборщика')} />
-          <label className="field">
-            <span>{t('Регион статистики')}</span>
-            <select value={s?.collectorPlatform || s?.platform || 'euw1'} onChange={(e) => update('collectorPlatform', e.target.value)}>
-              {regions.map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="field">
+            <span>{t('Регионы')}</span>
+            <div className="region-chips">
+              {regions.map(([k, v]) => {
+                const on = collecting.includes(k)
+                const n = stats?.regions?.find((r) => r.platform === k)?.matches
+                return (
+                  <button
+                    key={k}
+                    className={`region-chip ${on ? 'on' : ''}`}
+                    aria-pressed={on}
+                    disabled={on && collecting.length === 1}
+                    onClick={() => update('collectorRegions', on ? collecting.filter((x) => x !== k) : [...collecting, k])}
+                  >
+                    {v}
+                    {on && n ? <em>{fmtNum(n)}</em> : null}
+                  </button>
+                )
+              })}
+            </div>
+            <span className="muted small">
+              {t('У ключа Riot свой лимит запросов на Азию (KR, JP), Европу и Америку, поэтому KR + EUW + NA собирают примерно втрое больше игр, чем один регион. Серверов Китая в Riot API нет.')}
+            </span>
+          </div>
           {stats && desktop && (
             <p className="small muted">
               {t('Собрано {n} игр', { n: total.toLocaleString(locale) })}{stats.perHour ? t(', сейчас {n} в час', { n: stats.perHour }) : ''}. {stats.error && <span className="bad">{stats.error}</span>}

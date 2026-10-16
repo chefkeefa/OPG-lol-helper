@@ -1,15 +1,19 @@
 // Background statistics collector.
-// Walks the Challenger/Grandmaster/Master ladder of one region, downloads their recent ranked
-// solo games (match + timeline) through the official Riot API and aggregates, per patch and per
-// champion+role: win/pick rates, bans, item builds, boots, starting items, rune pages, summoner
-// spells, skill order and lane matchups. Only the aggregates are stored, never raw matches.
+// Walks the Challenger/Grandmaster/Master ladders of several regions at once (one worker per
+// region, each on its own Riot API budget), downloads their recent ranked solo games (match +
+// timeline) and aggregates, per region, patch and champion+role: win/pick rates, bans, item
+// builds, boots, starting items, rune pages, summoner spells, skill order and lane matchups.
+// Queries merge the regions picked in the interface. Only the aggregates are stored, never raw
+// matches.
 const { t } = require('./i18n.cjs')
 const fs = require('node:fs')
 const path = require('node:path')
-const { regionalOf } = require('./riot.cjs')
+const { HOSTS, regionalOf } = require('./riot.cjs')
 const { recommend } = require('./builds.cjs')
 
 const DD = 'https://ddragon.leagueoflegends.com'
+/** Collected when the user hasn't picked regions: the three biggest high-elo pools plus their own. */
+const DEFAULT_REGIONS = ['kr', 'euw1', 'na1']
 const ROLES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY']
 const MAYHEM_QUEUE = 2400
 const FIX = { FiddleSticks: 'Fiddlesticks' }
@@ -63,12 +67,27 @@ class Collector {
     this.getSettings = getSettings
     this.onUpdate = onUpdate
     this.running = false
-    this.state = null
-    this.platform = null
+    /** platform → { st, seen } */
+    this.stores = {}
+    this.workers = new Set()
     this.items = null
-    this.lastError = ''
-    this.recent = [] // timestamps of processed matches, for the speed readout
-    this.tick = 0
+    this.errors = {}
+    this.recent = {} // platform → timestamps of processed matches, for the speed readout
+  }
+
+  /** Regions being collected: the user's pick, else the big three plus their own server. */
+  regions() {
+    const s = this.getSettings()
+    const pick = Array.isArray(s.collectorRegions) ? s.collectorRegions.filter((p) => HOSTS.has(p) && p !== regionalOf(p)) : []
+    if (pick.length) return pick
+    return [...new Set([...DEFAULT_REGIONS, s.collectorPlatform || s.platform || 'euw1'])]
+  }
+
+  /** Regions merged into the answers: one picked in the interface, or every collected one. */
+  views() {
+    const r = this.getSettings().statsRegion
+    const all = this.regions()
+    return r && all.includes(r) ? [r] : all
   }
 
   file(platform) {
@@ -76,31 +95,46 @@ class Collector {
   }
 
   load(platform) {
-    if (this.platform === platform && this.state) return this.state
-    this.save()
-    this.platform = platform
+    const hit = this.stores[platform]
+    if (hit) return hit.st
+    let st
     try {
-      this.state = JSON.parse(fs.readFileSync(this.file(platform), 'utf8'))
+      st = JSON.parse(fs.readFileSync(this.file(platform), 'utf8'))
     } catch {
-      this.state = { patches: {}, seen: [], players: [], matchQueue: [], ladderAt: 0 }
+      st = { patches: {}, seen: [], players: [], matchQueue: [], ladderAt: 0 }
     }
-    this.seen = new Set(this.state.seen)
-    return this.state
+    this.stores[platform] = { st, seen: new Set(st.seen) }
+    return st
   }
 
-  save() {
-    if (!this.state || !this.platform) return
+  seen(platform) {
+    this.load(platform)
+    return this.stores[platform].seen
+  }
+
+  save(platform) {
+    if (!platform) return Object.keys(this.stores).forEach((p) => this.save(p))
+    const store = this.stores[platform]
+    if (!store) return
     try {
       fs.mkdirSync(this.dir, { recursive: true })
-      this.state.seen = [...this.seen].slice(-60000)
-      const tmp = this.file(this.platform) + '.tmp'
-      fs.writeFileSync(tmp, JSON.stringify(this.state))
-      fs.renameSync(tmp, this.file(this.platform))
+      store.st.seen = [...store.seen].slice(-60000)
+      const tmp = this.file(platform) + '.tmp'
+      fs.writeFileSync(tmp, JSON.stringify(store.st))
+      fs.renameSync(tmp, this.file(platform))
     } catch {}
   }
 
-  async loadItems() {
-    if (this.items) return this.items
+  loadItems() {
+    // shared by every worker: one download, retried on the next step if it failed
+    this.itemsP ||= this.fetchItems().catch((e) => {
+      this.itemsP = null
+      throw e
+    })
+    return this.itemsP
+  }
+
+  async fetchItems() {
     const versions = await (await fetch(`${DD}/api/versions.json`)).json()
     const data = (await (await fetch(`${DD}/cdn/${versions[0]}/data/en_US/item.json`)).json()).data
     const champs = (await (await fetch(`${DD}/cdn/${versions[0]}/data/en_US/champion.json`)).json()).data
@@ -125,7 +159,7 @@ class Collector {
   start() {
     if (this.running) return
     this.running = true
-    this.loop()
+    this.supervise()
   }
 
   stop() {
@@ -140,86 +174,103 @@ class Collector {
     return r.body
   }
 
-  async loop() {
-    let saved = 0
+  active(platform) {
+    const s = this.getSettings()
+    return this.running && Boolean(s.riotApiKey && s.collectorEnabled) && (!platform || this.regions().includes(platform))
+  }
+
+  /** Keeps one worker per picked region; a worker ends by itself when its region is dropped. */
+  async supervise() {
     while (this.running) {
-      const s = this.getSettings()
-      if (!s.riotApiKey || !s.collectorEnabled) {
-        await sleep(3000)
-        continue
-      }
-      const platform = s.collectorPlatform || s.platform || 'euw1'
-      const st = this.load(platform)
-      const regional = regionalOf(platform)
-      try {
-        await this.loadItems()
-        if (!st.players.length || Date.now() - st.ladderAt > 6 * 3600_000) {
-          const tiers = ['challenger', 'grandmaster', 'master']
-          const all = []
-          for (const t of tiers) {
-            const l = await this.api(platform, `/lol/league/v4/${t}leagues/by-queue/RANKED_SOLO_5x5`)
-            for (const e of l.entries || []) if (e.puuid) all.push(e.puuid)
-          }
-          st.players = shuffle(all)
-          st.ladderAt = Date.now()
-        } else if (s.collectMayhem && ++this.tick % 3 === 0) {
-          // every third step goes to ARAM Mayhem, so its augment and build data grows alongside
-          await this.mayhemStep(st, regional)
-        } else if (st.matchQueue.length < 30) {
-          const puuid = st.players.shift()
-          st.players.push(puuid)
-          const since = Math.floor(Date.now() / 1000) - 10 * 86400
-          const ids = await this.api(regional, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&type=ranked&start=0&count=20&startTime=${since}`)
-          for (const id of ids || []) if (!this.seen.has(id) && !st.matchQueue.includes(id)) st.matchQueue.push(id)
-        } else {
-          const id = st.matchQueue.shift()
-          this.seen.add(id)
-          const match = await this.api(regional, `/lol/match/v5/matches/${id}`)
-          if (match?.info?.queueId === 420 && match.info.gameDuration > 600) {
-            const timeline = await this.api(regional, `/lol/match/v5/matches/${id}/timeline`).catch(() => null)
-            this.ingest(match, timeline)
-            this.recent.push(Date.now())
-            if (++saved % 25 === 0) {
-              this.save()
-              this.onUpdate?.()
+      if (this.active()) for (const p of this.regions()) if (!this.workers.has(p)) this.worker(p)
+      await sleep(3000)
+    }
+  }
+
+  async worker(platform) {
+    this.workers.add(platform)
+    const st = this.load(platform)
+    const seen = this.seen(platform)
+    const regional = regionalOf(platform)
+    let saved = 0
+    let tick = 0
+    try {
+      while (this.active(platform)) {
+        const s = this.getSettings()
+        try {
+          await this.loadItems()
+          if (!st.players.length || Date.now() - st.ladderAt > 6 * 3600_000) {
+            const tiers = ['challenger', 'grandmaster', 'master']
+            const all = []
+            for (const t of tiers) {
+              const l = await this.api(platform, `/lol/league/v4/${t}leagues/by-queue/RANKED_SOLO_5x5`)
+              for (const e of l.entries || []) if (e.puuid) all.push(e.puuid)
+            }
+            st.players = shuffle(all)
+            st.ladderAt = Date.now()
+          } else if (s.collectMayhem && ++tick % 3 === 0) {
+            // every third step goes to ARAM Mayhem, so its augment and build data grows alongside
+            await this.mayhemStep(platform, st, regional)
+          } else if (st.matchQueue.length < 30) {
+            const puuid = st.players.shift()
+            st.players.push(puuid)
+            const since = Math.floor(Date.now() / 1000) - 10 * 86400
+            const ids = await this.api(regional, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&type=ranked&start=0&count=20&startTime=${since}`)
+            for (const id of ids || []) if (!seen.has(id) && !st.matchQueue.includes(id)) st.matchQueue.push(id)
+          } else {
+            const id = st.matchQueue.shift()
+            seen.add(id)
+            const match = await this.api(regional, `/lol/match/v5/matches/${id}`)
+            if (match?.info?.queueId === 420 && match.info.gameDuration > 600) {
+              const timeline = await this.api(regional, `/lol/match/v5/matches/${id}/timeline`).catch(() => null)
+              this.ingest(st, match, timeline)
+              ;(this.recent[platform] ||= []).push(Date.now())
+              if (++saved % 25 === 0) {
+                this.save(platform)
+                this.onUpdate?.()
+              }
             }
           }
+          this.errors[platform] = ''
+        } catch (e) {
+          this.errors[platform] = e.message
+          await sleep(e.fatal ? 30000 : 3000)
         }
-        this.lastError = ''
-      } catch (e) {
-        this.lastError = e.message
-        await sleep(e.fatal ? 30000 : 3000)
       }
+    } finally {
+      this.workers.delete(platform)
+      this.save(platform)
     }
   }
 
   // ---------------------------------------------------------------- ARAM Mayhem
   // Mayhem has no ladder, so the player pool starts from the ranked players and grows with
   // everyone met in the Mayhem games already downloaded.
-  async mayhemStep(st, regional) {
+  async mayhemStep(platform, st, regional) {
     const M = (st.mayhem ||= { players: [], queue: [], patches: {} })
+    const seen = this.seen(platform)
     if (M.queue.length < 20) {
       const puuid = M.players.length ? M.players.shift() : st.players[Math.floor(Math.random() * st.players.length)]
       if (!puuid) return
       const since = Math.floor(Date.now() / 1000) - 14 * 86400
       const ids = await this.api(regional, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=${MAYHEM_QUEUE}&start=0&count=20&startTime=${since}`)
-      for (const id of ids || []) if (!this.seen.has(id) && !M.queue.includes(id)) M.queue.push(id)
+      for (const id of ids || []) if (!seen.has(id) && !M.queue.includes(id)) M.queue.push(id)
       return
     }
     const id = M.queue.shift()
-    this.seen.add(id)
+    seen.add(id)
     const match = await this.api(regional, `/lol/match/v5/matches/${id}`)
     if (match?.info?.queueId !== MAYHEM_QUEUE || match.info.gameDuration < 420) return
     const timeline = await this.api(regional, `/lol/match/v5/matches/${id}/timeline`).catch(() => null)
-    this.ingestMayhem(match, timeline)
+    this.ingestMayhem(st, match, timeline)
     for (const p of match.info.participants) if (p.puuid && M.players.length < 3000 && !M.players.includes(p.puuid)) M.players.push(p.puuid)
-    this.recent.push(Date.now())
+    ;(this.recent[platform] ||= []).push(Date.now())
   }
 
-  ingestMayhem(match, timeline) {
+  ingestMayhem(st, match, timeline) {
     const info = match.info
     const patch = String(info.gameVersion).split('.').slice(0, 2).join('.')
-    const M = this.state.mayhem
+    const M = st.mayhem
     this.version = (this.version || 0) + 1
     const P = (M.patches[patch] ||= { matches: 0, aug: {}, champs: {} })
     P.matches++
@@ -265,12 +316,12 @@ class Collector {
     }
   }
 
-  /** Mayhem aggregates over the given patches (all when empty). */
+  /** Mayhem aggregates over the given patches (all when empty), merged over the viewed regions. */
   mayhem(patches) {
-    this.load(this.status().platform)
-    const all = this.state?.mayhem?.patches || {}
-    const list = patches?.length ? patches : Object.keys(all).sort(cmpPatch).reverse().slice(0, 2)
-    const out = { matches: 0, patches: Object.keys(all).sort(cmpPatch).reverse(), aug: {}, champs: {} }
+    const stores = this.views().map((p) => this.load(p).mayhem?.patches || {})
+    const known = [...new Set(stores.flatMap((m) => Object.keys(m)))].sort(cmpPatch).reverse()
+    const list = patches?.length ? patches : known.slice(0, 2)
+    const out = { matches: 0, patches: known, aug: {}, champs: {} }
     const add = (to, from) => {
       for (const [k, [g, w]] of Object.entries(from || {})) {
         const e = (to[k] ||= [0, 0])
@@ -278,6 +329,7 @@ class Collector {
         e[1] += w
       }
     }
+    for (const all of stores)
     for (const p of list) {
       const P = all[p]
       if (!P) continue
@@ -294,10 +346,9 @@ class Collector {
   }
 
   // ---------------------------------------------------------------- aggregation
-  ingest(match, timeline) {
+  ingest(st, match, timeline) {
     const info = match.info
     const patch = String(info.gameVersion).split('.').slice(0, 2).join('.')
-    const st = this.state
     this.version = (this.version || 0) + 1
     const P = (st.patches[patch] ||= { matches: 0, bans: {}, champs: {} })
     P.matches++
@@ -449,28 +500,47 @@ class Collector {
   // ---------------------------------------------------------------- queries
   status() {
     const s = this.getSettings()
-    const platform = s.collectorPlatform || s.platform || 'euw1'
-    const st = this.load(platform)
+    const views = this.views()
     const now = Date.now()
-    this.recent = this.recent.filter((t) => now - t < 600_000)
-    const patches = Object.entries(st.patches)
-      .map(([patch, v]) => ({ patch, matches: v.matches }))
+    const byPatch = {}
+    let queued = 0
+    let players = 0
+    let mayhem = 0
+    let perHour = 0
+    const regions = this.regions().map((platform) => {
+      const st = this.load(platform)
+      const recent = (this.recent[platform] = (this.recent[platform] || []).filter((t) => now - t < 600_000))
+      const matches = Object.values(st.patches).reduce((n, P) => n + P.matches, 0)
+      const rate = Math.round((recent.length / 10) * 60)
+      perHour += rate
+      return { platform, matches, perHour: rate, error: this.errors[platform] || '' }
+    })
+    for (const platform of views) {
+      const st = this.load(platform)
+      for (const [patch, P] of Object.entries(st.patches)) byPatch[patch] = (byPatch[patch] || 0) + P.matches
+      queued += st.matchQueue.length
+      players += st.players.length
+      mayhem += Object.values(st.mayhem?.patches || {}).reduce((n, P) => n + P.matches, 0)
+    }
+    const patches = Object.entries(byPatch)
+      .map(([patch, matches]) => ({ patch, matches }))
       .sort((a, b) => cmpPatch(b.patch, a.patch))
     return {
       enabled: Boolean(s.collectorEnabled),
       hasKey: Boolean(s.riotApiKey),
-      platform,
+      platform: views.length === 1 ? views[0] : 'all',
+      regions,
       patches,
-      queued: st.matchQueue.length,
-      players: st.players.length,
-      perHour: Math.round((this.recent.length / 10) * 60),
-      error: this.lastError,
-      mayhem: Object.values(st.mayhem?.patches || {}).reduce((n, p) => n + p.matches, 0),
+      queued,
+      players,
+      perHour,
+      error: regions.find((r) => r.error)?.error || '',
+      mayhem,
     }
   }
 
   merged(patches) {
-    const memoKey = `${this.platform}|${this.version || 0}|${patches.join(',')}`
+    const memoKey = `${this.views().join(',')}|${this.version || 0}|${patches.join(',')}`
     if (this.memo?.key === memoKey) return this.memo.value
     const value = this.mergeNow(patches)
     this.memo = { key: memoKey, value }
@@ -478,27 +548,29 @@ class Collector {
   }
 
   mergeNow(patches) {
-    const st = this.state
     const out = { matches: 0, bans: {}, champs: {} }
-    for (const p of patches) {
-      const P = st?.patches[p]
-      if (!P) continue
-      out.matches += P.matches
-      for (const [k, [g]] of Object.entries(P.bans)) {
-        const e = (out.bans[k] ||= [0, 0])
-        e[0] += g
-      }
-      for (const [champ, roles] of Object.entries(P.champs)) {
-        for (const [role, a] of Object.entries(roles)) {
-          const t = ((out.champs[champ] ||= {})[role] ||= newAgg())
-          t.g += a.g
-          t.w += a.w
-          for (const key of ['core', 'boots', 'start', 'runes', 'ks', 'spells', 'skills', 'vs', 'late', 'first', 'with', 'foe'])
-            for (const [k, [g, w]] of Object.entries(a[key] || {})) {
-              const e = (t[key][k] ||= [0, 0])
-              e[0] += g
-              e[1] += w
-            }
+    for (const platform of this.views()) {
+      const st = this.load(platform)
+      for (const p of patches) {
+        const P = st.patches[p]
+        if (!P) continue
+        out.matches += P.matches
+        for (const [k, [g]] of Object.entries(P.bans)) {
+          const e = (out.bans[k] ||= [0, 0])
+          e[0] += g
+        }
+        for (const [champ, roles] of Object.entries(P.champs)) {
+          for (const [role, a] of Object.entries(roles)) {
+            const t = ((out.champs[champ] ||= {})[role] ||= newAgg())
+            t.g += a.g
+            t.w += a.w
+            for (const key of ['core', 'boots', 'start', 'runes', 'ks', 'spells', 'skills', 'vs', 'late', 'first', 'with', 'foe'])
+              for (const [k, [g, w]] of Object.entries(a[key] || {})) {
+                const e = (t[key][k] ||= [0, 0])
+                e[0] += g
+                e[1] += w
+              }
+          }
         }
       }
     }
@@ -506,7 +578,6 @@ class Collector {
   }
 
   summary(patches) {
-    this.load(this.status().platform)
     const m = this.merged(patches)
     const rows = []
     for (const [champ, roles] of Object.entries(m.champs)) for (const [role, a] of Object.entries(roles)) rows.push({ champ, role, g: a.g, w: a.w })
@@ -514,7 +585,6 @@ class Collector {
   }
 
   detail(champ, role, patches) {
-    this.load(this.status().platform)
     const m = this.merged(patches)
     const roles = m.champs[champ] || {}
     const roleGames = Object.fromEntries(Object.entries(roles).map(([r, a]) => [r, a.g]))
@@ -523,30 +593,29 @@ class Collector {
     return { matches: m.matches, bans: m.bans[champ]?.[0] ?? 0, role: pick || null, roleGames, agg, rec: recommend(agg) }
   }
 
-  /** Data Studio catalogue: whole-game numbers merged over the given patches. */
+  /** Data Studio catalogue: whole-game numbers merged over the given patches and viewed regions. */
   world(patches) {
-    this.load(this.status().platform)
     const out = newWorld()
-    const list = patches?.length ? patches : Object.keys(this.state?.patches || {})
-    const used = []
-    for (const p of list) {
-      const W = this.state?.patches[p]?.world
-      if (!W) continue
-      addDeep(out, W)
-      used.push(p)
-    }
+    const used = new Set()
     const bans = {}
     let matches = 0
-    for (const p of used) {
-      matches += this.state.patches[p].matches
-      for (const [k, [g]] of Object.entries(this.state.patches[p].bans || {})) bans[k] = (bans[k] || 0) + g
+    for (const platform of this.views()) {
+      const st = this.load(platform)
+      const list = patches?.length ? patches : Object.keys(st.patches)
+      for (const p of list) {
+        const P = st.patches[p]
+        if (!P?.world) continue
+        addDeep(out, P.world)
+        used.add(p)
+        matches += P.matches
+        for (const [k, [g]] of Object.entries(P.bans || {})) bans[k] = (bans[k] || 0) + g
+      }
     }
-    return { ...out, bans, matches, patches: used.sort(cmpPatch).reverse() }
+    return { ...out, bans, matches, patches: [...used].sort(cmpPatch).reverse() }
   }
 
   /** Just what the draft assistant needs: per champion and role the record, lane, ally and enemy pairs. */
   draft(patches) {
-    this.load(this.status().platform)
     const m = this.merged(patches)
     const champs = {}
     for (const [champ, roles] of Object.entries(m.champs))

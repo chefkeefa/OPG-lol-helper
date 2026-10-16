@@ -105,6 +105,8 @@ const WEB_SETTINGS: DesktopSettings = {
   overlayLayout: {},
   collectorEnabled: false,
   collectorPlatform: '',
+  collectorRegions: [],
+  statsRegion: 'all',
   autoOpenChampion: true,
   autoImportRunes: true,
   autoImportItems: true,

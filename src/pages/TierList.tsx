@@ -3,12 +3,11 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { StatsStatus, StatsSummary } from '../lib/statsTypes'
 import { ROLE_LABEL, TIER_COLOR, pct, statsSummary, tierRows, type TierRow } from '../lib/statsApi'
 import { champTile, championList, rankEmblem } from '../lib/ddragon'
-import { PLATFORMS } from '../api/riot'
 import { locale, t } from '../lib/i18n'
 import { Icon, Img, Skeleton, Splash, ease } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
 import { RoleIcon } from '../components/RoleIcon'
-import { CollectorPill, PatchSelect, RoleTabs, StatsGate, hasData, patchList } from '../components/StatsBits'
+import { CollectorPill, PatchSelect, RegionSelect, RoleTabs, StatsGate, hasData, patchList, regionLabel } from '../components/StatsBits'
 
 type Sort = 'tier' | 'wr' | 'pr' | 'br' | 'g'
 
@@ -134,10 +133,14 @@ export function TierList({
                 <Img src={rankEmblem('MASTER')} alt="" size={18} radius={0} />
                 MASTER+
               </span>
-              <span className="tier-chip">
-                <Icon name="eye" size={14} />
-                {(PLATFORMS[status?.platform ?? ''] ?? status?.platform ?? 'EUW').replace(/\d+$/, '').toUpperCase()}
-              </span>
+              {(status?.regions?.length ?? 0) > 1 ? (
+                <RegionSelect status={status} />
+              ) : (
+                <span className="tier-chip">
+                  <Icon name="eye" size={14} />
+                  {regionLabel(status) || 'EUW'}
+                </span>
+              )}
               {!demo && <PatchSelect status={status} value={patch} onChange={setPatch} />}
               <label className="offmeta" title={t('Показывать редкие роли: чемпион играет на этой позиции реже чем в 10% игр')}>
                 <button className={`switch ${offMeta ? 'on' : ''}`} onClick={() => setOffMeta(!offMeta)} aria-pressed={offMeta}>

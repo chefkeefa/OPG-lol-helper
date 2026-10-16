@@ -5,7 +5,7 @@ import { ROLE_LABEL, pct, statsDetail } from '../lib/statsApi'
 import { champName, champTile } from '../lib/ddragon'
 import { Champ, Icon, Ring, Skeleton, Splash, ease } from '../components/ui'
 import { NavIcon } from '../components/NavIcons'
-import { ChampPicker, CollectorPill, PatchSelect, RoleTabs, StatsGate, hasData, patchList } from '../components/StatsBits'
+import { ChampPicker, CollectorPill, PatchSelect, RegionSelect, RoleTabs, StatsGate, hasData, patchList } from '../components/StatsBits'
 import { locale, t } from '../lib/i18n'
 
 type Sort = 'wr' | 'g' | 'delta'
@@ -131,6 +131,7 @@ export function Matchups({
           <div className="mu-toolbar">
             <RoleTabs id="mu" value={d?.role ?? role} onChange={setRole} counts={d?.roleGames} all={false} />
             <div className="tier-tools">
+              {!demo && <RegionSelect status={status} />}
               {!demo && <PatchSelect status={status} value={patch} onChange={setPatch} />}
               <button className="btn" onClick={() => onOpenChampion(champ, d?.role ?? role)}>
                 {t('Билд {champ}', { champ: champName(champ) })} <Icon name="right" size={14} />
