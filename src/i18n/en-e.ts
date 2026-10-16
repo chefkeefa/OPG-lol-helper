@@ -264,4 +264,7 @@ export const EN_E: Record<string, string> = {
   'Следующий предмет сборки Master+ на вашем чемпионе и сколько золота до него осталось.': 'The next item of the Master+ build on your champion and how much gold you still need.',
   'Оценка по золоту, убийствам, башням, драконам и баффам. Обновляется каждую секунду.': 'Estimated from gold, kills, towers, dragons and buffs. Updates every second.',
   'Ранговые игры Master, Grandmaster и Challenger': 'Ranked games in Master, Grandmaster and Challenger',
+  'Регионы': 'Regions',
+  'Все регионы': 'All regions',
+  'У ключа Riot свой лимит запросов на Азию (KR, JP), Европу и Америку, поэтому KR + EUW + NA собирают примерно втрое больше игр, чем один регион. Серверов Китая в Riot API нет.': 'A Riot key has a separate request limit for Asia (KR, JP), Europe and the Americas, so KR + EUW + NA collect about three times as many games as one region. Chinese servers are not in the Riot API.',
 }

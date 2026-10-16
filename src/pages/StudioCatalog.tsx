@@ -175,7 +175,12 @@ export function StudioCatalog() {
   useEffect(() => {
     let on = true
     statsWorld(demo).then((d) => on && setW(d))
-    if (!demo) statsStatus().then((s) => on && setPlatform(s.platform))
+    // the ladder view needs one real server: the region shown, or your own when all are merged
+    if (!demo)
+      statsStatus().then(async (s) => {
+        const p = s.platform !== 'all' ? s.platform : ((await window.rp?.settings.get())?.platform ?? s.regions?.[0]?.platform ?? 'euw1')
+        if (on) setPlatform(p)
+      })
     const off = !demo ? window.rp?.stats.onUpdate(() => statsWorld(false).then((d) => on && setW(d))) : undefined
     return () => {
       on = false

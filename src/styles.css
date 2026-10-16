@@ -8844,3 +8844,42 @@ button.side-profile > .icon, button.side-profile > svg { margin-left: auto; colo
   font-size: 13px;
   line-height: 1.55;
 }
+
+/* settings: regions the collector downloads */
+.region-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 6px;
+}
+.region-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.region-chip:hover {
+  color: var(--text);
+}
+.region-chip.on {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.region-chip:disabled {
+  cursor: default;
+}
+.region-chip em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

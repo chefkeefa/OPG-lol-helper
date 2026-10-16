@@ -30,6 +30,9 @@ const DEFAULTS = {
   // statistics collector (tier list, builds, matchups)
   collectorEnabled: true,
   collectorPlatform: '',
+  // platforms collected in parallel ([] = KR, EUW, NA and your own) and the one shown ('all' = merged)
+  collectorRegions: [],
+  statsRegion: 'all',
   collectMayhem: true,
   // ARAM Mayhem: tiers on the augment cards
   augmentsEnabled: true,
@@ -444,7 +447,7 @@ ipcMain.handle('settings:get', () => ({ ...settings, riotApiKey: settings.riotAp
 ipcMain.handle('settings:set', (_e, key, value) => {
   if (!(key in DEFAULTS)) return false
   store.set(key, value)
-  if (key === 'collectorPlatform' || key === 'riotApiKey' || key === 'collectorEnabled') setTimeout(() => send('stats:update'), 500)
+  if (['collectorPlatform', 'collectorRegions', 'statsRegion', 'riotApiKey', 'collectorEnabled'].includes(key)) setTimeout(() => send('stats:update'), key === 'statsRegion' ? 0 : 500)
   if (key.startsWith('overlay')) overlay?.webContents.send('overlay:settings', settings)
   if (key === 'overlayEnabled' && !value) hideOverlay()
   if (key === 'overlayEnabled' && value && inGame) showOverlay()

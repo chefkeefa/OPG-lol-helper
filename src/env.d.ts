@@ -23,6 +23,10 @@ export interface DesktopSettings {
   overlayLayout: Partial<Record<OverlayWidget, { x: number; y: number }>>
   collectorEnabled: boolean
   collectorPlatform: string
+  /** platforms collected in parallel; empty = KR, EUW, NA and your own */
+  collectorRegions: string[]
+  /** region shown on the stats pages, 'all' = every collected region merged */
+  statsRegion: string
   autoOpenChampion: boolean
   autoImportRunes: boolean
   autoImportItems: boolean

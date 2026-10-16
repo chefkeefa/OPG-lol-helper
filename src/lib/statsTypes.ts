@@ -40,7 +40,10 @@ export interface Rec {
 export interface StatsStatus {
   enabled: boolean
   hasKey: boolean
+  /** the region shown, or 'all' when every collected region is merged */
   platform: string
+  /** every collected region with its own numbers */
+  regions?: { platform: string; matches: number; perHour: number; error: string }[]
   patches: { patch: string; matches: number }[]
   queued: number
   players: number

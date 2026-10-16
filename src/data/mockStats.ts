@@ -217,7 +217,12 @@ function build() {
 }
 
 export function mockStatus(): StatsStatus {
-  return { enabled: true, hasKey: true, platform: 'euw1', patches: [{ patch: '15.24', matches: MATCHES }], queued: 0, players: 0, perHour: 0, error: '', demo: true }
+  const regions = [
+    { platform: 'kr', matches: Math.round(MATCHES * 0.4), perHour: 0, error: '' },
+    { platform: 'euw1', matches: Math.round(MATCHES * 0.35), perHour: 0, error: '' },
+    { platform: 'na1', matches: MATCHES - Math.round(MATCHES * 0.4) - Math.round(MATCHES * 0.35), perHour: 0, error: '' },
+  ]
+  return { enabled: true, hasKey: true, platform: 'all', regions, patches: [{ patch: '15.24', matches: MATCHES }], queued: 0, players: 0, perHour: 0, error: '', demo: true }
 }
 
 export function mockSummary(): StatsSummary {

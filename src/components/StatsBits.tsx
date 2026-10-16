@@ -53,6 +53,35 @@ export function PatchSelect({ status, value, onChange }: { status: StatsStatus |
     </label>
   )
 }
+/** "KR + EUW + NA" when every collected region is merged, else the one region. */
+export function regionLabel(s: StatsStatus | null) {
+  if (!s) return ''
+  if (s.platform !== 'all') return PLATFORMS[s.platform] ?? s.platform
+  return (s.regions ?? []).map((r) => PLATFORMS[r.platform] ?? r.platform).join(' + ') || t('Все регионы')
+}
+
+/** Which collected region the stats pages show: all of them merged, or one. */
+export function RegionSelect({ status }: { status: StatsStatus | null }) {
+  const regions = status?.regions ?? []
+  if (regions.length < 2) return null
+  const total = regions.reduce((n, r) => n + r.matches, 0)
+  return (
+    <label className="select-pill">
+      <span>{t('Регион')}</span>
+      <select value={status?.platform ?? 'all'} disabled={!window.rp} onChange={(e) => window.rp?.settings.set('statsRegion', e.target.value)}>
+        <option value="all">
+          {t('Все регионы')} · {fmtNum(total)}
+        </option>
+        {regions.map((r) => (
+          <option key={r.platform} value={r.platform}>
+            {PLATFORMS[r.platform] ?? r.platform} · {fmtNum(r.matches)}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 export const patchList = (status: StatsStatus | null, v: string) => (v === '*' ? status?.patches.map((p) => p.patch) ?? [] : v ? [v] : [])
 
 /** Search-as-you-type champion picker with icons. */
@@ -152,7 +181,7 @@ export function StatsGate({ status, onDemo, onSettings }: { status: StatsStatus 
       ) : !status.enabled ? (
         <>
           <h2>{t('Сбор статистики выключен')}</h2>
-          <p className="muted">{t('Включите его в настройках, и программа начнёт собирать игры Master+ региона {region}.', { region: PLATFORMS[status.platform] ?? status.platform })}</p>
+          <p className="muted">{t('Включите его в настройках, и программа начнёт собирать игры Master+ региона {region}.', { region: regionLabel(status) })}</p>
           <div className="gate-actions">
             <button className="btn primary" onClick={onSettings}>
               {t('Открыть настройки')}
@@ -167,7 +196,7 @@ export function StatsGate({ status, onDemo, onSettings }: { status: StatsStatus 
           <h2>{t('Собираю статистику…')}</h2>
           <p className="muted">
             {t('Скачиваю ранговые игры лучших игроков {region}. Тир-лист появится после первых {n} игр, точность растёт с каждым часом работы программы.', {
-              region: PLATFORMS[status.platform] ?? status.platform,
+              region: regionLabel(status),
               n: MIN_MATCHES,
             })}
           </p>
@@ -200,7 +229,7 @@ export function CollectorPill({ status, demo }: { status: StatsStatus | null; de
   return (
     <span className={`collector-pill ${status.enabled && status.hasKey && !status.error ? 'on' : ''}`} title={status.error || undefined}>
       <i />
-      {(PLATFORMS[status.platform] ?? status.platform).toString()} · Master+ · {t('{n} игр', { n: fmtNum(total) })}
+      {regionLabel(status)} · Master+ · {t('{n} игр', { n: fmtNum(total) })}
       {status.perHour ? ` · +${t('{n}/ч', { n: status.perHour })}` : ''}
     </span>
   )
